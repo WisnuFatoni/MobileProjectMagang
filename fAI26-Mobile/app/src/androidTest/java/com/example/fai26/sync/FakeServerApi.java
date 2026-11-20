@@ -20,6 +20,11 @@ class FakeServerApi implements ServerApi {
     final List<double[]> koordinatDikirim = new ArrayList<>();
     /** Titik yang sudah dimiliki server per tph_id {lat, lon}; server tiruan tidak menimpanya (seperti server asli). */
     final java.util.Map<Long, double[]> koordinatServer = new java.util.HashMap<>();
+    /** Inspeksi IPD yang diterima, foto IPD (fotoId), dan status IPD yang akan dijawab server. */
+    final List<JSONObject> ipdDikirim = new ArrayList<>();
+    final List<String> fotoIpdDikirim = new ArrayList<>();
+    final List<StatusItem> statusIpd = new ArrayList<>();
+    final Deque<ApiException> galatIpd = new ArrayDeque<>();
     final List<String> tokenDipakai = new ArrayList<>();
     int jumlahRefresh = 0;
     int jumlahLogin = 0;
@@ -89,6 +94,30 @@ class FakeServerApi implements ServerApi {
         lemparBila(galatPanen);
         panenDikirim.add(panen);
         return "DITERIMA";
+    }
+
+    @Override
+    public String kirimIpd(String tokenAkses, JSONObject ipd) throws ApiException {
+        periksa(tokenAkses);
+        lemparBila(galatIpd);
+        ipdDikirim.add(ipd);
+        return "DITERIMA";
+    }
+
+    @Override
+    public String kirimFotoIpd(String tokenAkses, String ipdId, String fotoId, String sha256, String keterangan, int urut, File berkas)
+            throws ApiException {
+        periksa(tokenAkses);
+        fotoIpdDikirim.add(fotoId + "|" + keterangan + "|" + urut);
+        return "DITERIMA";
+    }
+
+    @Override
+    public List<StatusItem> statusIpdSejak(String tokenAkses, long sejakMillis) throws ApiException {
+        periksa(tokenAkses);
+        List<StatusItem> out = new ArrayList<>();
+        for (StatusItem x : statusIpd) if (x.diubahMillis > sejakMillis) out.add(x);
+        return out;
     }
 
     @Override

@@ -54,7 +54,10 @@ public class MasterSync {
     private static final String[][] UNIT = gabung(new String[][]{
             {"unit_id", "L"}, {"kode", "S"}, {"nama", "S"}, {"erp_db", "S"}, {"tahun_cluster", "L"}, {"aktif", "B"}}, WAKTU);
     private static final String[][] DIVISI = gabung(new String[][]{
-            {"divisi_id", "L"}, {"unit_id", "L"}, {"erp_oid", "L"}, {"kode", "S"}, {"nama", "S"}, {"aktif", "B"}}, WAKTU);
+            {"divisi_id", "L"}, {"unit_id", "L"}, {"erp_oid", "L"}, {"kode", "S"}, {"nama", "S"}, {"asisten_user_id", "L"}, {"aktif", "B"}}, WAKTU);
+    /** Master kode temuan IPD (A, G, S, M1 ... R). */
+    private static final String[][] KODE_TEMUAN = gabung(new String[][]{
+            {"kode_id", "L"}, {"kode", "S"}, {"nama", "S"}, {"kelompok", "S"}, {"urut", "L"}, {"aktif", "B"}}, WAKTU);
     private static final String[][] BLOK = gabung(new String[][]{
             {"blok_id", "L"}, {"unit_id", "L"}, {"divisi_id", "L"}, {"erp_oid", "L"}, {"kode", "S"}, {"nama", "S"},
             {"luas_ha", "D"}, {"tahun_tanam", "L"}, {"sph", "D"}, {"aktif", "B"}}, WAKTU);
@@ -128,6 +131,7 @@ public class MasterSync {
                     JSONObject unit = m.optJSONObject("unit");
                     if (unit != null) upsert(sdb, "unit", "unit_id", UNIT, unit, sekarang);
                     upsertSemua(sdb, "divisi", "divisi_id", DIVISI, m.optJSONArray("divisi"), sekarang);
+                    upsertSemua(sdb, "kode_temuan", "kode_id", KODE_TEMUAN, m.optJSONArray("kode_temuan"), sekarang);
                     n[0] = upsertSemua(sdb, "blok", "blok_id", BLOK, m.optJSONArray("blok"), sekarang);
                     n[1] = upsertSemua(sdb, "tph", "tph_id", TPH, m.optJSONArray("tph"), sekarang);
                     n[2] = upsertSemua(sdb, "pemanen", "pemanen_id", PEMANEN, m.optJSONArray("pemanen"), sekarang);
@@ -254,11 +258,7 @@ public class MasterSync {
             JSONArray role = o.optJSONArray("role");
             if (role != null && !dihapus) {
                 for (int r = 0; r < role.length(); r++) {
-                    long roleId = -1;
-                    try (Cursor c = sdb.query("SELECT role_id FROM role WHERE kode = ? AND dihapus_pada IS NULL",
-                            new Object[]{role.getString(r)})) {
-                        if (c.moveToFirst()) roleId = c.getLong(0);
-                    }
+                    long roleId = pastikanKode(sdb, "role", "role_id", role.getString(r), sekarang);
                     if (roleId < 0) continue;
                     long urId;
                     try (Cursor c = sdb.query("SELECT COALESCE(MAX(ur_id), 0) + 1 FROM user_role")) {
@@ -284,16 +284,38 @@ public class MasterSync {
         long rpId = 0;
         for (int i = 0; i < a.length(); i++) {
             JSONObject o = a.getJSONObject(i);
-            long roleId = idDariKode(sdb, "role", "role_id", o.getString("role"));
+            long roleId = pastikanKode(sdb, "role", "role_id", o.getString("role"), sekarang);
             JSONArray izin = o.optJSONArray("permission");
             if (roleId < 0 || izin == null) continue;
             for (int k = 0; k < izin.length(); k++) {
-                long permId = idDariKode(sdb, "permission", "permission_id", izin.getString(k));
+                long permId = pastikanKode(sdb, "permission", "permission_id", izin.getString(k), sekarang);
                 if (permId < 0) continue;
                 sdb.execSQL("INSERT OR IGNORE INTO role_permission (rp_id, role_id, permission_id, dibuat_pada) "
                         + "VALUES (?, ?, ?, ?)", new Object[]{++rpId, roleId, permId, sekarang});
             }
         }
+    }
+
+    /**
+     * Mengembalikan id baris role atau permission menurut kode; membuatnya bila HP belum mengenalnya. Role dan permission baru
+     * (mis. akses.ipd, role ASKEP) ditambahkan admin di server tanpa memperbarui aplikasi, jadi HP menerimanya apa adanya.
+     */
+    private static long pastikanKode(SupportSQLiteDatabase sdb, String tabel, String kolomId, String kode, String sekarang) {
+        long id = idDariKode(sdb, tabel, kolomId, kode);
+        if (id >= 0 || kode == null || kode.isEmpty()) return id;
+        try (Cursor c = sdb.query("SELECT COALESCE(MAX(" + kolomId + "), 0) + 1 FROM " + tabel)) {
+            c.moveToFirst();
+            id = c.getLong(0);
+        }
+        if (tabel.equals("role")) {
+            sdb.execSQL("INSERT INTO role (role_id, kode, nama, bawaan, dibuat_pada) VALUES (?, ?, ?, 0, ?)",
+                    new Object[]{id, kode, kode, sekarang});
+        } else {
+            int titik = kode.indexOf('.');
+            sdb.execSQL("INSERT INTO permission (permission_id, kode, modul, nama, dibuat_pada) VALUES (?, ?, ?, ?, ?)",
+                    new Object[]{id, kode, titik > 0 ? kode.substring(0, titik) : "server", kode, sekarang});
+        }
+        return id;
     }
 
     private static long idDariKode(SupportSQLiteDatabase sdb, String tabel, String kolomId, String kode) {

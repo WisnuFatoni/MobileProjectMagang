@@ -46,6 +46,9 @@ public interface MasterDao {
     @Query("SELECT COUNT(*) FROM unit")
     long jumlahUnit();
 
+    @Query("SELECT unit_id FROM divisi WHERE divisi_id = :divisiId AND dihapus_pada IS NULL")
+    Long unitIdDivisi(long divisiId);
+
     @Query("SELECT t.tph_id AS tphId, b.blok_id AS blokId, b.unit_id AS unitId, b.kode AS blok, "
             + "t.no_tph AS noTph, t.qr_kode AS qrKode "
             + "FROM tph t JOIN blok b ON b.blok_id = t.blok_id "

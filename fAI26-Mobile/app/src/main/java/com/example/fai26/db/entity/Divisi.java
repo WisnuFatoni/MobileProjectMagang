@@ -30,6 +30,10 @@ public class Divisi {
     @NonNull @ColumnInfo(name = "nama")
     public String nama = "";
 
+    /** Asisten divisi (app_user.user_id berperan ASISTEN), diatur admin di web; dipakai IPD. */
+    @ColumnInfo(name = "asisten_user_id")
+    public Long asistenUserId;
+
     @ColumnInfo(name = "aktif")
     public long aktif = 1;
 

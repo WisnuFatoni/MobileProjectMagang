@@ -210,11 +210,20 @@ public class HttpServerApi implements ServerApi {
 
     @Override
     public byte[] unduhFoto(String tokenAkses, String fotoId) throws ApiException {
+        return unduhBerkas(tokenAkses, "/api/admin/foto/", fotoId);
+    }
+
+    @Override
+    public byte[] unduhFotoIpd(String tokenAkses, String fotoId) throws ApiException {
+        return unduhBerkas(tokenAkses, "/api/ipd/foto/", fotoId);
+    }
+
+    private byte[] unduhBerkas(String tokenAkses, String awalan, String fotoId) throws ApiException {
         if (baseUrl.isEmpty()) throw new ApiException(0, "Alamat server belum diatur");
         if (fotoId == null || !fotoId.matches("[0-9a-fA-F-]{36}")) throw new ApiException(422, "Id foto tidak sah");
         HttpURLConnection c = null;
         try {
-            c = (HttpURLConnection) new URL(baseUrl + "/api/admin/foto/" + fotoId).openConnection();
+            c = (HttpURLConnection) new URL(baseUrl + awalan + fotoId).openConnection();
             c.setConnectTimeout(WAKTU_SAMBUNG_MS);
             c.setReadTimeout(WAKTU_BACA_MS);
             c.setRequestMethod("GET");
@@ -238,6 +247,143 @@ public class HttpServerApi implements ServerApi {
             throw new ApiException(0, "Tidak tersambung ke server", e);
         } finally {
             if (c != null) c.disconnect();
+        }
+    }
+
+    // ---- IPD (Inspeksi Panen Detail) -----------------------------------------------------------------
+
+    @Override
+    public String kirimIpd(String tokenAkses, JSONObject ipd) throws ApiException {
+        Jawaban r = panggil("POST", "/api/ipd", tokenAkses, "application/json", ipd.toString().getBytes(StandardCharsets.UTF_8), null);
+        return statusDari(r.isi);
+    }
+
+    @Override
+    public String kirimFotoIpd(String tokenAkses, String ipdId, String fotoId, String sha256, String keterangan, int urut,
+                               File berkas) throws ApiException {
+        byte[] isi;
+        try {
+            if (berkas.length() > MAKS_FOTO_BYTE) throw new ApiException(413, "Foto lebih dari 8 MB");
+            isi = bacaSemua(berkas);
+        } catch (IOException e) {
+            throw new ApiException(422, "Berkas foto tidak terbaca", e);
+        }
+        String q = "?urut=" + urut + (keterangan == null || keterangan.isEmpty() ? "" : "&keterangan=" + java.net.URLEncoder.encode(keterangan));
+        String[][] header = {{"X-Foto-Id", fotoId}, {"X-Sha256", sha256}};
+        Jawaban r = panggil("POST", "/api/ipd/" + ipdId + "/media" + q, tokenAkses, "image/jpeg", isi, header);
+        return statusDari(r.isi);
+    }
+
+    @Override
+    public List<StatusItem> statusIpdSejak(String tokenAkses, long sejakMillis) throws ApiException {
+        Jawaban r = panggil("GET", "/api/ipd?sejak=" + iso(sejakMillis), tokenAkses, null, null, null);
+        try {
+            JSONArray a = new JSONArray(r.isi);
+            List<StatusItem> out = new ArrayList<>();
+            for (int i = 0; i < a.length(); i++) {
+                JSONObject o = a.getJSONObject(i);
+                out.add(new StatusItem(o.getString("id"), o.getString("status"),
+                        o.isNull("pesan") ? null : o.optString("pesan", null), parseIso(o.getString("diubah"))));
+            }
+            return out;
+        } catch (JSONException | ParseException e) {
+            throw new ApiException(0, "Jawaban server tidak dikenali", e);
+        }
+    }
+
+    @Override
+    public List<IpdMenunggu> daftarIpdMenunggu(String tokenAkses) throws ApiException {
+        Jawaban r = panggil("GET", "/api/ipd/menunggu", tokenAkses, null, null, null);
+        try {
+            JSONArray a = new JSONArray(r.isi);
+            List<IpdMenunggu> out = new ArrayList<>();
+            for (int i = 0; i < a.length(); i++) {
+                JSONObject o = a.getJSONObject(i);
+                IpdMenunggu m = new IpdMenunggu();
+                m.id = o.getString("id");
+                m.tanggalInspeksi = o.optString("tanggal_inspeksi", "");
+                m.divisiKode = o.optString("divisi_kode", "");
+                m.blokKode = o.isNull("blok_kode") ? null : o.optString("blok_kode", null);
+                m.pemanenNama = o.isNull("pemanen_nama") ? null : o.optString("pemanen_nama", null);
+                m.ancakNo = o.isNull("ancak_no") ? null : o.optString("ancak_no", null);
+                m.inspekturNama = o.optString("inspektur_nama", o.optString("inspektur", ""));
+                m.mandorBlokNama = o.isNull("mandor_blok_nama") ? null : o.optString("mandor_blok_nama", null);
+                m.mandorAncakNama = o.isNull("mandor_ancak_nama") ? null : o.optString("mandor_ancak_nama", null);
+                m.catatan = o.isNull("catatan") ? null : o.optString("catatan", null);
+                m.dibuatMillis = parseIso(o.getString("dibuat_pada"));
+                JSONObject rg = o.optJSONObject("ringkasan");
+                if (rg != null) {
+                    m.pokokDiperiksa = rg.optLong("pokok_diperiksa", 0);
+                    m.pokokBertemuan = rg.optLong("pokok_bertemuan", 0);
+                    m.persenBertemuan = rg.optDouble("persen_pokok_bertemuan", 0);
+                    m.totalTemuan = rg.optLong("total_temuan", 0);
+                    JSONArray pk = rg.optJSONArray("per_kode");
+                    for (int k = 0; pk != null && k < pk.length(); k++) {
+                        JSONObject x = pk.getJSONObject(k);
+                        if (x.optLong("jumlah", 0) <= 0) continue;
+                        IpdKode kd = new IpdKode();
+                        kd.kode = x.getString("kode");
+                        kd.nama = x.optString("nama", kd.kode);
+                        kd.pokok = x.optLong("pokok", 0);
+                        kd.jumlah = x.optLong("jumlah", 0);
+                        kd.persenPokok = x.optDouble("persen_pokok", 0);
+                        m.perKode.add(kd);
+                    }
+                }
+                JSONArray ft = o.optJSONArray("foto");
+                for (int k = 0; ft != null && k < ft.length(); k++) {
+                    JSONObject x = ft.getJSONObject(k);
+                    IpdFotoRef f = new IpdFotoRef();
+                    f.id = x.getString("id");
+                    f.keterangan = x.isNull("keterangan") ? null : x.optString("keterangan", null);
+                    m.foto.add(f);
+                }
+                out.add(m);
+            }
+            return out;
+        } catch (JSONException | ParseException e) {
+            throw new ApiException(0, "Jawaban server tidak dikenali", e);
+        }
+    }
+
+    @Override
+    public void setujuiIpd(String tokenAkses, String ipdId) throws ApiException {
+        panggil("POST", "/api/ipd/" + ipdId + "/setujui", tokenAkses, null, null, null);
+    }
+
+    @Override
+    public void tolakIpd(String tokenAkses, String ipdId, String alasan) throws ApiException {
+        try {
+            JSONObject badan = new JSONObject().put("alasan", alasan);
+            panggil("POST", "/api/ipd/" + ipdId + "/tolak", tokenAkses, "application/json",
+                    badan.toString().getBytes(StandardCharsets.UTF_8), null);
+        } catch (JSONException e) {
+            throw new ApiException(0, "Isi permintaan tidak bisa dibentuk", e);
+        }
+    }
+
+    @Override
+    public List<IpdTerakhirItem> inspeksiTerakhir(String tokenAkses, long hrmb, long asm3Oid, String tanggal, String kecuali)
+            throws ApiException {
+        String q = "?pemanen_hrmb_code=" + hrmb + "&asm3_oid=" + asm3Oid
+                + (tanggal == null || tanggal.isEmpty() ? "" : "&tanggal=" + java.net.URLEncoder.encode(tanggal))
+                + (kecuali == null || kecuali.isEmpty() ? "" : "&kecuali=" + java.net.URLEncoder.encode(kecuali));
+        Jawaban r = panggil("GET", "/api/ipd/inspeksi-terakhir" + q, tokenAkses, null, null, null);
+        try {
+            JSONArray a = new JSONObject(r.isi).optJSONArray("inspeksi");
+            List<IpdTerakhirItem> out = new ArrayList<>();
+            for (int i = 0; a != null && i < a.length(); i++) {
+                JSONObject o = a.getJSONObject(i);
+                IpdTerakhirItem t = new IpdTerakhirItem();
+                t.id = o.getString("id");
+                t.tanggalInspeksi = o.optString("tanggal_inspeksi", "");
+                t.inspekturNama = o.optString("inspektur_nama", o.optString("inspektur", ""));
+                t.status = o.optString("status", "");
+                out.add(t);
+            }
+            return out;
+        } catch (JSONException e) {
+            throw new ApiException(0, "Jawaban server tidak dikenali", e);
         }
     }
 

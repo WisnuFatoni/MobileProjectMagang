@@ -3,6 +3,7 @@ package com.example.fai26.db;
 import android.content.Context;
 
 import androidx.annotation.NonNull;
+import androidx.room.AutoMigration;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
@@ -10,6 +11,7 @@ import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
 import com.example.fai26.db.dao.AkunDao;
+import com.example.fai26.db.dao.IpdDao;
 import com.example.fai26.db.dao.MasterDao;
 import com.example.fai26.db.dao.PanenDao;
 import com.example.fai26.db.dao.SyncDao;
@@ -20,7 +22,12 @@ import com.example.fai26.db.entity.Deteksi;
 import com.example.fai26.db.entity.Device;
 import com.example.fai26.db.entity.Divisi;
 import com.example.fai26.db.entity.Foto;
+import com.example.fai26.db.entity.IpdFoto;
+import com.example.fai26.db.entity.IpdHeader;
+import com.example.fai26.db.entity.IpdPokok;
+import com.example.fai26.db.entity.IpdTemuan;
 import com.example.fai26.db.entity.KelasGrading;
+import com.example.fai26.db.entity.KodeTemuan;
 import com.example.fai26.db.entity.MasterSync;
 import com.example.fai26.db.entity.ModelVersi;
 import com.example.fai26.db.entity.PanenGrading;
@@ -37,7 +44,7 @@ import com.example.fai26.db.entity.Unit;
 import com.example.fai26.db.entity.UserRole;
 
 /**
- * Database HP (SQLite lewat Room), 22 tabel sesuai ERD (erd/fAI26_ERD_Database_Mobile.md).
+ * Database HP (SQLite lewat Room), 27 tabel sesuai ERD (modul IPD sejak versi 5) (erd/fAI26_ERD_Database_Mobile.md).
  * Foreign key selalu aktif (Room menyalakannya).
  */
 @Database(
@@ -46,9 +53,11 @@ import com.example.fai26.db.entity.UserRole;
                 KelasGrading.class, ModelVersi.class, Device.class,
                 AppUser.class, Role.class, Permission.class, UserRole.class, RolePermission.class,
                 PanenHeader.class, PanenPemanen.class, PanenGrading.class, Foto.class, Deteksi.class,
-                AuditLog.class, SyncQueue.class, MasterSync.class
+                AuditLog.class, SyncQueue.class, MasterSync.class,
+                KodeTemuan.class, IpdHeader.class, IpdPokok.class, IpdTemuan.class, IpdFoto.class
         },
-        version = 4,
+        version = 5,
+        autoMigrations = {@AutoMigration(from = 4, to = 5)},
         exportSchema = true)
 public abstract class AppDatabase extends RoomDatabase {
 
@@ -85,6 +94,10 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    /**
+     * Versi 5 (IPD, Inspeksi Panen Detail): kolom asisten di divisi dan lima tabel baru (kode_temuan, ipd_header, ipd_pokok,
+     * ipd_temuan, ipd_foto). Memakai migrasi otomatis Room (hanya menambah), jadi catatan panen offline tidak tersentuh.
+     */
     public static final Migration MIGRASI_1_2 = new Migration(1, 2) {
         @Override
         public void migrate(@NonNull SupportSQLiteDatabase db) {
@@ -103,6 +116,8 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract PanenDao panenDao();
 
     public abstract SyncDao syncDao();
+
+    public abstract IpdDao ipdDao();
 
     private static volatile AppDatabase instance;
 

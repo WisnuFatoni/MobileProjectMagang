@@ -113,6 +113,15 @@ public class PengaturanSync {
         p.edit().putLong(K_SEJAK, millis).apply();
     }
 
+    /** Waktu (millis) perubahan status inspeksi IPD terakhir yang sudah diambil dari server. */
+    public long statusIpdSejak() {
+        return p.getLong("status_ipd_sejak", 0L);
+    }
+
+    public void aturStatusIpdSejak(long millis) {
+        p.edit().putLong("status_ipd_sejak", millis).apply();
+    }
+
     public void catatSinkron(long waktuMillis, String ringkasan) {
         p.edit().putLong(K_TERAKHIR, waktuMillis).putString(K_RINGKAS, ringkasan).apply();
     }

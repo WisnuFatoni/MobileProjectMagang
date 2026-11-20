@@ -44,6 +44,9 @@ public class SyncService {
         /** Koordinat TPH yang direkam di HP dan sudah sampai ke server. */
         public int koordinatTerkirim;
         public int auditTerkirim;
+        /** Inspeksi IPD dan fotonya yang sudah sampai ke server. */
+        public int ipdTerkirim;
+        public int fotoIpdTerkirim;
         public int ditolak;
         public int statusDiperbarui;
         /** Master baru diunduh dan diterapkan pada putaran ini. */
@@ -64,7 +67,7 @@ public class SyncService {
         public int terkunci;
 
         public boolean adaYangDikirim() {
-            return panenTerkirim + fotoTerkirim + koordinatTerkirim + auditTerkirim + statusDiperbarui > 0
+            return panenTerkirim + fotoTerkirim + koordinatTerkirim + auditTerkirim + statusDiperbarui + ipdTerkirim + fotoIpdTerkirim > 0
                     || masterDiperbarui;
         }
 
@@ -73,6 +76,8 @@ public class SyncService {
             StringBuilder s = new StringBuilder();
             if (panenTerkirim > 0) s.append(panenTerkirim).append(" catatan terkirim");
             if (fotoTerkirim > 0) tambah(s, fotoTerkirim + " foto");
+            if (ipdTerkirim > 0) tambah(s, ipdTerkirim + " inspeksi IPD");
+            if (fotoIpdTerkirim > 0) tambah(s, fotoIpdTerkirim + " foto IPD");
             if (koordinatTerkirim > 0) tambah(s, koordinatTerkirim + " koordinat TPH");
             if (auditTerkirim > 0) tambah(s, auditTerkirim + " audit");
             if (statusDiperbarui > 0) tambah(s, statusDiperbarui + " status diperbarui");
@@ -143,6 +148,18 @@ public class SyncService {
         dao.insertQueue(q);
     }
 
+    /** Memasukkan satu inspeksi IPD ke antrean (payload = ipd_id). Dipanggil dari repository dalam transaksi yang sama. */
+    public static void antrekanIpd(SyncDao dao, String ipdId, String waktu, long userId) {
+        SyncQueue q = new SyncQueue();
+        q.panenId = null;
+        q.entitas = "IPD";
+        q.aksi = "KIRIM";
+        q.payloadJson = ipdId;
+        q.dibuatPada = waktu;
+        q.dibuatOleh = userId;
+        dao.insertQueue(q);
+    }
+
     static final String ENTITAS_KOORDINAT = "TPH_KOORDINAT";
 
     static String payloadKoordinat(long tphId, double lat, double lon, double akurasiM) {
@@ -187,6 +204,7 @@ public class SyncService {
                 kirimAntrean(dao, sesi, paksa, hasil);
                 if (!hasil.perluLogin && hasil.masalah == null) kirimAudit(dao, sesi, hasil);
                 if (!hasil.perluLogin) ambilStatus(dao, sesi, hasil);
+                if (!hasil.perluLogin) ambilStatusIpd(sesi, hasil);
             } catch (ApiException e) {
                 if (e.tidakLogin()) {
                     hasil.perluLogin = true;
@@ -320,7 +338,7 @@ public class SyncService {
                 adaBaru = true;
                 if (!sudahWaktunya(q, paksa)) continue;
                 if (!bolehMengirim(dao, sesi, q)) {
-                    if ("PANEN".equals(q.entitas) || ENTITAS_KOORDINAT.equals(q.entitas)) hasil.menungguPemilik++;
+                    if ("PANEN".equals(q.entitas) || "IPD".equals(q.entitas) || ENTITAS_KOORDINAT.equals(q.entitas)) hasil.menungguPemilik++;
                     continue;
                 }
                 try {
@@ -357,6 +375,12 @@ public class SyncService {
                 break;
             case "FOTO":
                 prosesFoto(dao, token, q, hasil);
+                break;
+            case "IPD":
+                prosesIpd(dao, token, q, hasil);
+                break;
+            case "IPD_FOTO":
+                prosesFotoIpd(dao, token, q, hasil);
                 break;
             case ENTITAS_KOORDINAT:
                 prosesKoordinat(dao, token, q, hasil);
@@ -407,6 +431,78 @@ public class SyncService {
             }
         });
         hasil.panenTerkirim++;
+    }
+
+    /**
+     * Mengirim satu inspeksi IPD. Server menjawab 423 bila asisten sudah menyetujuinya: perubahan dari HP tidak diterima, yang
+     * berlaku di server adalah versi yang disetujui, jadi HP menandai DISETUJUI dan menghentikan kirim ulang.
+     */
+    private void prosesIpd(SyncDao dao, String token, SyncQueue q, Ringkasan hasil) throws ApiException {
+        final com.example.fai26.db.dao.IpdDao ipd = db.ipdDao();
+        final String id = q.payloadJson;
+        com.example.fai26.db.dao.IpdHasil.HeaderKirim h = id == null ? null : ipd.headerKirim(id);
+        if (h == null) throw new ApiException(404, "Inspeksi tidak ditemukan di HP");
+        try {
+            api.kirimIpd(token, PayloadBuilder.ipd(h, ipd.pokokKirim(id), ipd.temuanKirim(id)));
+        } catch (JSONException e) {
+            throw new ApiException(422, "Isi inspeksi tidak bisa dibentuk: " + e.getMessage(), e);
+        } catch (ApiException e) {
+            if (e.kode == 423 && h.kirimUlang != 0) {
+                final String waktuKunci = Waktu.utc(jam.getAsLong());
+                db.runInTransaction(() -> {
+                    ipd.setStatusKirim(id, com.example.fai26.db.IpdRepository.DISETUJUI, waktuKunci,
+                            "Perubahan tidak diterima: " + e.getMessage() + ". Isi di server adalah versi yang disetujui asisten.");
+                    ipd.resetKirimUlang(id);
+                    dao.updateQueue(q.queueId, "SELESAI", q.percobaan, e.getMessage(), waktuKunci);
+                });
+                hasil.terkunci++;
+                return;
+            }
+            throw e;
+        }
+        final String waktu = Waktu.utc(jam.getAsLong());
+        // Pemegang ipd.setujui (asisten) yang mengirim langsung DISETUJUI; selain itu menunggu asisten divisi.
+        final boolean langsungSah = db.akunDao().permission(h.userId, Waktu.tanggalLokalHariIni()).contains("ipd.setujui");
+        final List<com.example.fai26.db.dao.IpdHasil.FotoKirim> foto = ipd.fotoBelumUnggah(id);
+        db.runInTransaction(() -> {
+            ipd.setStatusKirim(id, langsungSah ? com.example.fai26.db.IpdRepository.DISETUJUI : com.example.fai26.db.IpdRepository.MENUNGGU_SETUJU, waktu, null);
+            if (h.kirimUlang != 0) ipd.resetKirimUlang(id);
+            dao.updateQueue(q.queueId, "SELESAI", q.percobaan, null, waktu);
+            for (com.example.fai26.db.dao.IpdHasil.FotoKirim f : foto) {
+                SyncQueue fq = new SyncQueue();
+                fq.panenId = null;
+                fq.entitas = "IPD_FOTO";
+                fq.aksi = "KIRIM";
+                fq.payloadJson = f.fotoId;
+                fq.dibuatPada = waktu;
+                fq.dibuatOleh = h.userId;
+                dao.insertQueue(fq);
+            }
+        });
+        hasil.ipdTerkirim++;
+    }
+
+    /** Mengirim satu foto bukti IPD. Setelah server menerimanya, berkas di HP dihapus supaya memori tidak penuh. */
+    private void prosesFotoIpd(SyncDao dao, String token, SyncQueue q, Ringkasan hasil) throws ApiException {
+        final com.example.fai26.db.dao.IpdDao ipd = db.ipdDao();
+        com.example.fai26.db.dao.IpdHasil.FotoKirim f = q.payloadJson == null ? null : ipd.fotoKirim(q.payloadJson);
+        if (f == null) throw new ApiException(404, "Data foto IPD tidak ada di HP");
+        if (f.pathLokal == null) { // sudah terkirim sebelumnya
+            dao.updateQueue(q.queueId, "SELESAI", q.percobaan, null, Waktu.utc(jam.getAsLong()));
+            return;
+        }
+        File berkas = new File(f.pathLokal);
+        if (!berkas.exists()) throw new ApiException(404, "Berkas foto IPD tidak ada di HP");
+        if (f.sha256 == null) throw new ApiException(422, "Foto IPD tanpa checksum");
+        api.kirimFotoIpd(token, f.ipdId, f.fotoId, f.sha256, f.keterangan, (int) f.urut, berkas);
+        final String waktu = Waktu.utc(jam.getAsLong());
+        db.runInTransaction(() -> {
+            ipd.fotoSudahDiunggah(f.fotoId, waktu);
+            dao.updateQueue(q.queueId, "SELESAI", q.percobaan, null, waktu);
+        });
+        //noinspection ResultOfMethodCallIgnored
+        berkas.delete(); // sudah di server: lepas dari HP
+        hasil.fotoIpdTerkirim++;
     }
 
     private void prosesFoto(SyncDao dao, String token, SyncQueue q, Ringkasan hasil) throws ApiException {
@@ -465,6 +561,9 @@ public class SyncService {
             dao.updateQueue(q.queueId, "GAGAL", percobaan, e.getMessage(), waktu);
             if ("PANEN".equals(q.entitas) && q.panenId != null) {
                 dao.setStatusKirim(q.panenId, StatusPanen.DITOLAK, waktu, e.getMessage());
+            }
+            if ("IPD".equals(q.entitas) && q.payloadJson != null) {
+                db.ipdDao().setStatusKirim(q.payloadJson, com.example.fai26.db.IpdRepository.DITOLAK, waktu, e.getMessage());
             }
         });
         hasil.ditolak++;
@@ -536,6 +635,41 @@ public class SyncService {
         });
         for (ServerApi.StatusItem s : daftar) terbaru = Math.max(terbaru, s.diubahMillis);
         pref.aturStatusSejak(terbaru);
+        hasil.statusDiperbarui += berubah[0];
+    }
+
+    /**
+     * Status inspeksi IPD dari server (menunggu asisten, disetujui, ditolak). Akun tanpa hak ipd.buat dijawab 403 dan dilewati
+     * tanpa dianggap masalah.
+     */
+    private void ambilStatusIpd(Sesi sesi, Ringkasan hasil) throws ApiException {
+        if (sesi.userId <= 0 || !db.akunDao().permission(sesi.userId, Waktu.tanggalLokalHariIni()).contains("ipd.buat")) return;
+        List<ServerApi.StatusItem> daftar;
+        try {
+            try {
+                daftar = api.statusIpdSejak(sesi.token, pref.statusIpdSejak());
+            } catch (ApiException e) {
+                if (!e.tidakLogin()) throw e;
+                sesi.token = perbaruiToken();
+                daftar = api.statusIpdSejak(sesi.token, pref.statusIpdSejak());
+            }
+        } catch (ApiException e) {
+            if (e.tidakLogin()) throw e;
+            if (e.kode == 403 || e.kode == 404) return; // belum berhak, atau server belum punya modul IPD
+            if (hasil.masalah == null) hasil.masalah = "Status IPD belum diperbarui: " + e.getMessage();
+            hasil.bisaDicobaLagi |= e.bisaDicobaLagi();
+            return;
+        }
+        if (daftar.isEmpty()) return;
+        final String waktu = Waktu.utc(jam.getAsLong());
+        long terbaru = pref.statusIpdSejak();
+        final List<ServerApi.StatusItem> salinan = daftar;
+        final int[] berubah = {0};
+        db.runInTransaction(() -> {
+            for (ServerApi.StatusItem s : salinan) berubah[0] += db.ipdDao().setStatusServer(s.id, s.status, s.pesan, waktu);
+        });
+        for (ServerApi.StatusItem s : daftar) terbaru = Math.max(terbaru, s.diubahMillis);
+        pref.aturStatusIpdSejak(terbaru);
         hasil.statusDiperbarui += berubah[0];
     }
 

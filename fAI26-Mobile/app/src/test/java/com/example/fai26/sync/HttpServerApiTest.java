@@ -402,4 +402,94 @@ public class HttpServerApiTest {
             assertFalse("409 tidak dicoba ulang otomatis", e.bisaDicobaLagi());
         }
     }
+
+    // ---- IPD (Inspeksi Panen Detail) --------------------------------------------------------------
+
+    @Test
+    public void ipdKirimMemakaiJalurBenarDanMembacaStatus() throws Exception {
+        badanJawab = "{\"status\":\"DITERIMA\",\"id\":\"x\"}";
+        assertEquals("DITERIMA", api.kirimIpd("TOKEN", new JSONObject().put("ipd_id", "x")));
+        assertEquals("POST", metode);
+        assertEquals("/api/ipd", pathLengkap);
+        assertEquals("Bearer TOKEN", authorization);
+        assertEquals("application/json", tipeIsi);
+
+        // 423: asisten sudah menyetujui, perubahan tidak diterima. Kode dan pesan sampai ke pemanggil.
+        kodeJawab = 423;
+        badanJawab = "{\"error\":\"Inspeksi sudah disetujui asisten, tidak bisa diubah lagi\"}";
+        try {
+            api.kirimIpd("TOKEN", new JSONObject().put("ipd_id", "x"));
+            fail("423 harus gagal");
+        } catch (ApiException e) {
+            assertEquals(423, e.kode);
+            assertTrue(e.getMessage(), e.getMessage().contains("disetujui asisten"));
+            assertFalse("423 bukan galat sementara: tidak dicoba lagi", e.bisaDicobaLagi());
+        }
+    }
+
+    @Test
+    public void ipdFotoMengirimKeteranganDanUrutLewatQuery() throws Exception {
+        File f = File.createTempFile("ipd", ".jpg");
+        f.deleteOnExit();
+        Files.write(f.toPath(), new byte[]{(byte) 0xFF, (byte) 0xD8, 1, 2, 3});
+        badanJawab = "{\"status\":\"DITERIMA\"}";
+        api.kirimFotoIpd("TOKEN", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+                "a".repeat(64), "buah tinggal & brondolan", 3, f);
+        assertEquals("POST", metode);
+        assertEquals("/api/ipd/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/media?urut=3&keterangan=buah+tinggal+%26+brondolan", pathLengkap);
+        assertEquals("cccccccc-cccc-4ccc-8ccc-cccccccccccc", fotoId);
+        assertEquals("a".repeat(64), sha);
+        assertEquals("image/jpeg", tipeIsi);
+        assertEquals(5, isi.length);
+    }
+
+    @Test
+    public void ipdStatusMenungguDanInspeksiTerakhirDibaca() throws Exception {
+        badanJawab = "[{\"id\":\"a1\",\"status\":\"DITOLAK\",\"status_server\":\"DITOLAK\",\"pesan\":\"Baris 10 belum lengkap\",\"diubah\":\"2026-11-20T03:00:00Z\"}]";
+        List<ServerApi.StatusItem> st = api.statusIpdSejak("TOKEN", 0);
+        assertTrue(pathLengkap.startsWith("/api/ipd?sejak="));
+        assertEquals("DITOLAK", st.get(0).status);
+        assertEquals("Baris 10 belum lengkap", st.get(0).pesan);
+
+        badanJawab = "[{\"id\":\"i1\",\"tanggal_inspeksi\":\"2026-11-20\",\"divisi_kode\":\"DIV2\",\"blok_kode\":\"A12\",\"pemanen_nama\":\"Budi\","
+                + "\"ancak_no\":null,\"inspektur_nama\":\"Mandor Satu\",\"mandor_blok_nama\":\"M1\",\"mandor_ancak_nama\":null,\"catatan\":null,"
+                + "\"dibuat_pada\":\"2026-11-20T03:00:00Z\",\"ringkasan\":{\"pokok_diperiksa\":5,\"pokok_bertemuan\":3,\"persen_pokok_bertemuan\":60,\"total_temuan\":13,"
+                + "\"per_kode\":[{\"kode\":\"A\",\"nama\":\"Potong buah mentah\",\"pokok\":1,\"jumlah\":1,\"persen_pokok\":20},"
+                + "{\"kode\":\"C\",\"nama\":\"Pelepah\",\"pokok\":0,\"jumlah\":0,\"persen_pokok\":0}]},"
+                + "\"foto\":[{\"id\":\"f1\",\"keterangan\":\"buah tinggal\",\"urut\":0}]}]";
+        List<ServerApi.IpdMenunggu> l = api.daftarIpdMenunggu("TOKEN");
+        assertEquals("/api/ipd/menunggu", pathLengkap);
+        ServerApi.IpdMenunggu m = l.get(0);
+        assertEquals("Budi", m.pemanenNama);
+        assertEquals(5, m.pokokDiperiksa);
+        assertEquals(60.0, m.persenBertemuan, 0.0001);
+        assertEquals("hanya kode yang punya temuan", 1, m.perKode.size());
+        assertEquals("A", m.perKode.get(0).kode);
+        assertEquals("buah tinggal", m.foto.get(0).keterangan);
+
+        badanJawab = "{\"jendela_hari\":7,\"ada\":true,\"inspeksi\":[{\"id\":\"z\",\"tanggal_inspeksi\":\"2026-11-13\",\"inspektur_nama\":\"Mandor Satu\",\"status\":\"DISETUJUI\"}]}";
+        List<ServerApi.IpdTerakhirItem> tr = api.inspeksiTerakhir("TOKEN", 90001, 1012, "2026-11-20", null);
+        assertEquals("/api/ipd/inspeksi-terakhir?pemanen_hrmb_code=90001&asm3_oid=1012&tanggal=2026-11-20", pathLengkap);
+        assertEquals("Mandor Satu", tr.get(0).inspekturNama);
+    }
+
+    @Test
+    public void ipdSetujuiTolakDanFotoMemakaiJalurIpd() throws Exception {
+        badanJawab = "{\"status\":\"DISETUJUI\"}";
+        api.setujuiIpd("TOKEN", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
+        assertEquals("POST", metode);
+        assertEquals("/api/ipd/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/setujui", pathLengkap);
+        api.tolakIpd("TOKEN", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "Blok salah");
+        assertEquals("/api/ipd/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/tolak", pathLengkap);
+        assertTrue(new String(isi, StandardCharsets.UTF_8).contains("Blok salah"));
+        badanJawab = "JPEG";
+        assertEquals("JPEG", new String(api.unduhFotoIpd("TOKEN", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"), StandardCharsets.UTF_8));
+        assertEquals("/api/ipd/foto/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", pathLengkap);
+        try {
+            api.unduhFotoIpd("TOKEN", "../x");
+            fail("id tidak sah");
+        } catch (ApiException e) {
+            assertEquals(422, e.kode);
+        }
+    }
 }

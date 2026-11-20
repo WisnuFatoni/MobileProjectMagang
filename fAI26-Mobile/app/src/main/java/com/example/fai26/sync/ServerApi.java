@@ -100,6 +100,89 @@ public interface ServerApi {
         public final java.util.Map<String, Long> grading = new java.util.LinkedHashMap<>();
     }
 
+    /** Satu inspeksi IPD yang menunggu persetujuan asisten (GET /api/ipd/menunggu). */
+    final class IpdMenunggu {
+        public String id;
+        public String tanggalInspeksi;
+        public String divisiKode;
+        public String blokKode;
+        public String pemanenNama;
+        public String ancakNo;
+        public String inspekturNama;
+        public String mandorBlokNama;
+        public String mandorAncakNama;
+        public String catatan;
+        public long dibuatMillis;
+        public long pokokDiperiksa;
+        public long pokokBertemuan;
+        public double persenBertemuan;
+        public long totalTemuan;
+        /** Hanya kode yang punya temuan. */
+        public final List<IpdKode> perKode = new java.util.ArrayList<>();
+        public final List<IpdFotoRef> foto = new java.util.ArrayList<>();
+    }
+
+    final class IpdKode {
+        public String kode;
+        public String nama;
+        public long pokok;
+        public long jumlah;
+        public double persenPokok;
+    }
+
+    final class IpdFotoRef {
+        public String id;
+        public String keterangan;
+    }
+
+    /** Inspeksi sebelumnya pada pemanen + blok yang sama (peringatan inspeksi ulang, 7 hari). */
+    final class IpdTerakhirItem {
+        public String id;
+        public String tanggalInspeksi;
+        public String inspekturNama;
+        public String status;
+    }
+
+    /** @return "DITERIMA" (baru atau diperbarui) atau "SUDAH_ADA". 423 bila inspeksi sudah disetujui asisten (terkunci). */
+    default String kirimIpd(String tokenAkses, JSONObject ipd) throws ApiException {
+        throw new ApiException(0, "Tidak didukung");
+    }
+
+    /** Foto bukti IPD (tanpa batas jumlah) dengan keterangan dan urutan. @return "DITERIMA" atau "SUDAH_ADA". */
+    default String kirimFotoIpd(String tokenAkses, String ipdId, String fotoId, String sha256, String keterangan, int urut,
+                                File berkas) throws ApiException {
+        throw new ApiException(0, "Tidak didukung");
+    }
+
+    /** Status inspeksi IPD milik pengguna sejak waktu tertentu (GET /api/ipd?sejak=). */
+    default List<StatusItem> statusIpdSejak(String tokenAkses, long sejakMillis) throws ApiException {
+        throw new ApiException(0, "Tidak didukung");
+    }
+
+    /** Inspeksi yang menunggu persetujuan pengguna (perlu hak ipd.setujui). */
+    default List<IpdMenunggu> daftarIpdMenunggu(String tokenAkses) throws ApiException {
+        throw new ApiException(0, "Tidak didukung");
+    }
+
+    default void setujuiIpd(String tokenAkses, String ipdId) throws ApiException {
+        throw new ApiException(0, "Tidak didukung");
+    }
+
+    default void tolakIpd(String tokenAkses, String ipdId, String alasan) throws ApiException {
+        throw new ApiException(0, "Tidak didukung");
+    }
+
+    /** Peringatan inspeksi ulang: inspeksi pemanen + blok yang sama dalam 7 hari sampai tanggal. */
+    default List<IpdTerakhirItem> inspeksiTerakhir(String tokenAkses, long hrmb, long asm3Oid, String tanggal, String kecuali)
+            throws ApiException {
+        throw new ApiException(0, "Tidak didukung");
+    }
+
+    /** Mengunduh foto bukti inspeksi (JPEG) untuk diperiksa asisten. */
+    default byte[] unduhFotoIpd(String tokenAkses, String fotoId) throws ApiException {
+        throw new ApiException(0, "Tidak didukung");
+    }
+
     LoginHasil login(String username, String password, String deviceId, String deviceNama, String osVersi,
                      String appVersi) throws ApiException;
 

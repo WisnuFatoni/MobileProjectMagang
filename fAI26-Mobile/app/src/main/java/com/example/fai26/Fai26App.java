@@ -92,6 +92,14 @@ public class Fai26App extends Application {
                 new File(app.getFilesDir(), "foto_tph"), deviceId(app), user);
     }
 
+    /** Repository IPD (Inspeksi Panen Detail) atas nama pengguna yang sedang login. Melempar bila belum login. */
+    public static com.example.fai26.db.IpdRepository ipdRepository(Context context) {
+        Context app = context.getApplicationContext();
+        long user = Sesi.userId(app);
+        if (user <= 0) throw new IllegalStateException("Belum login");
+        return new com.example.fai26.db.IpdRepository(AppDatabase.getInstance(app), user, deviceId(app));
+    }
+
     public static AuthService auth(Context context) {
         Context app = context.getApplicationContext();
         return new AuthService(AppDatabase.getInstance(app), deviceId(app));

@@ -38,6 +38,36 @@ public class PersetujuanServer {
         return dengan(t -> api.unduhFoto(t, fotoId));
     }
 
+    // ---- IPD (persetujuan asisten) ------------------------------------------------------------------
+
+    public List<ServerApi.IpdMenunggu> muatIpd() throws ApiException {
+        return dengan(api::daftarIpdMenunggu);
+    }
+
+    /** Foto bukti satu inspeksi IPD (JPEG), untuk diperiksa sebelum menyetujui. */
+    public byte[] fotoIpd(String fotoId) throws ApiException {
+        return dengan(t -> api.unduhFotoIpd(t, fotoId));
+    }
+
+    public void setujuiIpd(String ipdId) throws ApiException {
+        dengan(t -> {
+            api.setujuiIpd(t, ipdId);
+            return null;
+        });
+    }
+
+    public void tolakIpd(String ipdId, String alasan) throws ApiException {
+        dengan(t -> {
+            api.tolakIpd(t, ipdId, alasan);
+            return null;
+        });
+    }
+
+    /** Peringatan inspeksi ulang (7 hari) dari server; melempar ApiException bila offline (pemanggil memakai data HP). */
+    public List<ServerApi.IpdTerakhirItem> inspeksiTerakhir(long hrmb, long asm3Oid, String tanggal, String kecuali) throws ApiException {
+        return dengan(t -> api.inspeksiTerakhir(t, hrmb, asm3Oid, tanggal, kecuali));
+    }
+
     public void setujui(String panenId) throws ApiException {
         dengan(t -> {
             api.setujuiPanen(t, panenId);

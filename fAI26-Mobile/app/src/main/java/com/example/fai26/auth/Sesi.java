@@ -74,6 +74,20 @@ public final class Sesi {
         return punya(c, "panen.koreksi") || punya(c, "panen.setujui") ? 0L : userId(c);
     }
 
+    /**
+     * Kotak Panen di layar awal. Dikendalikan hak akses.panen; sebelum hak itu sampai ke HP (master belum diperbarui sesudah server
+     * ditingkatkan) akun yang punya hak panen tetapi belum punya satu pun hak akses.* tetap dianggap boleh membuka Panen.
+     */
+    public static boolean bolehPanen(Context c) {
+        if (punya(c, "akses.panen")) return true;
+        return !punya(c, "akses.ipd") && (punya(c, "panen.lihat") || punya(c, "panen.buat") || punya(c, "panen.setujui"));
+    }
+
+    /** Kotak IPD di layar awal (hak akses.ipd). */
+    public static boolean bolehIpd(Context c) {
+        return punya(c, "akses.ipd");
+    }
+
     public static boolean punya(Context c, String permission) {
         Set<String> s = pref(c).getStringSet(KEY_PERMISSION, null);
         return s != null && s.contains(permission);

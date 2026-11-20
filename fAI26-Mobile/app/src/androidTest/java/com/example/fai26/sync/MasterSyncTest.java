@@ -226,11 +226,35 @@ public class MasterSyncTest {
     }
 
     @Test
-    public void roleDanPermissionTakDikenalDilewatiTanpaGalat() throws Exception {
+    public void roleDanPermissionBaruDariServerDibuatDiHpTanpaGanda() throws Exception {
+        // Admin menambah role dan permission di server tanpa memperbarui aplikasi (mis. role ASKEP, hak akses.ipd): HP menerimanya.
         terapkanHak("m-1", "[{\"role\":\"ROLE_BARU_DI_SERVER\",\"permission\":[\"panen.lihat\"]},"
                 + "{\"role\":\"KRANI\",\"permission\":[\"panen.lihat\",\"izin.baru.di.server\",\"panen.lihat\"]}]");
-        assertEquals("hanya permission yang dikenal, tanpa ganda", 1, hakRole("KRANI"));
-        assertEquals(0, angka("SELECT COUNT(*) FROM role WHERE kode = 'ROLE_BARU_DI_SERVER'"));
+        assertEquals("permission baru ikut tersimpan, tanpa ganda", 2, hakRole("KRANI"));
+        assertEquals(1, angka("SELECT COUNT(*) FROM role WHERE kode = 'ROLE_BARU_DI_SERVER'"));
+        assertEquals(1, angka("SELECT COUNT(*) FROM permission WHERE kode = 'izin.baru.di.server' AND modul = 'izin'"));
+        // Diterapkan lagi: tidak menambah baris ganda.
+        terapkanHak("m-2", "[{\"role\":\"ROLE_BARU_DI_SERVER\",\"permission\":[\"panen.lihat\"]}]");
+        assertEquals(1, angka("SELECT COUNT(*) FROM role WHERE kode = 'ROLE_BARU_DI_SERVER'"));
+    }
+
+    @Test
+    public void kodeTemuanDanAsistenDivisiDariMasterDisimpan() throws Exception {
+        org.json.JSONObject j = paket("m-ipd");
+        j.getJSONArray("divisi").getJSONObject(0).put("asisten_user_id", 7);
+        j.put("kode_temuan", new org.json.JSONArray()
+                .put(new org.json.JSONObject().put("kode_id", 1).put("kode", "A").put("nama", "Potong buah mentah").put("kelompok", "BUAH")
+                        .put("urut", 1).put("aktif", true).put("dibuat_pada", "2026-11-01T00:00:00Z"))
+                .put(new org.json.JSONObject().put("kode_id", 8).put("kode", "B1").put("nama", "Brondolan tak dikutip").put("kelompok", "BRONDOLAN")
+                        .put("urut", 8).put("aktif", true).put("dibuat_pada", "2026-11-01T00:00:00Z")));
+        master.terapkan(j);
+        assertEquals(2, angka("SELECT COUNT(*) FROM kode_temuan"));
+        assertEquals(7, angka("SELECT asisten_user_id FROM divisi WHERE divisi_id = 1"));
+        // Asisten diganti admin: master berikutnya memperbarui, bukan menggandakan.
+        j.getJSONArray("divisi").getJSONObject(0).put("asisten_user_id", 9);
+        master.terapkan(j);
+        assertEquals(9, angka("SELECT asisten_user_id FROM divisi WHERE divisi_id = 1"));
+        assertEquals(2, angka("SELECT COUNT(*) FROM kode_temuan"));
     }
 
     @Test

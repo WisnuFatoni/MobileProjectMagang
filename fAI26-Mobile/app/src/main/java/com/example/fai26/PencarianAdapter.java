@@ -13,11 +13,11 @@ import java.util.Locale;
  * atau kecil sama saja, urutan kata bebas). Contoh: "c7 67" menemukan "Blok C7 • TPH 67". Dipakai untuk daftar TPH dan pemanen
  * yang panjang supaya tidak perlu menggulir.
  */
-final class PencarianAdapter<T> extends ArrayAdapter<T> {
+public final class PencarianAdapter<T> extends ArrayAdapter<T> {
 
     private final List<T> semua;
 
-    PencarianAdapter(Context c, List<T> data) {
+    public PencarianAdapter(Context c, List<T> data) {
         super(c, android.R.layout.simple_list_item_1, new ArrayList<>(data));
         semua = new ArrayList<>(data);
     }

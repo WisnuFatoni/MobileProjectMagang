@@ -17,28 +17,41 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.example.fai26.auth.Sesi;
+import com.example.fai26.ipd.IpdBerandaFragment;
+import com.example.fai26.ipd.IpdPersetujuanFragment;
+import com.example.fai26.ipd.IpdRiwayatFragment;
 import com.example.fai26.ui.GlassNavBar;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
- * Rumah aplikasi setelah login: tiga layar (Beranda, Riwayat, Akun) dalam satu activity dengan menu bawah
- * bergaya kaca. Layar disimpan hidup dan hanya disembunyikan, jadi pilihan di Beranda tidak hilang saat
- * pindah tab.
+ * Rumah aplikasi setelah login. Layar awal (Home) menampilkan kotak fitur (Panen dan IPD) menurut hak akses akun. Menu bawah
+ * bergaya kaca bertingkat: di Home hanya Home dan Akun; setelah masuk sebuah fitur muncul menu fitur itu (Panen: Beranda,
+ * Riwayat, Persetujuan; IPD: Mulai, Riwayat, Persetujuan). Layar disimpan hidup dan hanya disembunyikan, jadi isian di sebuah
+ * layar tidak hilang saat pindah tab.
  */
 public class MainActivity extends AppCompatActivity {
 
-    /** Urutan tab. "persetujuan" hanya ada untuk pengguna yang boleh menyetujui; Riwayat tetap indeks 1. */
-    private String[] tag;
+    public static final String MODE_HOME = "HOME";
+    public static final String MODE_PANEN = "PANEN";
+    public static final String MODE_IPD = "IPD";
+
+    private static final String KEY_MODE = "mode";
     private static final String KEY_TAB = "tab";
+    private static final List<String> SEMUA_LAYAR = Arrays.asList(
+            "home", "akun", "beranda", "riwayat", "persetujuan", "ipd_mulai", "ipd_riwayat", "ipd_setuju");
 
     private GlassNavBar nav;
+    private String modeAktif = MODE_HOME;
+    /** Tag tab pada mode aktif, berurutan seperti di menu bawah. */
+    private List<String> tag = new ArrayList<>();
     private int tabAktif = 0;
-    /** Apakah tab Persetujuan dibuat saat layar ini dibangun; bila hak berubah, layar dibangun ulang. */
-    private boolean bisaSetujuiAwal;
+    /** Hak yang membentuk menu saat layar dibangun; bila berubah (master baru), layar dibangun ulang. */
+    private String hakAwal;
 
-    /** Hak akses diperbarui dari master baru: bangun ulang layar bila tab Persetujuan harus muncul atau hilang. */
+    /** Hak akses diperbarui dari master baru: bangun ulang layar bila kotak atau tab harus muncul atau hilang. */
     private final com.example.fai26.sync.PerubahanMaster.Pendengar pendengarHak = new com.example.fai26.sync.PerubahanMaster.Pendengar() {
         @Override
         public void masterBerubah() {
@@ -46,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void hakBerubah() {
-            if (Sesi.sudahLogin(MainActivity.this) && Sesi.punya(MainActivity.this, "panen.setujui") != bisaSetujuiAwal) {
+            if (Sesi.sudahLogin(MainActivity.this) && !hakSekarang().equals(hakAwal)) {
                 // Dimulai ulang (bukan recreate) supaya fragmen dibuat bersih sesuai daftar tab yang baru.
                 finish();
                 startActivity(getIntent());
@@ -54,6 +67,11 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+
+    private String hakSekarang() {
+        return Sesi.bolehPanen(this) + "|" + Sesi.bolehIpd(this) + "|" + Sesi.punya(this, "panen.setujui") + "|"
+                + Sesi.punya(this, "ipd.setujui") + "|" + Sesi.punya(this, "ipd.buat");
+    }
 
     @Override
     protected void onStart() {
@@ -78,7 +96,7 @@ public class MainActivity extends AppCompatActivity {
         }
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
-        // Beranda berkepala hijau (ikon bilah status putih); disesuaikan lagi tiap ganti layar.
+        // Home berkepala hijau (ikon bilah status putih); disesuaikan lagi tiap ganti layar.
         WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView())
                 .setAppearanceLightStatusBars(false);
 
@@ -98,105 +116,203 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        final boolean bisaSetujui = Sesi.punya(this, "panen.setujui");
-        bisaSetujuiAwal = bisaSetujui;
-        tag = bisaSetujui
-                ? new String[]{"beranda", "riwayat", "persetujuan", "akun"}
-                : new String[]{"beranda", "riwayat", "akun"};
-        List<GlassNavBar.Tab> tabs = new ArrayList<>();
-        tabs.add(new GlassNavBar.Tab(R.drawable.ic_nav_home, "Beranda"));
-        tabs.add(new GlassNavBar.Tab(R.drawable.ic_nav_history, "Riwayat"));
-        if (bisaSetujui) tabs.add(new GlassNavBar.Tab(R.drawable.ic_nav_check, "Persetujuan"));
-        tabs.add(new GlassNavBar.Tab(R.drawable.ic_nav_person, "Akun"));
-        nav.setTabs(tabs);
+        hakAwal = hakSekarang();
         nav.setSumber(kontainer);
-        nav.setListener(this::tampilkan);
-        nav.post(() -> aturBilahStatus(tabAktif));
+        nav.setListener(this::tabDipilih);
 
-        FragmentManager fm = getSupportFragmentManager();
-        if (savedInstanceState == null) {
-            // Semua layar ditambahkan sekaligus; selain Beranda disembunyikan sejak awal.
-            FragmentTransaction awal = fm.beginTransaction();
-            for (int i = 0; i < tag.length; i++) {
-                Fragment f = buatLayar(tag[i]);
-                awal.add(R.id.kontainer, f, tag[i]);
-                if (i != 0) awal.hide(f);
-            }
-            awal.commitNow();
-        } else {
-            tabAktif = Math.min(savedInstanceState.getInt(KEY_TAB, 0), tag.length - 1);
+        String mode = MODE_HOME;
+        int tab = 0;
+        if (savedInstanceState != null) {
+            mode = savedInstanceState.getString(KEY_MODE, MODE_HOME);
+            tab = savedInstanceState.getInt(KEY_TAB, 0);
         }
-        nav.pilih(tabAktif, false);
+        terapkanMode(mode, tab, false);
 
-        // Tombol kembali dari Riwayat atau Akun menuju Beranda dulu.
+        // Tombol kembali: dari layar mana pun menuju layar utama mode itu dulu, lalu ke Home, lalu keluar.
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                if (tabAktif != 0) {
-                    pilihTab(0);
-                } else {
+                if (MODE_HOME.equals(modeAktif)) {
+                    if (tabAktif != 0) {
+                        pilihIndeks(0);
+                        return;
+                    }
                     setEnabled(false);
                     getOnBackPressedDispatcher().onBackPressed();
+                } else if (tabAktif != indeksUtama(modeAktif)) {
+                    pilihIndeks(indeksUtama(modeAktif));
+                } else {
+                    bukaMode(MODE_HOME);
                 }
             }
         });
     }
 
-    private static Fragment buatLayar(String nama) {
+    // ---- Mode dan tab -----------------------------------------------------------------------------
+
+    private List<String> tagMode(String mode) {
+        List<String> t = new ArrayList<>();
+        t.add("home");
+        if (MODE_PANEN.equals(mode)) {
+            t.add("beranda");
+            t.add("riwayat");
+            if (Sesi.punya(this, "panen.setujui")) t.add("persetujuan");
+        } else if (MODE_IPD.equals(mode)) {
+            t.add("ipd_mulai");
+            t.add("ipd_riwayat");
+            if (Sesi.punya(this, "ipd.setujui")) t.add("ipd_setuju");
+        }
+        t.add("akun");
+        return t;
+    }
+
+    /** Indeks layar utama pada sebuah mode: Home bagi Home, Beranda panen bagi Panen, Mulai bagi IPD. */
+    private int indeksUtama(String mode) {
+        return MODE_HOME.equals(mode) ? 0 : 1;
+    }
+
+    private static String labelTab(String nama) {
         switch (nama) {
+            case "home":
+                return "Home";
+            case "beranda":
+                return "Beranda";
             case "riwayat":
-                return new RiwayatFragment();
+            case "ipd_riwayat":
+                return "Riwayat";
             case "persetujuan":
-                return new PersetujuanFragment();
-            case "akun":
-                return new AkunFragment();
+            case "ipd_setuju":
+                return "Persetujuan";
+            case "ipd_mulai":
+                return "Mulai";
             default:
-                return new BerandaFragment();
+                return "Akun";
         }
     }
 
-    /** Dipanggil dari layar lain (misalnya "Lihat semua" di Beranda). */
-    public void pilihTab(int indeks) {
+    private static int ikonTab(String nama) {
+        switch (nama) {
+            case "home":
+                return R.drawable.ic_nav_home;
+            case "beranda":
+                return R.drawable.ic_nav_panen;
+            case "riwayat":
+            case "ipd_riwayat":
+                return R.drawable.ic_nav_history;
+            case "persetujuan":
+            case "ipd_setuju":
+                return R.drawable.ic_nav_check;
+            case "ipd_mulai":
+                return R.drawable.ic_nav_tambah;
+            default:
+                return R.drawable.ic_nav_person;
+        }
+    }
+
+    /** Membangun menu bawah untuk sebuah mode dan menampilkan tab ke-{@code tab}. */
+    private void terapkanMode(String mode, int tab, boolean animasi) {
+        if (MODE_PANEN.equals(mode) && !Sesi.bolehPanen(this)) mode = MODE_HOME;
+        if (MODE_IPD.equals(mode) && !Sesi.bolehIpd(this)) mode = MODE_HOME;
+        modeAktif = mode;
+        tag = tagMode(mode);
+        tabAktif = Math.max(0, Math.min(tab, tag.size() - 1));
+        List<GlassNavBar.Tab> tabs = new ArrayList<>();
+        for (String t : tag) tabs.add(new GlassNavBar.Tab(ikonTab(t), labelTab(t)));
+        nav.setTabs(tabs);
+        nav.pilih(tabAktif, animasi);
+        tampilkanLayar(tag.get(tabAktif));
+        aturBilahStatus(tag.get(tabAktif));
+    }
+
+    /** Dipanggil dari kotak di Home: membuka Panen atau IPD (atau kembali ke Home). */
+    public void bukaMode(String mode) {
+        terapkanMode(mode, MODE_HOME.equals(mode) ? 0 : 1, true);
+    }
+
+    /** Dipanggil dari layar lain (misalnya "Lihat semua" di Beranda panen): pindah ke layar bernama itu pada mode aktif. */
+    public void pilihLayar(String nama) {
+        int i = tag.indexOf(nama);
+        if (i >= 0) pilihIndeks(i);
+    }
+
+    private void pilihIndeks(int indeks) {
         nav.pilih(indeks, true);
-        tampilkan(indeks);
+        tabDipilih(indeks);
     }
 
-    /**
-     * Ikon bilah status: Beranda dan Akun berkepala hijau (ikon putih); Riwayat dan Persetujuan bertop bar terang (ikon
-     * gelap di mode terang). Ditentukan dari nama layar, karena urutan tab berubah sesuai hak akses.
-     */
-    private void aturBilahStatus(int indeks) {
-        boolean modeGelap = (getResources().getConfiguration().uiMode
-                & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES;
-        String nama = tag != null && indeks >= 0 && indeks < tag.length ? tag[indeks] : "beranda";
-        boolean latarTerang = "riwayat".equals(nama) || "persetujuan".equals(nama);
-        WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView())
-                .setAppearanceLightStatusBars(latarTerang && !modeGelap);
-    }
-
-    private void tampilkan(int indeks) {
-        if (indeks == tabAktif) return;
-        FragmentManager fm = getSupportFragmentManager();
-        FragmentTransaction ft = fm.beginTransaction()
-                .setReorderingAllowed(true)
-                .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE);
-        for (int i = 0; i < tag.length; i++) {
-            Fragment f = fm.findFragmentByTag(tag[i]);
-            if (f == null) continue;
-            if (i == indeks) ft.show(f);
-            else ft.hide(f);
+    private void tabDipilih(int indeks) {
+        if (indeks < 0 || indeks >= tag.size()) return;
+        String nama = tag.get(indeks);
+        // Tab Home di dalam sebuah fitur kembali ke layar Home.
+        if ("home".equals(nama) && !MODE_HOME.equals(modeAktif)) {
+            terapkanMode(MODE_HOME, 0, true);
+            return;
         }
-        ft.commit();
+        if (indeks == tabAktif) return;
         tabAktif = indeks;
-        aturBilahStatus(indeks);
+        tampilkanLayar(nama);
+        aturBilahStatus(nama);
         // Latar buram menangkap ulang setelah layar berganti.
         nav.post(nav::segarkanLatar);
         nav.postDelayed(nav::segarkanLatar, 220);
     }
 
+    private Fragment buatLayar(String nama) {
+        switch (nama) {
+            case "home":
+                return new HomeFragment();
+            case "beranda":
+                return new BerandaFragment();
+            case "riwayat":
+                return new RiwayatFragment();
+            case "persetujuan":
+                return new PersetujuanFragment();
+            case "ipd_mulai":
+                return new IpdBerandaFragment();
+            case "ipd_riwayat":
+                return new IpdRiwayatFragment();
+            case "ipd_setuju":
+                return new IpdPersetujuanFragment();
+            default:
+                return new AkunFragment();
+        }
+    }
+
+    /** Menampilkan satu layar (dibuat saat pertama dibuka) dan menyembunyikan yang lain. */
+    private void tampilkanLayar(String nama) {
+        FragmentManager fm = getSupportFragmentManager();
+        FragmentTransaction ft = fm.beginTransaction().setReorderingAllowed(true)
+                .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE);
+        Fragment f = fm.findFragmentByTag(nama);
+        if (f == null) {
+            f = buatLayar(nama);
+            ft.add(R.id.kontainer, f, nama);
+        }
+        for (String lain : SEMUA_LAYAR) {
+            if (lain.equals(nama)) continue;
+            Fragment x = fm.findFragmentByTag(lain);
+            if (x != null) ft.hide(x);
+        }
+        ft.show(f);
+        ft.commitNowAllowingStateLoss();
+    }
+
+    /**
+     * Ikon bilah status: Home, Beranda panen, dan Akun berkepala hijau (ikon putih); layar lain bertop bar terang (ikon gelap di
+     * mode terang). Ditentukan dari nama layar, karena urutan tab berubah sesuai mode dan hak akses.
+     */
+    private void aturBilahStatus(String nama) {
+        boolean modeGelap = (getResources().getConfiguration().uiMode
+                & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+        boolean latarTerang = !("home".equals(nama) || "beranda".equals(nama) || "akun".equals(nama));
+        WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView())
+                .setAppearanceLightStatusBars(latarTerang && !modeGelap);
+    }
+
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
+        outState.putString(KEY_MODE, modeAktif);
         outState.putInt(KEY_TAB, tabAktif);
     }
 }

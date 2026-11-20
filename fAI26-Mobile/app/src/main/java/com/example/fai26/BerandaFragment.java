@@ -196,7 +196,7 @@ public class BerandaFragment extends Fragment {
         }
 
         cari(R.id.btnLihatSemua).setOnClickListener(
-                v -> ((MainActivity) requireActivity()).pilihTab(1));
+                v -> ((MainActivity) requireActivity()).pilihLayar("riwayat"));
         btnMulai.setOnClickListener(v -> mulaiScan());
         cari(R.id.btnScanQr).setOnClickListener(v ->
                 layarQr.launch(new Intent(requireContext(), QrActivity.class)));
@@ -751,7 +751,7 @@ public class BerandaFragment extends Fragment {
         if (angkaDitolak != null) angkaDitolak.setText(String.valueOf(dash.ditolak));
         tampilkanTerbaru(terbaru);
         DashboardBeranda.tampil(raiz, dash,
-                () -> ((MainActivity) requireActivity()).pilihTab(1),
+                () -> ((MainActivity) requireActivity()).pilihLayar("riwayat"),
                 this::muatRingkasan,
                 () -> segarkanDariServer(true));
     }

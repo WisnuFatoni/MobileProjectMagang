@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Foto mentah dari kamera sistem; dikompres lalu dihapus. -->
+    <cache-path name="foto_ipd_mentah" path="foto_ipd_mentah/" />
+</paths>

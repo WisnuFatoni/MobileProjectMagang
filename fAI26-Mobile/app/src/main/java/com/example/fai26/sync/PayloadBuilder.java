@@ -66,6 +66,50 @@ public final class PayloadBuilder {
         return o;
     }
 
+    /** Badan POST /api/ipd: satu inspeksi (satu pemanen) beserta semua pokok yang diperiksa. */
+    public static JSONObject ipd(com.example.fai26.db.dao.IpdHasil.HeaderKirim h, List<com.example.fai26.db.dao.IpdHasil.PokokKirim> pokok,
+                                 List<com.example.fai26.db.dao.IpdHasil.TemuanKirim> temuan) throws JSONException {
+        JSONObject o = new JSONObject();
+        o.put("ipd_id", h.ipdId);
+        o.put("unit_kode", h.unitKode);
+        o.put("tanggal_inspeksi", h.tanggalInspeksi);
+        o.put("divisi_kode", h.divisiKode);
+        o.put("asm3_oid", h.asm3Oid);
+        o.putOpt("blok_kode", h.blokKode);
+        o.put("pemanen_hrmb_code", h.pemanenHrmb);
+        o.putOpt("ancak_no", h.ancakNo);
+        o.putOpt("mandor_blok_username", h.mandorBlokUsername);
+        o.putOpt("mandor_ancak_username", h.mandorAncakUsername);
+        o.putOpt("catatan", h.catatan);
+        o.put("dibuat_pada", h.dibuatPada);
+        if (h.kirimUlang != 0) o.put("kirim_ulang", true); // mengubah inspeksi yang sudah terkirim atau memperbaiki yang ditolak
+
+        java.util.Map<Long, JSONArray> perPokok = new java.util.HashMap<>();
+        for (com.example.fai26.db.dao.IpdHasil.TemuanKirim t : temuan) {
+            JSONObject b = new JSONObject();
+            b.put("kode", t.kode);
+            b.put("jumlah", t.jumlah);
+            b.putOpt("catatan", t.catatan);
+            JSONArray a = perPokok.get(t.pokokId);
+            if (a == null) {
+                a = new JSONArray();
+                perPokok.put(t.pokokId, a);
+            }
+            a.put(b);
+        }
+        JSONArray pk = new JSONArray();
+        for (com.example.fai26.db.dao.IpdHasil.PokokKirim p : pokok) {
+            JSONObject b = new JSONObject();
+            b.put("no_baris", p.noBaris);
+            b.put("no_pokok", p.noPokok);
+            JSONArray a = perPokok.get(p.pokokId);
+            b.put("temuan", a == null ? new JSONArray() : a);
+            pk.put(b);
+        }
+        o.put("pokok", pk);
+        return o;
+    }
+
     /** Badan POST /api/audit/batch. */
     public static JSONArray audit(List<AuditLog> baris) throws JSONException {
         JSONArray a = new JSONArray();
