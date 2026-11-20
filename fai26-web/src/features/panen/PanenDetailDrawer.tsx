@@ -18,7 +18,8 @@ export function PanenDetailDrawer({ id, onClose }: { id: string | null; onClose:
       {q.isLoading && <Skeleton active paragraph={{ rows: 10 }} />}
       {d && (
         <>
-          <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered>
+          {/* Jumlah kolom tetap 2: lebar laci tetap, bukan lebar layar (kolom responsif membuat sel sempit dan teks tertumpuk huruf per huruf). */}
+          <Descriptions column={2} size="small" bordered labelStyle={{ width: 120 }} contentStyle={{ minWidth: 120 }}>
             <Descriptions.Item label="Tanggal panen">{tanggal(d.tanggal_panen)}</Descriptions.Item>
             <Descriptions.Item label="Blok / TPH">{d.blok_kode ?? '-'} / {d.tph_kode ?? '-'}</Descriptions.Item>
             <Descriptions.Item label="Total janjang"><strong>{angka(d.total_janjang)}</strong></Descriptions.Item>

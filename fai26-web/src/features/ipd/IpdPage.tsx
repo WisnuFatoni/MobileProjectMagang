@@ -9,9 +9,10 @@ import { ErrorState } from '@/components/ErrorState'
 import { PageHeader } from '@/components/PageHeader'
 import { TombolEkspor } from '@/components/TombolEkspor'
 import { desimal, tanggal, waktu } from '@/lib/format'
-import { dokumenDaftar, dokumenDetail } from './ekspor'
+import { dokumenDaftar, dokumenDaftarRinci } from './ekspor'
 import { FotoIpd } from './FotoIpd'
 import { STATUS_IPD } from './ipdTampil'
+import { pilihanEksporRinci, pilihanEksporSatu } from './pilihanEkspor'
 
 const HALAMAN = 25
 
@@ -42,6 +43,12 @@ export function IpdPage() {
     setParams(p, { replace: true })
   }
 
+  const filterTeks = [
+    filter.dari && filter.sampai ? `${tanggal(filter.dari)} sampai ${tanggal(filter.sampai)}` : 'semua tanggal',
+    filter.status ? STATUS_IPD[filter.status as keyof typeof STATUS_IPD]?.teks ?? filter.status : 'semua status',
+    filter.divisi_kode ?? 'semua divisi',
+  ].join(' • ')
+
   /** Mengambil SEMUA inspeksi yang cocok dengan filter (bukan hanya halaman yang terlihat), paling banyak 5.000 baris. */
   async function ambilSemua() {
     const semua: IpdBaris[] = []
@@ -50,20 +57,27 @@ export function IpdPage() {
       semua.push(...hal.item)
       if (semua.length >= hal.total || hal.item.length === 0) break
     }
-    const bagian = [
-      filter.dari && filter.sampai ? `${tanggal(filter.dari)} sampai ${tanggal(filter.sampai)}` : 'semua tanggal',
-      filter.status ? STATUS_IPD[filter.status as keyof typeof STATUS_IPD]?.teks ?? filter.status : 'semua status',
-      filter.divisi_kode ?? 'semua divisi',
-    ]
-    return dokumenDaftar(semua, bagian.join(' • '))
+    return dokumenDaftar(semua, filterTeks)
   }
+  const { halaman: _h, per_halaman: _p, ...filterTanpaHalaman } = filter
+  void _h
+  void _p
 
   return (
     <>
       <PageHeader
         judul="Inspeksi IPD"
         keterangan="Inspeksi panen detail yang dikirim mandor dan asisten dari HP. Klik baris untuk melihat pokok yang diperiksa, temuan, dan foto bukti."
-        aksi={<TombolEkspor ambil={ambilSemua} disabled={!q.data || q.data.total === 0} />}
+        aksi={
+          <TombolEkspor
+            disabled={!q.data || q.data.total === 0}
+            pilihan={pilihanEksporRinci({
+              ringkas: ambilSemua,
+              filter: filterTanpaHalaman,
+              rinci: (detail, foto) => dokumenDaftarRinci(detail, foto, filterTeks),
+            })}
+          />
+        }
       />
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space wrap>
@@ -174,7 +188,7 @@ function IpdDetailDrawer({ id, onTutup }: { id: string | null; onTutup: () => vo
       width={640}
       title="Rincian inspeksi IPD"
       destroyOnClose
-      extra={d && <TombolEkspor ambil={() => Promise.resolve(dokumenDetail(d))} />}
+      extra={d && <TombolEkspor pilihan={pilihanEksporSatu(d)} />}
     >
       {q.isError && <ErrorState error={q.error} onCoba={() => void q.refetch()} />}
       {q.isLoading && <Skeleton active paragraph={{ rows: 8 }} />}

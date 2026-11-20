@@ -10,7 +10,8 @@ import { PageHeader } from '@/components/PageHeader'
 import { TombolEkspor } from '@/components/TombolEkspor'
 import { angka, desimal } from '@/lib/format'
 import { BatangLoses } from './BatangLoses'
-import { dokumenLaporan } from './ekspor'
+import { dokumenLaporan, dokumenLaporanRinci } from './ekspor'
+import { pilihanEksporRinci } from './pilihanEkspor'
 import { NAMA_KELOMPOK, temuanTeratas, warnaLoses } from './ipdTampil'
 
 function TabelGrup({ data, judul }: { data: IpdGrupLoses[]; judul: string }) {
@@ -62,6 +63,7 @@ export function IpdLaporanPage() {
     queryFn: () => ipdApi.laporan({ dari, sampai, divisi_kode: divisiKode }),
   })
   const r = q.data
+  const divisiNama = divisi.data?.find((d) => d.kode === divisiKode)?.nama
 
   return (
     <>
@@ -92,7 +94,12 @@ export function IpdLaporanPage() {
             </Button>
             <TombolEkspor
               disabled={!r}
-              ambil={() => Promise.resolve(dokumenLaporan(r as NonNullable<typeof r>, divisi.data?.find((d) => d.kode === divisiKode)?.nama))}
+              pilihan={pilihanEksporRinci({
+                ringkas: () => Promise.resolve(dokumenLaporan(r as NonNullable<typeof r>, divisiNama)),
+                // Laporan hanya menghitung inspeksi yang sudah disetujui, jadi rincinya pun hanya yang disetujui.
+                filter: { dari, sampai, divisi_kode: divisiKode, status: 'DISETUJUI' },
+                rinci: (detail, foto) => dokumenLaporanRinci(r as NonNullable<typeof r>, detail, foto, divisiNama),
+              })}
             />
           </Space>
         }

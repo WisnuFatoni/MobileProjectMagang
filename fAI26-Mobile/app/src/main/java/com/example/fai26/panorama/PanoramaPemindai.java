@@ -55,9 +55,16 @@ public final class PanoramaPemindai {
     public static final class Hasil {
         /** Jumlah potongan yang dipakai: 0 berarti tidak ada foto, 1 satu frame biasa, lebih dari 1 panorama. */
         public final int jumlahTile;
+        /** Bila bukan panorama: alasan singkat (untuk pengguna dan catatan), null bila panorama jadi atau tidak ada yang perlu dikatakan. */
+        public final String alasan;
 
         Hasil(int jumlahTile) {
+            this(jumlahTile, null);
+        }
+
+        Hasil(int jumlahTile, String alasan) {
             this.jumlahTile = jumlahTile;
+            this.alasan = alasan;
         }
 
         public boolean adaFoto() {
@@ -74,12 +81,17 @@ public final class PanoramaPemindai {
     private final List<List<Detection>> deteksiPerTile = new ArrayList<>();
     private RancangPanorama rancang;
     private Gray ref;
+    /** Geseran per frame terakhir yang sah (piksel frame taksiran): titik awal pencarian frame berikutnya. */
+    private int perkiraanDx;
+    private int perkiraanDy;
     private int tileW;
     private int tileH;
     private double faktor;
     private int nomor;
     private boolean aktif;
     private boolean rusak;
+    /** Alasan terakhir panorama tidak jadi (diisi saat menempel gagal atau tidak layak). */
+    private String alasanGagal;
 
     /** Cadangan frame tunggal terbaik (resolusi penuh, utuh tanpa sambungan) selama sesi penyisiran. */
     private Bitmap mentahTerbaik;
@@ -96,9 +108,12 @@ public final class PanoramaPemindai {
         hapusTile();
         rancang = null;
         ref = null;
+        perkiraanDx = 0;
+        perkiraanDy = 0;
         nomor = 0;
         aktif = true;
         rusak = false;
+        alasanGagal = null;
         mentahTerbaik = null;
         rotasiTerbaik = 0;
         deteksiTerbaik = Collections.emptyList();
@@ -119,10 +134,18 @@ public final class PanoramaPemindai {
                 ref = cur;
                 return;
             }
-            PenaksirGeser.Hasil g = PenaksirGeser.taksir(ref, cur);
+            PenaksirGeser.Hasil g = PenaksirGeser.taksir(ref, cur, perkiraanDx, perkiraanDy);
             RancangPanorama.Keputusan k = rancang.terima(g.dx, g.dy, g.sah, RancangPanorama.AMBANG_TILE);
             if (k.ambilTile) tulisTile(mentah, rotasi, deteksi);
             if (k.jadikanRef) ref = cur;
+            // Geseran frame ini jadi perkiraan frame berikutnya, hanya bila ref ikut diganti (geseran per frame, bukan akumulasi).
+            if (g.sah && k.jadikanRef) {
+                perkiraanDx = g.dx;
+                perkiraanDy = g.dy;
+            } else if (!g.sah) {
+                perkiraanDx = 0;
+                perkiraanDy = 0;
+            }
         } catch (Throwable e) {
             // Panorama hanya pelengkap: jangan pernah mengganggu penghitungan. Berhenti dan pakai yang sudah ada.
             Log.e(TAG, "Penyusunan panorama dihentikan", e);
@@ -170,9 +193,17 @@ public final class PanoramaPemindai {
         }
 
         int jumlah = rancang == null ? 0 : Math.min(berkasTile.size(), rancang.jumlahTile());
+        alasanGagal = null;
         if (jumlah > 1 && !rusakSaatMenempel(tujuan, jumlah)) {
             return new Hasil(jumlah);
         }
+        String alasan = alasanGagal;
+        if (alasan == null) {
+            if (rusak) alasan = "penyusunan panorama berhenti karena galat";
+            else if (rancang != null && rancang.terbeku()) alasan = "gerakan terlalu cepat atau gambar kabur, penyejajaran terputus";
+            else if (jumlah <= 1) alasan = "kamera hampir tidak bergeser";
+        }
+        Log.i(TAG, "Panorama tidak dipakai (tile=" + jumlah + "): " + alasan);
         // Pilih frame tunggal terbaik (yang paling banyak/jelas menangkap janjang) bila lebih unggul dari frame terakhir.
         Bitmap pilihMentah = mentahAkhir;
         int pilihRotasi = rotasi;
@@ -188,11 +219,11 @@ public final class PanoramaPemindai {
             Bitmap tegak = pilihRotasi == 0 ? pilihMentah : Bitmap.createBitmap(pilihMentah, 0, 0,
                     pilihMentah.getWidth(), pilihMentah.getHeight(), m, true);
             KeyframeRenderer.simpan(tegak, pilihDeteksi != null ? pilihDeteksi : Collections.emptyList(), tujuan);
-            return new Hasil(1);
+            return new Hasil(1, alasan);
         }
         if (!berkasTile.isEmpty()) {
             salin(berkasTile.get(0), tujuan);
-            return new Hasil(1);
+            return new Hasil(1, alasan);
         }
         return new Hasil(0);
     }
@@ -266,6 +297,7 @@ public final class PanoramaPemindai {
                 HasilPasangan cocok = cocokkanPasanganLangsung(grayKecil[idxSebelumnya], grayKecil[i], taksirShiftX, taksirShiftY);
                 if (cocok.galat > BATAS_GALAT_SAMBUNGAN) {
                     Log.w(TAG, "Sambungan tile " + idxSebelumnya + "->" + i + " ditolak karena galat perspektif tinggi: " + cocok.galat);
+                    alasanGagal = "pandangan 3D tumpukan terlalu berbeda antar frame (terlalu dekat atau bergerak miring)";
                     return true;
                 }
 
@@ -284,6 +316,7 @@ public final class PanoramaPemindai {
 
             if (indeksPakai.size() < 2) {
                 Log.i(TAG, "Semua potongan berada di posisi tumpukan yang sama; memakai 1 frame penuh terbaik");
+                alasanGagal = "kamera hampir tidak bergeser";
                 return true;
             }
 
@@ -300,6 +333,7 @@ public final class PanoramaPemindai {
             int spanY = maxY - minY;
             if (spanX < (int) (tw * 0.20f) && spanY < (int) (th * 0.20f)) {
                 Log.i(TAG, "Rentang geser panorama terlalu kecil (" + spanX + "x" + spanY + "); memakai 1 frame penuh terbaik");
+                alasanGagal = "rentang sisiran terlalu pendek";
                 return true;
             }
 

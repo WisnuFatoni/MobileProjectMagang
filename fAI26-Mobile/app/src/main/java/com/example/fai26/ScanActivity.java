@@ -12,6 +12,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import android.location.Location;
@@ -390,18 +391,25 @@ public class ScanActivity extends AppCompatActivity {
         io.execute(() -> {
             boolean adaFoto = false;
             boolean panoramaJadi = false;
+            String alasanTunggal = null;
             try {
                 PanoramaPemindai.Hasil hasil = panorama.selesai(frameMentah, rotasi, deteksi, foto);
                 adaFoto = hasil.adaFoto();
                 panoramaJadi = hasil.panorama();
+                alasanTunggal = hasil.alasan;
             } catch (Exception e) {
                 Log.e(TAG, "Gagal menyimpan foto", e);
             }
             final boolean fotoOk = adaFoto;
+            final String alasanFoto = alasanTunggal;
             // Kotak tiap deteksi sudah tergambar di foto. Pada panorama koordinatnya tidak lagi sama dengan satu frame
             // (dan buah yang sama bisa tampil di beberapa potongan), jadi tidak disimpan sebagai baris deteksi.
             final float[] kotak = panoramaJadi ? new float[0] : kotakKeAngka(deteksi);
             main.post(() -> {
+                // Panorama tidak jadi: beri tahu alasannya supaya pemindai tahu apa yang diperbaiki di sisiran berikutnya.
+                if (alasanFoto != null) {
+                    Toast.makeText(this, "Foto bukti 1 frame, bukan panorama: " + alasanFoto + ". Sisir pelan dan stabil.", Toast.LENGTH_LONG).show();
+                }
                 Intent i = new Intent(this, HasilActivity.class);
                 i.putExtra(EXTRA_JUMLAH, hitung);
                 i.putExtra(Ekstra.EXTRA_TPH_ID, tphId);

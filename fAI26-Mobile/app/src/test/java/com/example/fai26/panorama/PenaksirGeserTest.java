@@ -23,6 +23,33 @@ public class PenaksirGeserTest {
         return PenaksirGeser.taksir(a, b);
     }
 
+    private PenaksirGeser.Hasil ujiDenganPerkiraan(int dx, int dy, int perkiraanDx, int perkiraanDy) {
+        int ax = 500;
+        int ay = 400;
+        Gray a = scene.potong(ax, ay, FW, FH, 0, 0, 1);
+        Gray b = scene.potong(ax - dx, ay - dy, FW, FH, 0, 0, 2);
+        return PenaksirGeser.taksir(a, b, perkiraanDx, perkiraanDy);
+    }
+
+    @Test
+    public void sisiranCepatTerlacakBilaAdaPerkiraanDariFrameSebelumnya() {
+        int batas = PenaksirGeser.jangkauan(FW, FH);
+        int jauh = -(batas + 16); // di luar jendela yang berpusat di nol
+        // Tanpa perkiraan: tidak boleh lolos dengan nilai salah (penjagaan lama tetap).
+        PenaksirGeser.Hasil tanpa = ujiDenganPerkiraan(jauh, 4, 0, 0);
+        assertTrue("tanpa perkiraan, hasil sah harus benar", !tanpa.sah || (tanpa.dx == jauh && tanpa.dy == 4));
+        // Dengan perkiraan mendekati (mis. geseran frame sebelumnya): terlacak tepat.
+        PenaksirGeser.Hasil dengan = ujiDenganPerkiraan(jauh, 4, jauh + 3, 2);
+        assertTrue("sah dengan perkiraan, kep=" + dengan.kepercayaan, dengan.sah);
+        assertEquals(jauh, dengan.dx);
+        assertEquals(4, dengan.dy);
+        // Perkiraan yang salah tidak merusak geseran kecil yang benar (jendela di nol tetap dicari).
+        PenaksirGeser.Hasil kecil = ujiDenganPerkiraan(-12, 5, jauh, 30);
+        assertTrue(kecil.sah);
+        assertEquals(-12, kecil.dx);
+        assertEquals(5, kecil.dy);
+    }
+
     @Test
     public void tanpaGeserHasilNol() {
         PenaksirGeser.Hasil h = uji(0, 0, 0, 0);

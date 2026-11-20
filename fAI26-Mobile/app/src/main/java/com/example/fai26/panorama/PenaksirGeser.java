@@ -58,6 +58,17 @@ public final class PenaksirGeser {
     }
 
     public static Hasil taksir(Gray a, Gray b) {
+        return taksir(a, b, 0, 0);
+    }
+
+    /**
+     * Seperti {@link #taksir(Gray, Gray)}, tetapi selain di sekitar (0, 0) juga mencari di sekitar geseran yang DIPERKIRAKAN
+     * (biasanya geseran frame sebelumnya). Sisiran yang cepat tetapi stabil (kamera menunduk di tumpukan, isi bergeser jauh per
+     * frame) jadi tetap terlacak, tanpa melebarkan jendela pencarian sehingga penolakan geseran yang meragukan tidak melonggar.
+     *
+     * @param perkiraanDx,perkiraanDy geseran yang diperkirakan, dalam piksel frame ini (bukan level kasar)
+     */
+    public static Hasil taksir(Gray a, Gray b, int perkiraanDx, int perkiraanDy) {
         if (a.w != b.w || a.h != b.h) throw new IllegalArgumentException("ukuran frame harus sama");
         if (a.simpangan() < TEKSTUR_MIN || b.simpangan() < TEKSTUR_MIN) return Hasil.gagal();
 
@@ -65,29 +76,44 @@ public final class PenaksirGeser {
         List<Gray> pb = piramida(b);
         int kasar = pa.size() - 1;
 
-        // Pencarian penuh di level paling kasar.
+        // Pusat jendela kedua pada level kasar. Bila perkiraan hampir nol, cukup satu jendela di (0, 0).
+        int skala = 1 << kasar;
+        int px = (int) Math.round(perkiraanDx / (double) skala);
+        int py = (int) Math.round(perkiraanDy / (double) skala);
+        boolean duaJendela = Math.abs(px) > 1 || Math.abs(py) > 1;
+
+        // Pencarian penuh di level paling kasar (jendela di (0, 0), ditambah jendela di sekitar perkiraan bila ada).
         double terbaik = Double.MAX_VALUE;
         double jumlah = 0;
         int n = 0;
         int bx = 0;
         int by = 0;
-        for (int dy = -JARI_KASAR; dy <= JARI_KASAR; dy++) {
-            for (int dx = -JARI_KASAR; dx <= JARI_KASAR; dx++) {
-                double c = biaya(pa.get(kasar), pb.get(kasar), dx, dy);
-                if (c == Double.MAX_VALUE) continue;
-                jumlah += c;
-                n++;
-                if (c < terbaik) {
-                    terbaik = c;
-                    bx = dx;
-                    by = dy;
+        int pusatX = 0;
+        int pusatY = 0;
+        for (int w = 0; w < (duaJendela ? 2 : 1); w++) {
+            int cx0 = w == 0 ? 0 : px;
+            int cy0 = w == 0 ? 0 : py;
+            for (int dy = cy0 - JARI_KASAR; dy <= cy0 + JARI_KASAR; dy++) {
+                for (int dx = cx0 - JARI_KASAR; dx <= cx0 + JARI_KASAR; dx++) {
+                    double c = biaya(pa.get(kasar), pb.get(kasar), dx, dy);
+                    if (c == Double.MAX_VALUE) continue;
+                    jumlah += c;
+                    n++;
+                    if (c < terbaik) {
+                        terbaik = c;
+                        bx = dx;
+                        by = dy;
+                        pusatX = cx0;
+                        pusatY = cy0;
+                    }
                 }
             }
         }
         if (n == 0 || terbaik == Double.MAX_VALUE) return Hasil.gagal();
         double rata = jumlah / n;
         double kepercayaan = rata <= 1e-9 ? 0 : Math.max(0, Math.min(1, (rata - terbaik) / rata));
-        boolean ditepi = Math.abs(bx) == JARI_KASAR || Math.abs(by) == JARI_KASAR;
+        // Hasil di tepi jendela yang menang berarti geseran sebenarnya mungkin di luar jendela itu: tidak dipercaya.
+        boolean ditepi = Math.abs(bx - pusatX) == JARI_KASAR || Math.abs(by - pusatY) == JARI_KASAR;
 
         // Penyempurnaan ke level yang lebih halus.
         for (int l = kasar - 1; l >= 0; l--) {
