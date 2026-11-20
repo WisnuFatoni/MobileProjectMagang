@@ -892,7 +892,7 @@ erDiagram
 | `fAI26_ERD_server_akses.mmd` / `.png` | ERD server untuk akses dan audit. |
 | `fAI26_ERD_server_erp.mmd` / `.png` | ERD staging dan tabel HVD1. |
 | `fAI26_mobile_sqlite.sql` | Skrip tabel HP (SQLite), sudah dijalankan dan lolos. |
-| `fAI26_server_sqlserver.sql` | Skrip tabel server (SQL Server), sudah dijalankan di SQL Server 2025 (10 Nov 2026): 14 tabel, 3 indeks terfilter, data awal 5 role dan 17 permission. |
+| `fAI26_server_sqlserver.sql` | Skrip tabel server (SQL Server), sudah dijalankan di SQL Server 2025 (10 Nov 2026): 14 tabel, 3 indeks terfilter, data awal 5 role dan 17 permission. Sejak 21 Nov 2026 ditambah modul IPD (bab 13): 5 tabel, 11 kode temuan, role ASKEP dan KTU, 8 permission. |
 
 Cara memakai kode Mermaid:
 
@@ -900,6 +900,76 @@ Cara memakai kode Mermaid:
 2. Salin seluruh isi satu file `.mmd` ke kolom kode.
 3. Ekspor sebagai PNG atau SVG. SVG tetap tajam saat diperbesar, jadi cocok untuk laporan.
 4. Diagram HP lengkap sangat besar. Untuk laporan, pakai versi ringkas atau ekspor PNG berskala besar.
+
+---
+
+## 13. Modul IPD (Inspeksi Panen Detail)
+
+Ditambahkan 21 Nov 2026 (rencana: `progres/RENCANA_IPD.md`). IPD mencatat **loses** (kehilangan hasil) di titik panen: brondolan tidak dikutip, buah tinggal, dan temuan lain. Tabel panen tidak diubah. DDL lengkapnya ada di `fAI26_mobile_sqlite.sql` (versi DB HP 5) dan `fAI26_server_sqlserver.sql` / `fai26-api/migrations/009_ipd.sql`; diagramnya di `fAI26_ERD_mobile.mmd` dan `fAI26_ERD_server_erp.mmd`.
+
+### 13.1 Aturan bisnis
+
+1. Satu catatan IPD = satu pemanen (satu ancak). Pindah ancak berarti catatan baru dari awal.
+2. Yang menginspeksi (biasanya mandor, bisa asisten) mengisi pokok per pokok. **Semua pokok yang diperiksa dicatat**, termasuk yang bersih, supaya persen loses bisa dihitung.
+3. Satu pokok boleh punya beberapa temuan (kode berbeda). Tiap temuan punya jumlah (bawaan 1).
+4. Kepala catatan memuat tanggal, blok, pemanen, nomor ancak (opsional), nama mandor di blok dan nama mandor di ancak (diketik; kode HRMB opsional untuk ERP nanti).
+5. Foto bukti boleh lebih dari satu, tiap foto punya keterangan.
+6. Persetujuan dua tingkat: inspektur menyatakan valid saat menekan **Kirim** (otomatis), lalu asisten (permission `ipd.setujui`) menyetujui atau menolak dengan alasan. Aturan edit sama dengan panen: selama MENUNGGU asisten inspektur boleh mengubah (kirim ulang); setelah DISETUJUI terkunci (server menjawab 423). Bila yang mengirim memegang `ipd.setujui` (asisten), catatan langsung DISETUJUI.
+7. Tahap ini belum terhubung ke ERP (TCode belum ditentukan). Kode blok (`asm3_oid`) dan pemanen (`pemanen_hrmb_code`) sudah disimpan terstruktur agar siap dijembatani nanti.
+
+### 13.2 Tabel
+
+| Tabel HP | Tabel server | Isi |
+|---|---|---|
+| `kode_temuan` | `ipd_kode_temuan` | Master 11 kode temuan (kode, nama, kelompok, urut, aktif). Diunduh HP lewat master. |
+| `ipd_header` | `fai_ipd` | Satu inspeksi: tanggal, blok, pemanen, inspektur, mandor blok/ancak, status, validasi, persetujuan. |
+| `ipd_pokok` | `fai_ipd_pokok` | Pokok yang diperiksa: nomor baris dan nomor pokok, unik per inspeksi. |
+| `ipd_temuan` | `fai_ipd_temuan` | Temuan pada pokok: kode dan jumlah, unik per pokok dan kode. |
+| `ipd_foto` | `fai_ipd_foto` | Foto bukti dengan keterangan dan urutan. |
+
+Kode temuan:
+
+| Kode | Temuan | Kelompok |
+|---|---|---|
+| A | Potong buah mentah | BUAH |
+| G | Tangkai panjang | BUAH |
+| S | Buah masak tidak dipanen | BUAH |
+| M1 | Buah diperam | BUAH |
+| M2 | Buah dipanen tidak dibawa ke TPH | BUAH |
+| M3 | Buah matahari | BUAH |
+| M4 | Buah tidak disusun di TPH | BUAH |
+| B1 | Brondolan tak dikutip > 3 butir | BRONDOLAN |
+| B2 | Brondolan dibuang ke gawangan | BRONDOLAN |
+| C | Pelepah sengkleh tidak dipotong | PELEPAH |
+| R | Pelepah tidak disusun di gawangan | PELEPAH |
+
+Status HP: `DRAFT` (belum terkirim), `MENUNGGU_SETUJU` (sudah di server, menunggu asisten), `DISETUJUI`, `DITOLAK`. Status server `fai_ipd.status`: `MENUNGGU`, `DISETUJUI`, `DITOLAK`.
+
+### 13.3 Hak akses
+
+| Permission | Fungsi |
+|---|---|
+| `akses.panen` | Kotak Panen muncul di layar awal HP. |
+| `akses.ipd` | Kotak IPD muncul di layar awal HP. |
+| `ipd.buat`, `ipd.kirim` | Mengisi dan mengirim inspeksi (kirim = valid). |
+| `ipd.setujui` | Menyetujui atau menolak inspeksi (asisten). |
+| `ipd.lihat` | Melihat daftar inspeksi di web. |
+| `laporan.ipd` | Melihat laporan loses di web. |
+| `ipd.kelola` | Mengelola kode temuan (admin). |
+
+`akses.panen` dan `akses.ipd` dapat dipasang ke role mana pun lewat halaman Hak Akses web, jadi siapa yang melihat kotak apa bisa diubah tanpa mengubah aplikasi. Role baru **ASKEP** dan **KTU** hanya melihat (`panen.lihat`, `laporan.lihat`, `master.lihat`, `ipd.lihat`, `laporan.ipd`).
+
+### 13.4 Rumus loses (untuk laporan, hanya inspeksi DISETUJUI)
+
+- **Pokok diperiksa** = jumlah baris `ipd_pokok`.
+- **Pokok bertemuan** = pokok yang punya paling sedikit satu temuan. **% pokok bertemuan** = pokok bertemuan dibagi pokok diperiksa.
+- **% per kode** = pokok yang memuat kode itu dibagi pokok diperiksa. **Jumlah per kode** = penjumlahan `jumlah` temuan kode itu.
+- **Per kelompok** (BUAH, BRONDOLAN, PELEPAH) = penjumlahan kode dalam kelompok.
+- Pengelompokan laporan: per kode, per kelompok, per pemanen, per blok, per mandor, per periode tanggal.
+
+### 13.5 Diagram alur
+
+`flow/fAI26_IPD_1_alur_inspeksi.mmd` (alur inspeksi sampai persetujuan dan laporan) dan `flow/fAI26_IPD_2_navigasi_hp.mmd` (layar awal dua kotak dan menu bertingkat).
 
 ---
 

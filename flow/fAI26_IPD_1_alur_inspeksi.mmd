@@ -1,0 +1,44 @@
+flowchart TB
+    subgraph A["A. PERSIAPAN (HP inspektur, boleh offline)"]
+        direction TB
+        A1(["Inspektur buka kotak IPD"]) --> A2["Mulai inspeksi baru"]
+        A2 --> A3["Isi kepala catatan:<br/>tanggal, blok, pemanen (satu ancak),<br/>nama mandor di blok dan di ancak"]
+    end
+
+    subgraph B["B. PEMERIKSAAN POKOK PER POKOK"]
+        direction TB
+        B1["Isi nomor baris<br/>pokok mulai dari 1, naik otomatis"] --> B2{"Ada temuan<br/>pada pokok ini?"}
+        B2 -->|"tidak"| B3["Tekan BERSIH<br/>pokok dicatat tanpa temuan"]
+        B2 -->|"ya"| B4["Pilih satu atau lebih kode temuan<br/>A G S M1 M2 M3 M4 B1 B2 C R<br/>jumlah bawaan 1, boleh diubah"]
+        B3 --> B5{"Lanjut?"}
+        B4 --> B5
+        B5 -->|"pokok berikutnya"| B1
+        B5 -->|"pindah baris"| B1
+        B5 -->|"selesai"| B6["Ringkasan otomatis:<br/>pokok diperiksa, pokok bertemuan,<br/>temuan per kode, persen loses"]
+        B6 --> B7["Tambah foto (lebih dari satu)<br/>tiap foto boleh diberi keterangan"]
+    end
+
+    subgraph C["C. KIRIM DAN VALIDASI"]
+        direction TB
+        C1["Inspektur tekan KIRIM<br/>(otomatis menyatakan valid)"] --> C2{"Ada sinyal?"}
+        C2 -->|"tidak"| C3["Antre di HP<br/>terkirim saat ada sinyal"]
+        C3 --> C2
+        C2 -->|"ya"| C4["Server menyimpan<br/>status MENUNGGU asisten"]
+    end
+
+    subgraph D["D. PERSETUJUAN ASISTEN (HP asisten)"]
+        direction TB
+        D1["Asisten lihat daftar menunggu<br/>rincian, ringkasan loses, foto"] --> D2{"Keputusan"}
+        D2 -->|"setujui"| D3["Status DISETUJUI<br/>terkunci, tidak bisa diubah lagi"]
+        D2 -->|"tolak + alasan"| D4["Status DITOLAK<br/>kembali ke inspektur"]
+        D4 --> D5["Inspektur perbaiki lalu kirim ulang"]
+    end
+
+    subgraph E["E. LAPORAN (dashboard web: ASKEP, KTU, Asisten, Admin, Auditor)"]
+        direction TB
+        E1["Hanya inspeksi DISETUJUI dihitung"] --> E2["Loses per kode temuan<br/>per kelompok: buah, brondolan, pelepah<br/>per pemanen, per blok, per periode"]
+    end
+
+    A --> B --> C --> D
+    D3 --> E
+    C4 -. "selama MENUNGGU inspektur masih boleh mengubah" .-> B

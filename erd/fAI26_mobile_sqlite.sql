@@ -389,3 +389,122 @@ INSERT INTO kelas_grading (kelas_id, kode, nama, label_model, erp_kolom, boleh_d
     (4, 'overripe', 'Overripe', 2, 'JJG_OVERRIPE', 1, 4),
     (5, 'empty', 'Empty bunch', 1, 'JJG_EMPTY', 0, 5),
     (6, 'abnormal', 'Abnormal', 0, 'JJG_UNKNOWN', 0, 6);
+
+-- =====================================================================================================
+-- Modul IPD (Inspeksi Panen Detail), versi DB HP 5 (21 Nov 2026). Satu catatan IPD = satu pemanen (satu ancak).
+-- Pokok yang diperiksa dicatat semuanya (termasuk yang bersih) supaya persen loses bisa dihitung.
+-- =====================================================================================================
+
+CREATE TABLE kode_temuan (
+    kode_id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    kode                  TEXT NOT NULL UNIQUE,          -- A, G, S, M1, M2, M3, M4, B1, B2, C, R
+    nama                  TEXT NOT NULL,
+    kelompok              TEXT NOT NULL CHECK (kelompok IN ('BUAH','BRONDOLAN','PELEPAH')),
+    urut                  INTEGER NOT NULL DEFAULT 0,
+    aktif                 INTEGER NOT NULL DEFAULT 1,
+    dibuat_pada           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+    dibuat_oleh           INTEGER,
+    diubah_pada           TEXT,
+    diubah_oleh           INTEGER,
+    dihapus_pada          TEXT,
+    dihapus_oleh          INTEGER
+);
+
+CREATE TABLE ipd_header (
+    ipd_id                TEXT PRIMARY KEY,              -- UUID dibuat di HP, sama dengan fai_ipd.id di server
+    unit_id               INTEGER NOT NULL REFERENCES unit(unit_id),
+    blok_id               INTEGER NOT NULL REFERENCES blok(blok_id),
+    pemanen_id            INTEGER NOT NULL REFERENCES pemanen(pemanen_id),
+    user_id               INTEGER NOT NULL REFERENCES app_user(user_id),   -- yang menginspeksi (biasanya mandor)
+    device_id             TEXT NOT NULL REFERENCES device(device_id),
+    tanggal_inspeksi      TEXT NOT NULL,                 -- YYYY-MM-DD
+    ancak_no              TEXT,                          -- nomor/nama ancak, boleh kosong
+    mandor_blok_nama      TEXT,                          -- nama mandor di blok itu (diketik)
+    mandor_blok_hrmb      INTEGER,                       -- kode HRMB bila diketahui (untuk ERP nanti)
+    mandor_ancak_nama     TEXT,                          -- nama mandor di ancak itu (diketik)
+    mandor_ancak_hrmb     INTEGER,
+    catatan               TEXT,
+    status                TEXT NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT','MENUNGGU_SETUJU','DISETUJUI','DITOLAK')),
+    dikirim_pada          TEXT,
+    pesan_server          TEXT,                          -- alasan bila ditolak asisten, atau pesan 423
+    divalidasi_oleh       INTEGER,                       -- inspektur menyatakan valid saat menekan kirim
+    divalidasi_pada       TEXT,
+    disetujui_oleh        INTEGER,                       -- asisten (pemegang ipd.setujui)
+    disetujui_pada        TEXT,
+    kirim_ulang           INTEGER NOT NULL DEFAULT 0,    -- 1 = diubah sebelum disetujui / diperbaiki setelah ditolak
+    dibuat_pada           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+    dibuat_oleh           INTEGER,
+    diubah_pada           TEXT,
+    diubah_oleh           INTEGER,
+    dihapus_pada          TEXT,
+    dihapus_oleh          INTEGER
+);
+
+CREATE INDEX ix_ipd_header_tanggal_inspeksi_unit_id ON ipd_header (tanggal_inspeksi, unit_id);
+CREATE INDEX ix_ipd_header_status ON ipd_header (status);
+CREATE INDEX ix_ipd_header_pemanen_id_tanggal_inspeksi ON ipd_header (pemanen_id, tanggal_inspeksi);
+
+CREATE TABLE ipd_pokok (
+    pokok_id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    ipd_id                TEXT NOT NULL REFERENCES ipd_header(ipd_id) ON DELETE CASCADE,
+    no_baris              INTEGER NOT NULL CHECK (no_baris > 0),
+    no_pokok              INTEGER NOT NULL CHECK (no_pokok > 0),
+    dibuat_pada           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+    dibuat_oleh           INTEGER,
+    diubah_pada           TEXT,
+    diubah_oleh           INTEGER,
+    dihapus_pada          TEXT,
+    dihapus_oleh          INTEGER
+);
+
+CREATE UNIQUE INDEX ux_ipd_pokok_ipd_id_baris_pokok ON ipd_pokok (ipd_id, no_baris, no_pokok) WHERE dihapus_pada IS NULL;
+
+CREATE TABLE ipd_temuan (
+    temuan_id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    pokok_id              INTEGER NOT NULL REFERENCES ipd_pokok(pokok_id) ON DELETE CASCADE,
+    kode_id               INTEGER NOT NULL REFERENCES kode_temuan(kode_id),
+    jumlah                INTEGER NOT NULL DEFAULT 1 CHECK (jumlah > 0),   -- butir/buah/pelepah, bawaan 1
+    catatan               TEXT,
+    dibuat_pada           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+    dibuat_oleh           INTEGER,
+    diubah_pada           TEXT,
+    diubah_oleh           INTEGER,
+    dihapus_pada          TEXT,
+    dihapus_oleh          INTEGER
+);
+
+CREATE UNIQUE INDEX ux_ipd_temuan_pokok_id_kode_id ON ipd_temuan (pokok_id, kode_id) WHERE dihapus_pada IS NULL;
+
+CREATE TABLE ipd_foto (
+    foto_id               TEXT PRIMARY KEY,
+    ipd_id                TEXT NOT NULL REFERENCES ipd_header(ipd_id) ON DELETE CASCADE,
+    keterangan            TEXT,                          -- keterangan foto, diisi inspektur
+    urut                  INTEGER NOT NULL DEFAULT 0,
+    path_lokal            TEXT NOT NULL,
+    sha256                TEXT,
+    lebar                 INTEGER,
+    tinggi                INTEGER,
+    status_unggah         TEXT NOT NULL DEFAULT 'BELUM',
+    dibuat_pada           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+    dibuat_oleh           INTEGER,
+    diubah_pada           TEXT,
+    diubah_oleh           INTEGER,
+    dihapus_pada          TEXT,
+    dihapus_oleh          INTEGER
+);
+
+CREATE INDEX ix_ipd_foto_ipd_id ON ipd_foto (ipd_id);
+
+-- Data awal kode temuan IPD (urutan sesuai form lapangan).
+INSERT INTO kode_temuan (kode_id, kode, nama, kelompok, urut) VALUES
+    (1, 'A', 'Potong buah mentah', 'BUAH', 1),
+    (2, 'G', 'Tangkai panjang', 'BUAH', 2),
+    (3, 'S', 'Buah masak tidak dipanen', 'BUAH', 3),
+    (4, 'M1', 'Buah diperam', 'BUAH', 4),
+    (5, 'M2', 'Buah dipanen tidak dibawa ke TPH', 'BUAH', 5),
+    (6, 'M3', 'Buah matahari', 'BUAH', 6),
+    (7, 'M4', 'Buah tidak disusun di TPH', 'BUAH', 7),
+    (8, 'B1', 'Brondolan tak dikutip > 3 butir', 'BRONDOLAN', 8),
+    (9, 'B2', 'Brondolan dibuang ke gawangan', 'BRONDOLAN', 9),
+    (10, 'C', 'Pelepah sengkleh tidak dipotong', 'PELEPAH', 10),
+    (11, 'R', 'Pelepah tidak disusun di gawangan', 'PELEPAH', 11);

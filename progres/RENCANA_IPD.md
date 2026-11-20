@@ -1,6 +1,6 @@
 # Rencana fitur IPD (Inspeksi Panen Detail) dan perombakan navigasi
 
-Status: **RENCANA, belum dikerjakan.** Dibuat 20 Nov 2026 dari penjelasan Ptoni; 10 pertanyaan pertama sudah dijawab (bagian 7). Menunggu jawaban pertanyaan tentang arti isi form lapangan sebelum desain data dibuat.
+Status (21 Nov 2026): **Tahap 0 (git lokal) dan Tahap 1 (desain data) selesai. Menunggu Ptoni memeriksa desain** sebelum Tahap 2 (API). Foto form lapangan diabaikan atas permintaan Ptoni; desain mengikuti penjelasannya.
 
 ## 1. Tujuan
 
@@ -43,25 +43,25 @@ Mengetahui **loses (kehilangan hasil)** di setiap titik panen: brondolan tidak d
 
 Cara membuatnya: `MainActivity` sekarang memuat satu set tab tetap. Diubah menjadi "mode" (HOME, PANEN, IPD) yang menukar daftar tab `GlassNavBar` dan fragment-nya. Fragment Panen yang ada dipakai ulang tanpa diubah. Fragment Home dan fragment IPD baru ditambahkan.
 
-## 4. Data
+## 4. Data (desain selesai 21 Nov 2026)
 
-Tabel baru (nama sementara, prefiks `ipd_` supaya terpisah dari panen):
+Rinci di `erd/fAI26_ERD_Database_Mobile.md` bab 13. Tabel (HP / server):
 
-- `ipd_kode_temuan`: master 11 kode di atas (kode, nama, kelompok, urut, aktif). Diisi lewat migrasi, bisa dikelola admin.
-- `ipd_header`: satu sesi inspeksi (id UUID, unit, blok, tanggal, inspektur, status, penyetuju, waktu, catatan).
-- `ipd_ancak`: ancak yang diinspeksi dalam satu sesi (header, pemanen, jumlah pokok diperiksa).
-- `ipd_pokok`: pokok yang diperiksa (ancak, no baris, no pokok).
-- `ipd_temuan`: temuan pada pokok (pokok, kode temuan, jumlah, catatan, foto opsional).
+- `kode_temuan` / `ipd_kode_temuan`: master 11 kode temuan.
+- `ipd_header` / `fai_ipd`: satu inspeksi = satu pemanen; kepala: tanggal, blok, pemanen, inspektur, nomor ancak (opsional), nama mandor blok, nama mandor ancak; status, validasi (inspektur), persetujuan (asisten).
+- `ipd_pokok` / `fai_ipd_pokok`: pokok yang diperiksa (nomor baris, nomor pokok), semuanya dicatat termasuk yang bersih.
+- `ipd_temuan` / `fai_ipd_temuan`: kode temuan dan jumlah per pokok (boleh beberapa kode).
+- `ipd_foto` / `fai_ipd_foto`: foto lebih dari satu, tiap foto punya keterangan dan urutan.
 
-Status HP: DRAFT, MENUNGGU (menunggu persetujuan), DISETUJUI, DITOLAK, mengikuti pola panen. Offline lebih dulu: Room (skema v5, migrasi dari v4 tanpa menghapus data panen) + antrean sinkron yang sama dengan panen.
+Status HP: DRAFT, MENUNGGU_SETUJU, DISETUJUI, DITOLAK. Status server: MENUNGGU, DISETUJUI, DITOLAK. Offline lebih dulu (Room v5 + antrean sinkron yang sama dengan panen).
 
-Dokumen yang ikut diperbarui: `erd/fAI26_ERD_mobile.mmd`, `erd/fAI26_ERD_server_akses.mmd`, `erd/fAI26_ERD_server_erp.mmd` (bila perlu), `fAI26_ERD_Database_Mobile.md`, `fAI26_mobile_sqlite.sql`, `fAI26_server_sqlserver.sql`, `flow/` (alur IPD baru), `doc/fAI26_Panduan_Alur_Lengkap.md`, `serah_terima_erp/fAI26_PANDUAN_LENGKAP.md`, `docs/API.md`, `docs/openapi.yaml`, `progres/PROGRES.md`.
+Berkas yang sudah diperbarui: `erd/fAI26_ERD_mobile.mmd`, `erd/fAI26_ERD_server_erp.mmd`, `erd/fAI26_mobile_sqlite.sql` (diuji di SQLite), `erd/fAI26_server_sqlserver.sql`, `erd/fAI26_ERD_Database_Mobile.md` (bab 13), `fai26-api/migrations/009_ipd.sql` (sudah dijalankan dan diuji ulang berulang di `fai26_tes`; **belum** dijalankan di `fai26_dev`), `flow/fAI26_IPD_1_alur_inspeksi.mmd`, `flow/fAI26_IPD_2_navigasi_hp.mmd`. Belum diperbarui (tahap akhir): `doc/fAI26_Panduan_Alur_Lengkap.md`, `serah_terima_erp/`, `docs/API.md`, `docs/openapi.yaml`.
 
 ## 5. Server (API Go + SQL Server)
 
 - Migrasi `009_ipd.sql`: tabel IPD, seed 11 kode, permission `ipd.*`, role **ASKEP** dan **KTU** (hanya lihat).
 - Endpoint (usulan): `GET /api/master` ditambah kode temuan; `POST /api/ipd` (kirim satu sesi, idempoten seperti panen); `GET /api/ipd/menunggu`, `POST /api/ipd/{id}/setujui|tolak`; `GET /api/admin/ipd` (daftar); `GET /api/admin/ipd/laporan` (loses per kode, per kelompok, per pemanen, per blok, per periode).
-- Permission baru: `ipd.buat`, `ipd.kirim`, `ipd.setujui`, `ipd.lihat`, `laporan.ipd`.
+- Permission baru (sudah ada di migrasi 009): `akses.panen`, `akses.ipd` (menentukan kotak di HP, bisa dipasang ke role mana pun), `ipd.buat`, `ipd.kirim`, `ipd.setujui`, `ipd.lihat`, `laporan.ipd`, `ipd.kelola`. Role baru ASKEP dan KTU (hanya lihat).
 - Versi API naik (0.16.0), dokumentasi API wajib diperbarui (ada tes yang memaksanya).
 - Tes unit + integrasi di `fai26_tes` (bukan `fai26_dev`).
 
@@ -96,13 +96,21 @@ Pertanyaan terbuka tentang form ini ada di balasan Claude kepada Ptoni (arti tan
 
 ## 8. Urutan pengerjaan
 
-| Tahap | Isi | Hasil yang bisa dicek |
+| Tahap | Isi | Status |
 |---|---|---|
-| 0 | Git lokal (bila disetujui), baseline | Titik kembali |
-| 1 | Desain data: ERD mermaid, SQL SQLite dan SQL Server, migrasi 009, alur di `flow/` | Dokumen dan skema, dikoreksi Ptoni sebelum kode |
-| 2 | API: tabel, endpoint, permission, role ASKEP dan KTU, tes, dokumentasi | Tes lolos di `fai26_tes` |
-| 3 | HP: Home dua kotak, menu bertingkat, migrasi Room v5, layar IPD (pilih ancak, input pokok dan temuan, ringkasan, kirim), Riwayat dan Persetujuan IPD, sinkron | Terpasang di HP, dicoba Ptoni |
-| 4 | Web: halaman Daftar Inspeksi dan Laporan Loses, tampilan role ASKEP dan KTU | Dicoba di browser |
-| 5 | Dokumentasi akhir, `PROGRES.md`, memori, daftar tes manual | Catatan lengkap |
+| 0 | Git lokal, baseline | **Selesai 21 Nov** (repo di `L:\GRADING_MAGANG`, commit awal "Titik awal sebelum fitur IPD"; `.env`, DataKEBUN, TUGAS, node_modules, build dikecualikan; tidak diunggah ke mana pun) |
+| 1 | Desain data: ERD mermaid, SQL SQLite dan SQL Server, migrasi 009, alur di `flow/` | **Selesai 21 Nov, menunggu pemeriksaan Ptoni** |
+| 2 | API: endpoint IPD, master kode temuan, persetujuan, laporan loses, tes, dokumentasi | Belum |
+| 3 | HP: Home dua kotak, menu bertingkat, Room v5, layar IPD, Riwayat dan Persetujuan IPD, sinkron | Belum |
+| 4 | Web: Daftar Inspeksi, Laporan Loses, halaman Hak Akses untuk kotak, tampilan role ASKEP dan KTU | Belum |
+| 5 | Dokumentasi akhir, `PROGRES.md`, memori, daftar tes manual | Belum |
 
 Tiap tahap diakhiri pembaruan `PROGRES.md`. Fitur Panen yang sudah ada tidak diubah perilakunya; hanya pintu masuknya yang pindah ke kotak Panen.
+
+## 9. Pertanyaan desain yang masih terbuka (jawaban bawaan dipakai bila tidak dijawab)
+
+1. **Nama mandor**: diketik bebas (dua isian: mandor di blok dan mandor di ancak). Bawaan: ya, diketik bebas; kode HRMB mandor opsional. Atau dipilih dari daftar mandor?
+2. **Asisten sebagai inspektur**: bila yang mengirim memegang `ipd.setujui`, catatan langsung DISETUJUI. Bawaan: ya.
+3. **Jumlah temuan**: tiap kode bawaan 1 per pokok, boleh diubah (misalnya 5 butir). Bawaan: ya.
+4. **Batas foto** per inspeksi. Bawaan: tidak dibatasi (maksimal 10 di HP agar memori aman).
+5. **Satu pemanen satu hari dua kali diinspeksi** (dua catatan untuk blok dan tanggal yang sama)? Bawaan: boleh, tidak ada anti ganda.

@@ -29,6 +29,16 @@ erDiagram
     app_user |o--o{ audit_log : "pelaku"
     device |o--o{ audit_log : "asal HP"
 
+    unit ||--o{ ipd_header : "mencatat inspeksi"
+    blok ||--o{ ipd_header : "diinspeksi di"
+    pemanen ||--o{ ipd_header : "ancak yang diinspeksi"
+    app_user ||--o{ ipd_header : "menginspeksi"
+    device ||--o{ ipd_header : "asal HP"
+    ipd_header ||--o{ ipd_pokok : "pokok diperiksa"
+    ipd_pokok ||--o{ ipd_temuan : "temuan"
+    kode_temuan ||--o{ ipd_temuan : "jenis temuan"
+    ipd_header ||--o{ ipd_foto : "punya foto"
+
     unit {
         INTEGER unit_id PK
         TEXT kode UK "contoh KP_STL"
@@ -357,4 +367,90 @@ erDiagram
         INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
         TEXT diubah_pada "waktu UTC perubahan terakhir"
         INTEGER diubah_oleh "user_id pengubah terakhir"
+    }
+
+    kode_temuan {
+        INTEGER kode_id PK
+        TEXT kode UK "A G S M1 M2 M3 M4 B1 B2 C R"
+        TEXT nama
+        TEXT kelompok "BUAH, BRONDOLAN, PELEPAH"
+        INTEGER urut
+        INTEGER aktif
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat"
+        TEXT diubah_pada
+        INTEGER diubah_oleh
+        TEXT dihapus_pada "hapus lunak"
+        INTEGER dihapus_oleh
+    }
+    ipd_header {
+        TEXT ipd_id PK "UUID dibuat di HP"
+        INTEGER unit_id FK
+        INTEGER blok_id FK
+        INTEGER pemanen_id FK "satu catatan = satu pemanen"
+        INTEGER user_id FK "yang menginspeksi"
+        TEXT device_id FK
+        TEXT tanggal_inspeksi "YYYY-MM-DD"
+        TEXT ancak_no
+        TEXT mandor_blok_nama
+        INTEGER mandor_blok_hrmb
+        TEXT mandor_ancak_nama
+        INTEGER mandor_ancak_hrmb
+        TEXT catatan
+        TEXT status "DRAFT, MENUNGGU_SETUJU, DISETUJUI, DITOLAK"
+        TEXT dikirim_pada
+        TEXT pesan_server "alasan ditolak asisten atau pesan terkunci"
+        INTEGER divalidasi_oleh "inspektur, otomatis saat kirim"
+        TEXT divalidasi_pada
+        INTEGER disetujui_oleh "asisten"
+        TEXT disetujui_pada
+        INTEGER kirim_ulang "1 = diubah atau diperbaiki lalu dikirim ulang"
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat"
+        TEXT diubah_pada
+        INTEGER diubah_oleh
+        TEXT dihapus_pada "hapus lunak"
+        INTEGER dihapus_oleh
+    }
+    ipd_pokok {
+        INTEGER pokok_id PK
+        TEXT ipd_id FK
+        INTEGER no_baris "nomor baris pohon"
+        INTEGER no_pokok "UNIQUE bersama ipd_id dan no_baris"
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat"
+        TEXT diubah_pada
+        INTEGER diubah_oleh
+        TEXT dihapus_pada "hapus lunak"
+        INTEGER dihapus_oleh
+    }
+    ipd_temuan {
+        INTEGER temuan_id PK
+        INTEGER pokok_id FK
+        INTEGER kode_id FK
+        INTEGER jumlah "bawaan 1"
+        TEXT catatan
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat"
+        TEXT diubah_pada
+        INTEGER diubah_oleh
+        TEXT dihapus_pada "hapus lunak"
+        INTEGER dihapus_oleh
+    }
+    ipd_foto {
+        TEXT foto_id PK
+        TEXT ipd_id FK
+        TEXT keterangan "boleh lebih dari satu foto per inspeksi"
+        INTEGER urut
+        TEXT path_lokal
+        TEXT sha256
+        INTEGER lebar
+        INTEGER tinggi
+        TEXT status_unggah
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat"
+        TEXT diubah_pada
+        INTEGER diubah_oleh
+        TEXT dihapus_pada "hapus lunak"
+        INTEGER dihapus_oleh
     }

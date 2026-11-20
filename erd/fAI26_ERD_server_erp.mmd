@@ -16,6 +16,14 @@ erDiagram
     asm3 ||--o{ hvd1da : "blok ASM3CODE"
     fai_panen }o..|| asm3 : "blok asm3_oid"
 
+    unit ||--o{ fai_ipd : "unit asal"
+    device ||--o{ fai_ipd : "HP pengirim"
+    fai_ipd ||--o{ fai_ipd_pokok : "pokok diperiksa"
+    fai_ipd_pokok ||--o{ fai_ipd_temuan : "temuan"
+    ipd_kode_temuan ||--o{ fai_ipd_temuan : "jenis temuan"
+    fai_ipd ||--o{ fai_ipd_foto : "punya foto"
+    fai_ipd }o..|| asm3 : "blok asm3_oid"
+
     fai_panen {
         UNIQUEIDENTIFIER id PK "sama dengan panen_id di HP"
         INT unit_id FK
@@ -179,4 +187,86 @@ erDiagram
         FLOAT LUASBLOK
         VARCHAR BLNTANAM
         FLOAT SPH
+    }
+
+    ipd_kode_temuan {
+        INT kode_id PK
+        NVARCHAR kode UK
+        NVARCHAR nama
+        NVARCHAR kelompok "BUAH, BRONDOLAN, PELEPAH"
+        INT urut
+        BIT aktif
+        DATETIME2 dibuat_pada "waktu UTC saat baris dibuat"
+        INT dibuat_oleh "user_id pembuat (inspektur untuk fai_ipd)"
+        DATETIME2 diubah_pada
+        INT diubah_oleh
+        DATETIME2 dihapus_pada "hapus lunak"
+        INT dihapus_oleh
+    }
+    fai_ipd {
+        UNIQUEIDENTIFIER id PK "sama dengan ipd_id di HP"
+        INT unit_id FK
+        UNIQUEIDENTIFIER device_id FK
+        DATE tanggal_inspeksi
+        BIGINT asm3_oid "OID blok di ERP"
+        NVARCHAR blok_kode
+        INT pemanen_hrmb_code "satu catatan = satu pemanen"
+        NVARCHAR ancak_no
+        NVARCHAR mandor_blok_nama
+        INT mandor_blok_hrmb
+        NVARCHAR mandor_ancak_nama
+        INT mandor_ancak_hrmb
+        NVARCHAR catatan
+        NVARCHAR status "MENUNGGU, DISETUJUI, DITOLAK"
+        NVARCHAR pesan_tolak
+        DATETIME2 diterima_server
+        INT divalidasi_oleh "inspektur"
+        DATETIME2 divalidasi_pada
+        INT disetujui_oleh "asisten"
+        DATETIME2 disetujui_pada
+        DATETIME2 dibuat_pada "waktu UTC saat baris dibuat"
+        INT dibuat_oleh "user_id pembuat (inspektur untuk fai_ipd)"
+        DATETIME2 diubah_pada
+        INT diubah_oleh
+        DATETIME2 dihapus_pada "hapus lunak"
+        INT dihapus_oleh
+    }
+    fai_ipd_pokok {
+        BIGINT id PK
+        UNIQUEIDENTIFIER ipd_id FK
+        INT no_baris
+        INT no_pokok
+        DATETIME2 dibuat_pada "waktu UTC saat baris dibuat"
+        INT dibuat_oleh "user_id pembuat (inspektur untuk fai_ipd)"
+        DATETIME2 diubah_pada
+        INT diubah_oleh
+        DATETIME2 dihapus_pada "hapus lunak"
+        INT dihapus_oleh
+    }
+    fai_ipd_temuan {
+        BIGINT id PK
+        BIGINT pokok_id FK
+        INT kode_id FK
+        INT jumlah
+        NVARCHAR catatan
+        DATETIME2 dibuat_pada "waktu UTC saat baris dibuat"
+        INT dibuat_oleh "user_id pembuat (inspektur untuk fai_ipd)"
+        DATETIME2 diubah_pada
+        INT diubah_oleh
+        DATETIME2 dihapus_pada "hapus lunak"
+        INT dihapus_oleh
+    }
+    fai_ipd_foto {
+        UNIQUEIDENTIFIER id PK
+        UNIQUEIDENTIFIER ipd_id FK
+        NVARCHAR keterangan
+        INT urut
+        NVARCHAR nama_file
+        NVARCHAR sha256
+        DATETIME2 dibuat_pada "waktu UTC saat baris dibuat"
+        INT dibuat_oleh "user_id pembuat (inspektur untuk fai_ipd)"
+        DATETIME2 diubah_pada
+        INT diubah_oleh
+        DATETIME2 dihapus_pada "hapus lunak"
+        INT dihapus_oleh
     }
