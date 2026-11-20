@@ -13,6 +13,7 @@ var (
 	ErrMasihDipakai      = errors.New("data masih dipakai data lain")
 	ErrReferensi         = errors.New("data yang dirujuk tidak ada")
 	ErrStatusBerubah     = errors.New("status catatan sudah berubah")
+	ErrAsistenTidakSah   = errors.New("asisten harus akun aktif berperan ASISTEN di unit ini")
 )
 
 func nullStr(s string) any {

@@ -172,6 +172,9 @@ func (s *AdminMasterService) BuatDivisi(ctx context.Context, k *auth.Klaim, in m
 		return 0, tidakValid(err)
 	}
 	id, err := s.repo.BuatDivisi(ctx, k.UnitID, k.UserID, in)
+	if errors.Is(err, repository.ErrAsistenTidakSah) {
+		return 0, apperror.Unprocessable(err.Error())
+	}
 	return id, galatRepo(err, "Divisi")
 }
 
@@ -179,7 +182,11 @@ func (s *AdminMasterService) UbahDivisi(ctx context.Context, k *auth.Klaim, id i
 	if err := validasiDivisi(in); err != nil {
 		return tidakValid(err)
 	}
-	return galatRepo(s.repo.UbahDivisi(ctx, k.UnitID, k.UserID, id, in), "Divisi")
+	err := s.repo.UbahDivisi(ctx, k.UnitID, k.UserID, id, in)
+	if errors.Is(err, repository.ErrAsistenTidakSah) {
+		return apperror.Unprocessable(err.Error())
+	}
+	return galatRepo(err, "Divisi")
 }
 
 func (s *AdminMasterService) HapusDivisi(ctx context.Context, k *auth.Klaim, id int64) error {

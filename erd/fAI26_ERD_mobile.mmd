@@ -39,8 +39,7 @@ erDiagram
     kode_temuan ||--o{ ipd_temuan : "jenis temuan"
     ipd_header ||--o{ ipd_foto : "punya foto"
     divisi ||--o{ ipd_header : "dipilih saat inspeksi"
-    petugas ||--o{ ipd_header : "mandor blok, mandor ancak, asisten"
-    unit ||--o{ petugas : "daftar mandor dan asisten"
+    app_user ||--o{ ipd_header : "mandor blok, mandor ancak, asisten"
 
     unit {
         INTEGER unit_id PK
@@ -62,7 +61,7 @@ erDiagram
         INTEGER erp_oid
         TEXT kode
         TEXT nama
-        INTEGER asisten_user_id "asisten divisi (petugas.user_id), diatur admin"
+        INTEGER asisten_user_id "asisten divisi (app_user), diatur admin"
         INTEGER aktif
         TEXT dibuat_pada "waktu UTC saat baris dibuat"
         INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
@@ -379,21 +378,6 @@ erDiagram
         TEXT nama
         TEXT kelompok "BUAH, BRONDOLAN, PELEPAH"
         INTEGER urut
-        INTEGER aktif
-        TEXT dibuat_pada "waktu UTC saat baris dibuat"
-        INTEGER dibuat_oleh "user_id pembuat"
-        TEXT diubah_pada
-        INTEGER diubah_oleh
-        TEXT dihapus_pada "hapus lunak"
-        INTEGER dihapus_oleh
-    }
-    petugas {
-        INTEGER user_id PK "sama dengan app_user.user_id di server"
-        INTEGER unit_id FK
-        TEXT nama
-        TEXT peran "MANDOR atau ASISTEN"
-        INTEGER hrmb_code "kode HRMB mandor"
-        TEXT afdeling_kode
         INTEGER aktif
         TEXT dibuat_pada "waktu UTC saat baris dibuat"
         INTEGER dibuat_oleh "user_id pembuat"

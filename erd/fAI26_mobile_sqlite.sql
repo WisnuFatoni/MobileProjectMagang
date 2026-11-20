@@ -23,7 +23,7 @@ CREATE TABLE divisi (
     erp_oid               INTEGER,
     kode                  TEXT NOT NULL,
     nama                  TEXT NOT NULL,
-    asisten_user_id       INTEGER,                       -- asisten divisi (petugas.user_id), diatur admin; dipakai IPD
+    asisten_user_id       INTEGER,                       -- asisten divisi (app_user.user_id berperan ASISTEN), diatur admin; dipakai IPD
     aktif                 INTEGER NOT NULL DEFAULT 1,
     dibuat_pada           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
     dibuat_oleh           INTEGER,
@@ -411,22 +411,7 @@ CREATE TABLE kode_temuan (
     dihapus_oleh          INTEGER
 );
 
--- Daftar akun berperan MANDOR dan ASISTEN di unit (master, diunduh dari server). Dipakai memilih mandor dan menampilkan asisten.
-CREATE TABLE petugas (
-    user_id               INTEGER PRIMARY KEY,           -- sama dengan app_user.user_id di server
-    unit_id               INTEGER NOT NULL REFERENCES unit(unit_id),
-    nama                  TEXT NOT NULL,
-    peran                 TEXT NOT NULL CHECK (peran IN ('MANDOR','ASISTEN')),
-    hrmb_code             INTEGER,                       -- kode HRMB mandor (app_user.mandor_hrmb_code), kosong untuk asisten
-    afdeling_kode         TEXT,
-    aktif                 INTEGER NOT NULL DEFAULT 1,
-    dibuat_pada           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
-    dibuat_oleh           INTEGER,
-    diubah_pada           TEXT,
-    diubah_oleh           INTEGER,
-    dihapus_pada          TEXT,
-    dihapus_oleh          INTEGER
-);
+-- Mandor dan asisten adalah akun di app_user (diunduh lewat master: user dengan user_role MANDOR atau ASISTEN); tidak ada tabel terpisah.
 
 CREATE TABLE ipd_header (
     ipd_id                TEXT PRIMARY KEY,              -- UUID dibuat di HP, sama dengan fai_ipd.id di server
@@ -438,10 +423,10 @@ CREATE TABLE ipd_header (
     tanggal_inspeksi      TEXT NOT NULL,                 -- YYYY-MM-DD
     ancak_no              TEXT,                          -- nomor/nama ancak, boleh kosong
     divisi_id             INTEGER NOT NULL REFERENCES divisi(divisi_id),   -- dipilih di awal inspeksi (Divisi 1 atau 2)
-    asisten_user_id       INTEGER REFERENCES petugas(user_id),             -- terisi otomatis dari divisi, penyetuju catatan ini
-    mandor_blok_user_id   INTEGER REFERENCES petugas(user_id),             -- dipilih dari daftar akun berperan MANDOR
+    asisten_user_id       INTEGER REFERENCES app_user(user_id),             -- terisi otomatis dari divisi, penyetuju catatan ini
+    mandor_blok_user_id   INTEGER REFERENCES app_user(user_id),             -- dipilih dari daftar akun berperan MANDOR
     mandor_blok_hrmb      INTEGER,                       -- salinan kode HRMB mandor saat dipilih (untuk ERP nanti)
-    mandor_ancak_user_id  INTEGER REFERENCES petugas(user_id),
+    mandor_ancak_user_id  INTEGER REFERENCES app_user(user_id),
     mandor_ancak_hrmb     INTEGER,
     catatan               TEXT,
     status                TEXT NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT','MENUNGGU_SETUJU','DISETUJUI','DITOLAK')),

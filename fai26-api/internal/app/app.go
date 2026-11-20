@@ -31,6 +31,7 @@ func Bangun(cfg config.Config, db *sql.DB) http.Handler {
 	adminMasters := repository.NewAdminMasterRepository(db)
 	admins := repository.NewAdminRepository(db)
 	hakAkses := repository.NewHakAksesRepository(db)
+	ipds := repository.NewIpdRepository(db)
 	files := storage.NewFileStorage(cfg.MediaDir)
 
 	// service
@@ -47,12 +48,14 @@ func Bangun(cfg config.Config, db *sql.DB) http.Handler {
 	adminMasterSvc := service.NewAdminMasterService(adminMasters)
 	adminSvc := service.NewAdminService(admins)
 	hakAksesSvc := service.NewHakAksesService(hakAkses)
+	ipdSvc := service.NewIpdService(ipds, units, akses, files)
 
 	// controller dan routes
 	api := routes.Daftar(routes.Controller{
 		Health:      controller.NewHealthController(db),
 		Auth:        controller.NewAuthController(authSvc),
 		Panen:       controller.NewPanenController(panenSvc),
+		Ipd:         controller.NewIpdController(ipdSvc, files),
 		Media:       controller.NewMediaController(mediaSvc),
 		Audit:       controller.NewAuditController(auditSvc),
 		Master:      controller.NewMasterController(masterSvc),

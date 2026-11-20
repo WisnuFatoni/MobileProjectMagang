@@ -4,7 +4,7 @@ flowchart TB
         A1(["Inspektur buka kotak IPD"]) --> A2["Mulai inspeksi baru"]
         A2 --> A3["Pilih DIVISI (1 atau 2)<br/>asisten terisi otomatis dari divisi<br/>(diatur admin di web, bisa diganti)"]
         A3 --> A4["Pilih blok (difilter divisi), pemanen (satu ancak),<br/>mandor di blok dan mandor di ancak<br/>(dipilih dari daftar akun berperan MANDOR)"]
-        A4 --> A5{"Pemanen + blok ini<br/>diinspeksi 30 hari terakhir?"}
+        A4 --> A5{"Pemanen + blok ini<br/>diinspeksi 7 hari terakhir?"}
         A5 -->|"ya"| A6["PERINGATAN (bukan larangan):<br/>tampilkan tanggal, inspektur, status<br/>inspektur boleh lanjut"]
         A5 -->|"tidak"| A7(["Lanjut"])
         A6 --> A7

@@ -46,6 +46,7 @@ UNION ALL SELECT 'blok', COUNT(*), CONVERT(NVARCHAR(30), MAX(COALESCE(dihapus_pa
 UNION ALL SELECT 'tph', COUNT(*), CONVERT(NVARCHAR(30), MAX(COALESCE(t.dihapus_pada, t.diubah_pada, t.dibuat_pada)), 126)
   FROM dbo.tph t JOIN dbo.blok b ON b.blok_id = t.blok_id WHERE b.unit_id=@p1 AND `+filterBlokB+`
 UNION ALL SELECT 'pemanen', COUNT(*), CONVERT(NVARCHAR(30), MAX(COALESCE(dihapus_pada, diubah_pada, dibuat_pada)), 126) FROM dbo.pemanen WHERE unit_id=@p1 AND (@p2 IS NULL OR mandor_hrmb_code=@p2)
+UNION ALL SELECT 'kode_temuan', COUNT(*), CONVERT(NVARCHAR(30), MAX(COALESCE(dihapus_pada, diubah_pada, dibuat_pada)), 126) FROM dbo.ipd_kode_temuan
 UNION ALL SELECT 'user', COUNT(*), CONVERT(NVARCHAR(30), MAX(COALESCE(dihapus_pada, diubah_pada, dibuat_pada)), 126) FROM dbo.app_user WHERE unit_id=@p1
 UNION ALL SELECT 'user_role', COUNT(*), CONVERT(NVARCHAR(30), MAX(COALESCE(ur.dihapus_pada, ur.diubah_pada, ur.dibuat_pada)), 126)
   FROM dbo.user_role ur JOIN dbo.app_user u ON u.user_id = ur.user_id WHERE u.unit_id=@p1
@@ -87,7 +88,7 @@ func (r *MasterRepository) Ambil(ctx context.Context, unitID int64, l model.Ling
 	if len(unit) > 0 {
 		out.Unit = unit[0]
 	}
-	if out.Divisi, err = r.baris(ctx, "SELECT divisi_id, unit_id, erp_oid, kode, nama, aktif, "+waktu+" FROM dbo.divisi WHERE unit_id=@p1 AND (@p3 IS NULL OR kode=@p3) ORDER BY divisi_id", unitID, mandor, afdeling); err != nil {
+	if out.Divisi, err = r.baris(ctx, "SELECT divisi_id, unit_id, erp_oid, kode, nama, asisten_user_id, aktif, "+waktu+" FROM dbo.divisi WHERE unit_id=@p1 AND (@p3 IS NULL OR kode=@p3) ORDER BY divisi_id", unitID, mandor, afdeling); err != nil {
 		return nil, err
 	}
 	if out.Blok, err = r.baris(ctx, "SELECT blok_id, unit_id, divisi_id, erp_oid, kode, nama, luas_ha, tahun_tanam, sph, aktif, "+waktu+" FROM dbo.blok WHERE unit_id=@p1 AND "+filterBlok+" ORDER BY blok_id", unitID, mandor, afdeling); err != nil {
@@ -98,6 +99,9 @@ FROM dbo.tph t JOIN dbo.blok b ON b.blok_id = t.blok_id WHERE b.unit_id=@p1 AND 
 		return nil, err
 	}
 	if out.Pemanen, err = r.baris(ctx, "SELECT pemanen_id, unit_id, erp_hrmb_code, kode, nama, aktif, "+waktu+" FROM dbo.pemanen WHERE unit_id=@p1 AND (@p2 IS NULL OR mandor_hrmb_code=@p2) ORDER BY pemanen_id", unitID, mandor, afdeling); err != nil {
+		return nil, err
+	}
+	if out.KodeTemuan, err = r.baris(ctx, "SELECT kode_id, kode, nama, kelompok, urut, aktif, "+waktu+" FROM dbo.ipd_kode_temuan ORDER BY urut, kode_id"); err != nil {
 		return nil, err
 	}
 	if out.User, err = r.user(ctx, unitID); err != nil {

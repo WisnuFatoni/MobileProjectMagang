@@ -1,6 +1,6 @@
 # Dokumentasi API fai26-api
 
-Versi 0.15.0 · terakhir diperbarui 20 Nov 2026 · spesifikasi mesin: [`openapi.yaml`](openapi.yaml)
+Versi 0.16.0 · terakhir diperbarui 21 Nov 2026 · spesifikasi mesin: [`openapi.yaml`](openapi.yaml)
 (bisa dibuka di Swagger Editor, Postman, atau Insomnia).
 
 > **Aturan tim:** setiap endpoint baru atau perubahan bentuk data **wajib** memperbarui `openapi.yaml`, dokumen ini,
@@ -24,6 +24,14 @@ Versi 0.15.0 · terakhir diperbarui 20 Nov 2026 · spesifikasi mesin: [`openapi.
 | POST | `/api/panen/{id}/setujui` | ya | `panen.setujui` | Setujui satu catatan menunggu (siap ditarik ERP) |
 | POST | `/api/panen/{id}/tolak` | ya | `panen.setujui` | Tolak satu catatan menunggu dengan alasan |
 | POST | `/api/panen/{id}/media` | ya | `panen.kirim` | Unggah foto JPEG |
+| POST | `/api/ipd` | ya | `ipd.kirim` | Kirim satu inspeksi panen detail (IPD) |
+| GET | `/api/ipd` | ya | `ipd.buat` | Status inspeksi milik sendiri |
+| GET | `/api/ipd/inspeksi-terakhir` | ya | `ipd.buat` | Peringatan: pemanen + blok ini pernah diinspeksi 7 hari terakhir |
+| GET | `/api/ipd/menunggu` | ya | `ipd.setujui` | Inspeksi yang menunggu persetujuan asisten ini |
+| POST | `/api/ipd/{id}/setujui` | ya | `ipd.setujui` | Setujui inspeksi (setelah itu terkunci) |
+| POST | `/api/ipd/{id}/tolak` | ya | `ipd.setujui` | Tolak inspeksi dengan alasan |
+| POST | `/api/ipd/{id}/media` | ya | `ipd.kirim` | Unggah satu foto bukti (tanpa batas jumlah) |
+| GET | `/api/ipd/foto/{id}` | ya | `ipd.lihat` | Unduh foto bukti inspeksi |
 | POST | `/api/audit/batch` | ya | - | Kirim audit_log dari HP |
 | GET | `/api/master` | ya | `master.lihat` | Unduh master unit (blok, TPH, pemanen, akun) |
 | PUT | `/api/tph/{id}/koordinat` | ya | `panen.kirim` | Rekam koordinat TPH dari HP (hanya bila belum ada) |
@@ -58,6 +66,9 @@ Versi 0.15.0 · terakhir diperbarui 20 Nov 2026 · spesifikasi mesin: [`openapi.
 | GET | `/api/admin/panen` | ya | `panen.lihat` | Daftar catatan panen |
 | GET | `/api/admin/panen/{id}` | ya | `panen.lihat` | Detail catatan panen |
 | GET | `/api/admin/foto/{id}` | ya | `panen.lihat` | Unduh foto catatan |
+| GET | `/api/admin/ipd` | ya | `ipd.lihat` | Daftar inspeksi (web) |
+| GET | `/api/admin/ipd/laporan` | ya | `laporan.ipd` | Laporan loses dari inspeksi yang disetujui |
+| GET | `/api/admin/ipd/{id}` | ya | `ipd.lihat` | Rincian satu inspeksi (semua pokok dan temuan) |
 | GET | `/api/admin/audit` | ya | `audit.lihat` | Cari audit log |
 
 ## Aturan umum
@@ -394,7 +405,7 @@ bila sama dengan versi server, jawabannya hanya `{"versi": "...", "berubah": fal
   "berubah": true,
   "unit": { "unit_id": 1, "kode": "KP_STL", "nama": "Kebun Contoh STL", "erp_db": "kp_stl2025", "tahun_cluster": 2026, "aktif": true,
             "dibuat_pada": "2026-11-10T07:00:00Z", "diubah_pada": null, "dihapus_pada": null },
-  "divisi":  [ { "divisi_id": 1, "unit_id": 1, "erp_oid": null, "kode": "DIV2", "nama": "Divisi 2 (contoh)", "aktif": true, "...": "..." } ],
+  "divisi":  [ { "divisi_id": 1, "unit_id": 1, "erp_oid": null, "kode": "DIV2", "nama": "Divisi 2 (contoh)", "asisten_user_id": 7, "aktif": true, "...": "..." } ],
   "blok":    [ { "blok_id": 1, "unit_id": 1, "divisi_id": 1, "erp_oid": 1012, "kode": "A12", "nama": null, "luas_ha": 28.5,
                  "tahun_tanam": 2012, "sph": 133, "aktif": true, "...": "..." } ],
   "tph":     [ { "tph_id": 1, "blok_id": 1, "no_tph": "01", "qr_kode": "FAI26|TPH|1|KP_STL|A12|01", "lat": null, "lon": null,
@@ -402,6 +413,7 @@ bila sama dengan versi server, jawabannya hanya `{"versi": "...", "berubah": fal
   "pemanen": [ { "pemanen_id": 1, "unit_id": 1, "erp_hrmb_code": 90001, "kode": "P-001", "nama": "Pemanen Contoh 1", "aktif": true, "...": "..." } ],
   "user":    [ { "user_id": 1, "unit_id": 1, "username": "krani1", "nama": "Krani Contoh", "aktif": true, "erp_user_oid": null,
                  "role": ["KRANI"], "dihapus_pada": null } ],
+  "kode_temuan": [ { "kode_id": 1, "kode": "A", "nama": "Potong buah mentah", "kelompok": "BUAH", "urut": 1, "aktif": true, "...": "..." } ],
   "role_permission": [ { "role": "KRANI", "permission": ["grading.ubah", "master.lihat", "panen.buat", "panen.kirim", "panen.lihat", "panen.ubah"] },
                        { "role": "MANDOR", "permission": ["panen.setujui", "..."] } ]
 }
@@ -412,6 +424,7 @@ bila sama dengan versi server, jawabannya hanya `{"versi": "...", "berubah": fal
 - Hash password dan data kunci akun **tidak pernah** dikirim. `role` berupa kode role.
 - **Versi** dihitung dari isi tabel (jumlah baris dan waktu ubah terbaru). Semua alat yang mengubah master wajib mengisi `diubah_pada`.
 - **Hak role** (`role_permission`): hak SEMUA role, bukan hanya unit akun. HP mengganti seluruh hak role-nya dengan isi ini; role yang tidak tercantum berarti tanpa hak, dan kode role atau permission yang tidak dikenal HP dilewati. Bila kunci ini tidak ada, HP tidak mengubah hak role-nya. Perubahan hak role (termasuk hapus lunak, yang wajib mengisi `diubah_pada`) mengubah `versi` sehingga HP mengunduh ulang.
+- **IPD:** `kode_temuan` adalah 11 kode temuan inspeksi (A, G, S, M1, M2, M3, M4, B1, B2, C, R) berurutan (`urut`), `kelompok` BUAH, BRONDOLAN, atau PELEPAH. Pilihan mandor dan asisten untuk IPD diambil dari `user` (akun berperan MANDOR dan ASISTEN); `divisi.asisten_user_id` menunjuk asisten tiap divisi (null bila belum diatur).
 - Bila `berubah` false, kolom lain kosong; HP tidak perlu berbuat apa-apa.
 
 **Galat:** 401 tanpa token · 403 tanpa permission `master.lihat`.
@@ -438,28 +451,158 @@ wajib memakainya (menimpa titiknya sendiri). Mengirim titik yang sama dua kali a
 **Galat:** 401 tanpa token · 403 tanpa `panen.kirim` · 404 TPH tidak ada atau bukan milik unit · 422 `lat` di luar -90..90,
 `lon` di luar -180..180, titik tepat (0, 0), `akurasi_m` kosong atau di atas 50, atau ada kolom yang tidak dikirim.
 
+## IPD: Inspeksi Panen Detail
+
+IPD mencatat **loses** (kehilangan hasil) di titik panen. Satu catatan = satu pemanen (satu ancak): inspektur memeriksa pokok per pokok (nomor baris + nomor pokok)
+dan mencatat temuan dengan kode **A, G, S, M1, M2, M3, M4, B1, B2, C, R** (master `kode_temuan` di `GET /api/master`). Pokok yang bersih juga dicatat supaya persen loses
+bisa dihitung. Alur: inspektur mengirim (otomatis valid) → status `MENUNGGU` → **asisten divisi yang tercatat** menyetujui atau menolak. Pengirim yang memegang
+`ipd.setujui` (asisten) langsung `DISETUJUI`. Setelah `DISETUJUI` catatan **terkunci**. Selama `MENUNGGU` (atau `DITOLAK`) pengirim boleh mengubahnya dengan `kirim_ulang=true`.
+Skema: `erd/fAI26_ERD_Database_Mobile.md` bab 13.
+
+Asisten tiap divisi diatur admin (`PUT /api/admin/divisi/{id}`, `asisten_user_id`); saat diganti, inspeksi divisi itu yang masih `MENUNGGU` pindah ke asisten baru. Bila divisi
+belum punya asisten, semua pemegang `ipd.setujui` di unit itu melihatnya.
+
+## POST /api/ipd
+
+Perlu login, permission `ipd.kirim`. Pengirim (inspektur), unit, dan asisten ditentukan server dari token dan divisi, bukan dari isi kiriman. Aman diulang: `ipd_id` yang sudah ada
+dan tanpa `kirim_ulang` dijawab 200 `SUDAH_ADA` tanpa perubahan.
+
+| Field | Tipe | Wajib | Keterangan |
+|---|---|---|---|
+| `ipd_id` | UUID | ya | Dibuat di HP |
+| `unit_kode` | string | ya | Harus sama dengan unit akun |
+| `tanggal_inspeksi` | `YYYY-MM-DD` | ya | |
+| `divisi_kode` | string | ya | Divisi dipilih di awal inspeksi; asisten terisi otomatis dari divisi |
+| `asm3_oid` | integer | ya | OID blok di ERP; blok harus milik divisi itu |
+| `blok_kode` | string | tidak | Salinan untuk tampilan |
+| `pemanen_hrmb_code` | integer | ya | Satu catatan = satu pemanen; harus ada di master |
+| `ancak_no` | string | tidak | Maksimal 30 karakter |
+| `mandor_blok_username` | string | ya | Akun aktif berperan MANDOR (mandor di blok) |
+| `mandor_ancak_username` | string | ya | Akun aktif berperan MANDOR (mandor di ancak) |
+| `catatan` | string | tidak | Maksimal 500 karakter |
+| `dibuat_pada` | ISO 8601 UTC | tidak | |
+| `kirim_ulang` | boolean | tidak | `true` mengubah catatan `MENUNGGU` (isi diganti, tetap `MENUNGGU`) atau memperbaiki `DITOLAK` (kembali `MENUNGGU`). Catatan `DISETUJUI` dijawab 423 |
+| `pokok` | array | ya | 1 sampai 3000 pokok, `no_baris` dan `no_pokok` 1 sampai 9999, tidak boleh ganda |
+
+Tiap `pokok`: `{ "no_baris": 11, "no_pokok": 2, "temuan": [{ "kode": "B1", "jumlah": 6, "catatan": "..." }] }`. `temuan` kosong berarti pokok bersih. `jumlah` kosong dianggap 1 (maksimal 9999),
+kode tidak boleh ganda dalam satu pokok.
+
+```json
+{
+  "ipd_id": "bbbb0001-0000-4000-8000-000000000001", "unit_kode": "KP_STL", "tanggal_inspeksi": "2026-11-20", "divisi_kode": "DIV2",
+  "asm3_oid": 1012, "blok_kode": "A12", "pemanen_hrmb_code": 90001, "ancak_no": "7",
+  "mandor_blok_username": "mandor1", "mandor_ancak_username": "mandor2",
+  "pokok": [ { "no_baris": 11, "no_pokok": 1, "temuan": [] },
+             { "no_baris": 11, "no_pokok": 2, "temuan": [{ "kode": "B1", "jumlah": 6 }, { "kode": "S" }] } ]
+}
+```
+
+**201** `{"status": "DITERIMA", "id": "..."}` (baru atau diperbarui) · **200** `{"status": "SUDAH_ADA", "id": "..."}`.
+
+**Galat:** 400 JSON rusak · 403 unit berbeda dengan unit akun, tanpa permission, atau `kirim_ulang` oleh orang lain (tanpa `ipd.kelola`) · 409 nomor baris dan pokok ganda ·
+**423** `Inspeksi sudah disetujui asisten, tidak bisa diubah lagi` (`kirim_ulang` pada catatan `DISETUJUI`; HP menandainya terkunci dan tidak mengirim ulang) · 422 (pesan menyebut penyebabnya):
+`Divisi tidak ada di master` · `Blok tidak ada di master` · `Blok bukan milik divisi ...` · `Pemanen ... tidak ada di master` · `Kode temuan tidak dikenal: ...` ·
+`mandor_blok_username bukan akun aktif berperan MANDOR ...` (juga `mandor_ancak_username`) · pokok kosong, ganda, atau di luar batas · jumlah temuan di luar batas · tanggal atau waktu salah format.
+
+## GET /api/ipd
+
+Perlu login, permission `ipd.buat`. Status inspeksi **milik pengguna** sejak waktu tertentu (untuk HP pengirim).
+
+**Query** `sejak` (opsional, ISO 8601 UTC).
+
+**200**
+
+```json
+[{ "id": "bbbb0001-0000-4000-8000-000000000001", "status": "MENUNGGU_SETUJU", "status_server": "MENUNGGU", "pesan": null, "diubah": "2026-11-20T03:00:00Z" }]
+```
+
+Pemetaan `status_server` → `status` untuk HP: `MENUNGGU` → `MENUNGGU_SETUJU`, `DISETUJUI` → `DISETUJUI`, `DITOLAK` → `DITOLAK` (`pesan` berisi alasan asisten).
+
+## GET /api/ipd/inspeksi-terakhir
+
+Perlu login, permission `ipd.buat`. **Peringatan, bukan larangan:** adakah inspeksi (selain yang `DITOLAK`) untuk pemanen + blok yang sama dalam **7 hari** sampai `tanggal`.
+Inspeksi ulang tetap boleh; HP menampilkan tanggal, inspektur, dan statusnya lalu inspektur boleh lanjut.
+
+**Query:** `pemanen_hrmb_code` (wajib), `asm3_oid` (wajib), `tanggal` (`YYYY-MM-DD`, kosong = hari ini WIB), `kecuali` (UUID inspeksi yang sedang diedit, dikecualikan).
+
+**200**
+
+```json
+{ "jendela_hari": 7, "ada": true, "inspeksi": [{ "id": "...", "tanggal_inspeksi": "2026-11-13", "inspektur": "mandor1", "inspektur_nama": "Mandor Satu", "status": "DISETUJUI" }] }
+```
+
+**Galat:** 400 parameter wajib kosong, tanggal salah, atau `kecuali` bukan UUID.
+
+## GET /api/ipd/menunggu
+
+Perlu login, permission `ipd.setujui` (asisten). Inspeksi `MENUNGGU` yang **ditujukan ke pengguna** (asisten yang tercatat), atau yang divisinya belum punya asisten, terlama dulu.
+
+**200**
+
+```json
+[{
+  "id": "bbbb0001-0000-4000-8000-000000000001", "tanggal_inspeksi": "2026-11-20", "divisi_kode": "DIV2", "blok_kode": "A12",
+  "pemanen_hrmb_code": 90001, "pemanen_nama": "Pemanen Contoh 1", "ancak_no": "7", "inspektur": "mandor1", "inspektur_nama": "Mandor Contoh",
+  "mandor_blok_nama": "Mandor Contoh", "mandor_ancak_nama": "Mandor Dua", "asisten_nama": "Asisten Satu", "status": "MENUNGGU",
+  "pesan_tolak": null, "catatan": null, "dibuat_pada": "2026-11-20T03:00:00Z", "disetujui_pada": null,
+  "ringkasan": { "pokok_diperiksa": 5, "pokok_bertemuan": 3, "persen_pokok_bertemuan": 60, "total_temuan": 13,
+                 "per_kode": [{ "kode": "A", "nama": "Potong buah mentah", "kelompok": "BUAH", "pokok": 1, "jumlah": 1, "persen_pokok": 20 }] },
+  "foto": [{ "id": "eeee0001-...", "keterangan": "buah tinggal di baris 11", "urut": 0 }]
+}]
+```
+
+`ringkasan.per_kode` memuat semua kode aktif (nol bila tidak ada temuan). `persen_*` = pokok dibagi pokok diperiksa (1 desimal). Foto diunduh dengan `GET /api/ipd/foto/{id}`.
+
+## POST /api/ipd/{id}/setujui
+
+Perlu login, permission `ipd.setujui`. Tanpa body. Inspeksi `MENUNGGU` yang ditujukan ke pengguna menjadi `DISETUJUI` (tercatat `disetujui_oleh`, `disetujui_pada`, audit `SETUJU`) dan **terkunci**.
+
+**200** `{"status": "DISETUJUI"}` · **Galat:** 403 `Inspeksi ini ditujukan ke asisten lain` · 404 · 409 `Inspeksi sudah diproses (status ...)` · 422 `id` bukan UUID.
+
+## POST /api/ipd/{id}/tolak
+
+Perlu login, permission `ipd.setujui`. Mengembalikan inspeksi `MENUNGGU` ke inspektur: status `DITOLAK`, alasan tampil di HP-nya (`pesan`), lalu dapat diperbaiki dan dikirim ulang (`kirim_ulang=true`).
+
+**Body** `{"alasan": "Baris 10 belum lengkap"}` (wajib, maksimal 300 karakter).
+
+**200** `{"status": "DITOLAK"}` · **Galat:** 403 · 404 · 409 · 422 alasan kosong atau terlalu panjang.
+
+## POST /api/ipd/{id}/media
+
+Perlu login, permission `ipd.kirim`. Unggah satu foto JPEG bukti inspeksi; tidak ada batas jumlah foto per inspeksi. Body mentah JPEG (maksimal 8 MB), header `X-Foto-Id` (UUID) dan `X-Sha256` (64 hex),
+query `keterangan` (opsional, maksimal 200 karakter) dan `urut` (opsional, 0 sampai 9999). Idempoten menurut `X-Foto-Id`. Hanya pemilik inspeksi (atau pemegang `ipd.kelola`). HP boleh menghapus
+berkas fotonya setelah jawaban 201 atau 200.
+
+**201** `{"status": "DITERIMA", "id": "..."}` · **200** `SUDAH_ADA` · **Galat:** 400 header atau parameter salah · 403 bukan inspeksi Anda · 404 inspeksi belum dikirim · 413 lebih dari 8 MB · 415 bukan JPEG · 422 checksum tidak cocok.
+
+## GET /api/ipd/foto/{id}
+
+Perlu login, permission `ipd.lihat`. Mengembalikan byte JPEG foto bukti inspeksi di unit pengguna (token di header `Authorization`).
+
+**200** byte JPEG. **Galat:** 404 foto atau berkasnya tidak ada · 422 id bukan UUID.
+
 ## Web admin (`/api/admin/*`)
 
 Dipakai web admin (folder `fai26-web/`). Semua perlu login dan permission yang tertulis; hasilnya selalu terbatas pada **unit milik akun**. Penulisan master (`POST`, `PUT`, `DELETE`) mengisi `diubah_pada` sehingga versi master untuk HP ikut berubah, menulis `audit_log`, dan penghapusan selalu lunak. `PUT` menggantikan semua kolom yang bisa diubah: kolom yang tidak dikirim menjadi kosong (kecuali `aktif`). Kode galat khusus: **409** bentrok (kode ganda atau masih dipakai), **422** masukan tidak sah.
 
 ## GET /api/admin/divisi
 
-**Daftar divisi.** Permission `master.lihat`. Divisi unit pengguna yang belum dihapus, beserta `jumlah_blok`.
+**Daftar divisi.** Permission `master.lihat`. Divisi unit pengguna yang belum dihapus, beserta `jumlah_blok` dan asistennya (`asisten_user_id`, `asisten_nama`; null bila belum diatur).
 
 **200**
 
 ```json
-[{ "divisi_id": 1, "kode": "DIV2", "nama": "Divisi 2", "erp_oid": null, "aktif": true, "jumlah_blok": 2 }]
+[{ "divisi_id": 1, "kode": "DIV2", "nama": "Divisi 2", "erp_oid": null, "aktif": true, "asisten_user_id": 7, "asisten_nama": "Asisten Satu", "jumlah_blok": 2 }]
 ```
 
 ## POST /api/admin/divisi
 
 **Buat divisi.** Permission `master.kelola`. Kode unik per unit.
 
-**Body:** kode (wajib, ≤20, tanpa `|`), nama (wajib, ≤100), erp_oid (opsional), aktif (opsional)
+**Body:** kode (wajib, ≤20, tanpa `|`), nama (wajib, ≤100), erp_oid (opsional), aktif (opsional), **asisten_user_id** (opsional; akun aktif berperan ASISTEN di unit ini, null berarti belum diatur)
 
 ```json
-{ "kode": "DIV2", "nama": "Divisi 2", "erp_oid": null, "aktif": true }
+{ "kode": "DIV2", "nama": "Divisi 2", "erp_oid": null, "aktif": true, "asisten_user_id": 7 }
 ```
 
 **201**
@@ -468,16 +611,16 @@ Dipakai web admin (folder `fai26-web/`). Semua perlu login dan permission yang t
 { "id": 3 }
 ```
 
-**Galat:** 409 kode sudah dipakai · 422 kode kosong atau berisi `|`
+**Galat:** 409 kode sudah dipakai · 422 kode kosong atau berisi `|`, atau asisten tidak sah
 
 ## PUT /api/admin/divisi/{id}
 
 **Ubah divisi.** Permission `master.kelola`. Menggantikan semua kolom yang bisa diubah (`aktif` kosong berarti tidak diubah).
 
-**Body:** kode (wajib, ≤20, tanpa `|`), nama (wajib, ≤100), erp_oid (opsional), aktif (opsional)
+**Body:** kode (wajib, ≤20, tanpa `|`), nama (wajib, ≤100), erp_oid (opsional), aktif (opsional), **asisten_user_id** (opsional; akun aktif berperan ASISTEN di unit ini, null berarti belum diatur)
 
 ```json
-{ "kode": "DIV2", "nama": "Divisi 2", "erp_oid": null, "aktif": true }
+{ "kode": "DIV2", "nama": "Divisi 2", "erp_oid": null, "aktif": true, "asisten_user_id": 7 }
 ```
 
 **200**
@@ -486,7 +629,9 @@ Dipakai web admin (folder `fai26-web/`). Semua perlu login dan permission yang t
 { "status": "OK" }
 ```
 
-**Galat:** 404 tidak ada · 409 kode sudah dipakai · 422
+**Asisten divisi** dipakai IPD untuk mengisi asisten otomatis dan menentukan siapa yang menyetujui. Saat `asisten_user_id` diganti (atau dikosongkan), inspeksi IPD divisi ini yang masih `MENUNGGU` ikut pindah ke asisten baru. Seperti kolom lain, PUT menggantikan semuanya: `asisten_user_id` yang tidak dikirim berarti dikosongkan.
+
+**Galat:** 404 tidak ada · 409 kode sudah dipakai · 422 (termasuk `asisten harus akun aktif berperan ASISTEN di unit ini`)
 
 ## DELETE /api/admin/divisi/{id}
 
@@ -889,6 +1034,56 @@ Tanpa catatan pada tanggal itu, `pemanen` berupa `[]` dan semua angka nol.
 
 **Galat:** 404 foto atau berkasnya tidak ada · 422 id bukan UUID
 
+## GET /api/admin/ipd
+
+**Daftar inspeksi (IPD).** Permission `ipd.lihat`. Unit pengguna, terbaru dulu, dengan ringkasan loses dan foto tiap baris (bentuk baris sama dengan `GET /api/ipd/menunggu`).
+
+**Query:** `dari`, `sampai` (`YYYY-MM-DD`), `status` (`MENUNGGU`, `DISETUJUI`, `DITOLAK`), `divisi_kode`, `blok_kode`, `pemanen_hrmb_code`, `halaman` (mulai 1), `per_halaman` (bawaan 25, maksimal 100).
+
+**200**
+
+```json
+{ "data": [ { "id": "…", "status": "DISETUJUI", "ringkasan": { "pokok_diperiksa": 9 } } ], "total": 3, "halaman": 1, "per_halaman": 25 }
+```
+
+**Galat:** 422 tanggal salah atau status tidak dikenal
+
+## GET /api/admin/ipd/laporan
+
+**Laporan loses.** Permission `laporan.ipd`. Dihitung dari inspeksi **berstatus `DISETUJUI`** saja. `dari` dan `sampai` kosong berarti 30 hari terakhir (WIB).
+
+**Query:** `dari`, `sampai`, `divisi_kode`, `blok_kode`, `pemanen_hrmb_code`.
+
+**Rumus:** `persen_pokok_bertemuan` = pokok yang punya paling sedikit satu temuan dibagi pokok diperiksa; `persen_pokok` per kode = pokok yang memuat kode itu dibagi pokok diperiksa; `jumlah` = penjumlahan jumlah temuan.
+Semua persen dibulatkan 1 desimal. `per_kelompok` selalu BUAH, BRONDOLAN, PELEPAH. `per_pemanen`, `per_blok` diurutkan dari persen loses tertinggi; `per_divisi` dan `per_tanggal` menurut nama/tanggal.
+
+**200**
+
+```json
+{
+  "dari": "2026-11-01", "sampai": "2026-11-30", "inspeksi": 2, "pemanen": 2,
+  "ringkasan": { "pokok_diperiksa": 9, "pokok_bertemuan": 4, "persen_pokok_bertemuan": 44.4, "total_temuan": 14, "per_kode": [{ "kode": "B1", "nama": "Brondolan tak dikutip > 3 butir", "kelompok": "BRONDOLAN", "pokok": 2, "jumlah": 11, "persen_pokok": 22.2 }] },
+  "per_kelompok": [{ "kelompok": "BUAH", "pokok": 2, "jumlah": 2, "persen_pokok": 22.2 }],
+  "per_pemanen": [{ "kunci": "90001", "nama": "Pemanen Contoh 1", "inspeksi": 1, "pokok_diperiksa": 6, "pokok_bertemuan": 3, "persen_pokok_bertemuan": 50, "total_temuan": 13, "temuan_per_kode": { "B1": 11, "S": 1, "A": 1 } }],
+  "per_blok": [], "per_divisi": [], "per_tanggal": []
+}
+```
+
+**Galat:** 422 tanggal salah, atau `dari` sesudah `sampai`
+
+## GET /api/admin/ipd/{id}
+
+**Rincian satu inspeksi.** Permission `ipd.lihat`. Seperti satu baris daftar, ditambah `pokok`: semua pokok yang diperiksa berurutan (baris lalu pokok), tiap pokok dengan `temuan` (kosong bila bersih).
+
+**200**
+
+```json
+{ "id": "…", "status": "DISETUJUI", "ringkasan": { "pokok_diperiksa": 6 }, "foto": [],
+  "pokok": [{ "no_baris": 10, "no_pokok": 1, "temuan": [{ "kode": "B1", "jumlah": 5, "catatan": null }] }, { "no_baris": 11, "no_pokok": 1, "temuan": [] }] }
+```
+
+**Galat:** 404 · 422 id bukan UUID
+
 ## GET /api/admin/audit
 
 **Cari audit log.** Permission `audit.lihat`. Query: `tabel`, `aksi`, `dari`, `sampai` (`YYYY-MM-DD`), `cari` (username, id baris, atau keterangan), `halaman`, `per_halaman`. Terbaru dulu. Catatan: role ADMIN tidak punya `audit.lihat` (hanya AUDITOR); beri admin kedua role bila perlu.
@@ -907,6 +1102,7 @@ Tanpa catatan pada tanggal itu, `pemanen` berupa `[]` dan semua angka nol.
 
 | Tanggal | Versi | Perubahan |
 |---|---|---|
+| 21 Nov 2026 | 0.16.0 | **Modul IPD (Inspeksi Panen Detail).** Endpoint baru: `POST /api/ipd`, `GET /api/ipd`, `GET /api/ipd/inspeksi-terakhir`, `GET /api/ipd/menunggu`, `POST /api/ipd/{id}/setujui`, `POST /api/ipd/{id}/tolak`, `POST /api/ipd/{id}/media`, `GET /api/ipd/foto/{id}`, `GET /api/admin/ipd`, `GET /api/admin/ipd/laporan`, `GET /api/admin/ipd/{id}`. `GET /api/master` menambah `kode_temuan` dan `divisi[].asisten_user_id`. `GET/POST/PUT /api/admin/divisi` menambah `asisten_user_id` (asisten divisi; `GET` juga `asisten_nama`). Permission baru: `akses.panen`, `akses.ipd`, `ipd.buat`, `ipd.kirim`, `ipd.setujui`, `ipd.lihat`, `laporan.ipd`, `ipd.kelola`; role baru ASKEP dan KTU (hanya melihat). Perlu migrasi `009_ipd.sql`. Penambahan saja: endpoint dan kolom lama tidak berubah. |
 | 20 Nov 2026 | 0.15.0 | `POST /api/panen` dengan `kirim_ulang=true`: pencatat kini boleh mengubah catatan yang masih `MENUNGGU` persetujuan krani (isi diganti, status tetap `MENUNGGU`), tidak hanya yang `DITOLAK`. Setelah krani menyetujui catatan terkunci dan `kirim_ulang` dijawab **423** (sebelumnya 200 `SUDAH_ADA` tanpa perubahan). Tanpa `kirim_ulang` perilaku tidak berubah. Respons baru 423 saja. |
 | 20 Nov 2026 | 0.14.1 | `GET /api/panen/ringkasan`: pemegang `panen.setujui` (krani) kini juga `lingkup: "UNIT"`. Sebelumnya hanya pemegang `panen.koreksi`, sehingga dashboard krani selalu 0 padahal catatan yang ia periksa dikirim mandor. Bentuk data tidak berubah. |
 | 20 Nov 2026 | 0.14.0 | `GET /api/panen/menunggu`: setiap catatan kini memuat `foto_id` (foto bukti untuk diperiksa krani, `null` bila foto belum terkirim). Penambahan kolom saja, tidak ada yang berubah pada kolom lain. |

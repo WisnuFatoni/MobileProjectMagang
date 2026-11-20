@@ -10,6 +10,9 @@ type DivisiInput struct {
 	Nama   string `json:"nama"`
 	ErpOid *int64 `json:"erp_oid"`
 	Aktif  *bool  `json:"aktif"`
+	// AsistenUserID: asisten divisi (akun aktif berperan ASISTEN di unit ini); null berarti belum diatur. Dipakai IPD untuk
+	// mengisi asisten otomatis. Saat diganti, inspeksi IPD divisi ini yang masih MENUNGGU ikut pindah ke asisten baru.
+	AsistenUserID *int64 `json:"asisten_user_id"`
 }
 
 type BlokInput struct {

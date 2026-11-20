@@ -38,6 +38,6 @@ func (s *MasterService) Ambil(ctx context.Context, k *auth.Klaim, versiHP string
 	}
 	return &model.Master{
 		Versi: versi, Berubah: true,
-		Unit: isi.Unit, Divisi: isi.Divisi, Blok: isi.Blok, Tph: isi.Tph, Pemanen: isi.Pemanen, User: isi.User, RolePermission: isi.RolePermission,
+		Unit: isi.Unit, Divisi: isi.Divisi, Blok: isi.Blok, Tph: isi.Tph, Pemanen: isi.Pemanen, User: isi.User, KodeTemuan: isi.KodeTemuan, RolePermission: isi.RolePermission,
 	}, nil
 }

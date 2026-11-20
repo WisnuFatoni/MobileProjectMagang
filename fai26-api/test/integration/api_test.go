@@ -59,6 +59,9 @@ func siapkanUji(t *testing.T) *lingkunganUji {
 		t.Skip("skema fai26 belum ada di database uji: ", err, " tabel=", tabel)
 	}
 	for _, q := range []string{
+		// IPD lebih dulu: fai_ipd merujuk device, divisi, dan akun (hanya bila migrasi 009 sudah ada).
+		`IF OBJECT_ID('dbo.fai_ipd','U') IS NOT NULL BEGIN DELETE FROM dbo.fai_ipd_foto; DELETE FROM dbo.fai_ipd_temuan; DELETE FROM dbo.fai_ipd_pokok; DELETE FROM dbo.fai_ipd; END`,
+		`IF COL_LENGTH('dbo.divisi','asisten_user_id') IS NOT NULL UPDATE dbo.divisi SET asisten_user_id=NULL`,
 		`DELETE FROM dbo.fai_impor_log`, `DELETE FROM dbo.fai_foto`, `DELETE FROM dbo.fai_panen_pemanen`,
 		`DELETE FROM dbo.fai_panen_grading`, `DELETE FROM dbo.fai_panen`, `DELETE FROM dbo.auth_sesi`,
 		`DELETE FROM dbo.audit_log`, `DELETE FROM dbo.device`,

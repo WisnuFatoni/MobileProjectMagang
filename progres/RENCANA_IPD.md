@@ -49,7 +49,7 @@ Rinci di `erd/fAI26_ERD_Database_Mobile.md` bab 13. Tabel (HP / server):
 
 - `kode_temuan` / `ipd_kode_temuan`: master 11 kode temuan.
 - `ipd_header` / `fai_ipd`: satu inspeksi = satu pemanen; kepala: tanggal, **divisi**, **asisten (otomatis dari divisi)**, blok, pemanen, inspektur, nomor ancak (opsional), **mandor blok dan mandor ancak (dipilih dari akun berperan MANDOR)**; status, validasi (inspektur), persetujuan (asisten).
-- `petugas` (hanya HP): daftar akun MANDOR dan ASISTEN unit, diunduh sebagai master. Di server dibaca dari `app_user`.
+- Daftar mandor dan asisten: memakai `app_user` + `user_role` yang sudah diunduh HP lewat master (tidak ada tabel baru).
 - `divisi.asisten_user_id` (kolom baru di HP dan server): asisten tiap divisi, **diatur admin lewat web** (halaman Divisi), bisa diganti bila asisten berhenti; inspeksi yang masih MENUNGGU ikut pindah ke asisten baru.
 - `ipd_pokok` / `fai_ipd_pokok`: pokok yang diperiksa (nomor baris, nomor pokok), semuanya dicatat termasuk yang bersih.
 - `ipd_temuan` / `fai_ipd_temuan`: kode temuan dan jumlah per pokok (boleh beberapa kode).
@@ -110,7 +110,7 @@ Pertanyaan terbuka tentang form ini ada di balasan Claude kepada Ptoni (arti tan
 |---|---|---|
 | 0 | Git lokal, baseline | **Selesai 21 Nov** (repo di `L:\GRADING_MAGANG`, commit awal "Titik awal sebelum fitur IPD"; `.env`, DataKEBUN, TUGAS, node_modules, build dikecualikan; tidak diunggah ke mana pun) |
 | 1 | Desain data: ERD mermaid, SQL SQLite dan SQL Server, migrasi 009, alur di `flow/` | **Selesai 21 Nov, menunggu pemeriksaan Ptoni** |
-| 2 | API: endpoint IPD, master kode temuan, persetujuan, laporan loses, tes, dokumentasi | Belum |
+| 2 | API: endpoint IPD, master kode temuan, persetujuan, laporan loses, tes, dokumentasi | **Selesai 21 Nov** (API 0.16.0, 23 tes integrasi lolos, migrasi 009 di dev) |
 | 3 | HP: Home dua kotak, menu bertingkat, Room v5, layar IPD, Riwayat dan Persetujuan IPD, sinkron | Belum |
 | 4 | Web: Daftar Inspeksi, Laporan Loses, halaman Hak Akses untuk kotak, tampilan role ASKEP dan KTU | Belum |
 | 5 | Dokumentasi akhir, `PROGRES.md`, memori, daftar tes manual | Belum |
@@ -123,7 +123,7 @@ Dijawab Ptoni 21 Nov 2026: mandor dari daftar akun, asisten inspektur langsung s
 
 Asumsi yang kupakai (koreksi bila salah):
 1. **Penyetuju** hanyalah asisten yang tercatat pada catatan itu (asisten divisinya). Asisten divisi lain tidak melihatnya. Bila divisi belum punya asisten, semua pemegang `ipd.setujui` di unit melihatnya.
-2. **Jendela peringatan inspeksi ulang: 30 hari terakhir** untuk pemanen + blok yang sama. Isi peringatan: tanggal, inspektur, status inspeksi sebelumnya.
+2. **Jendela peringatan inspeksi ulang: 7 hari terakhir** (inspeksi dilakukan tiap Jumat, tiap minggu) untuk pemanen + blok yang sama. Isi peringatan: tanggal, inspektur, status inspeksi sebelumnya.
 3. Daftar blok difilter menurut divisi yang dipilih.
 4. Divisi bisa diubah selama catatan belum dikirim; asisten ikut berubah otomatis.
 5. Foto lama di HP dihapus hanya sesudah server mengonfirmasi menerimanya (cek sha256).

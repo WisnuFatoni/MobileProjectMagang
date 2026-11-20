@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: fai26-api
-  version: 0.15.0
+  version: 0.16.0
   description: |
     API sinkronisasi aplikasi fAI26 (HP krani ke database `fai26`). Panduan yang lebih mudah dibaca ada di `API.md`.
 
@@ -19,6 +19,7 @@ tags:
   - name: Sistem
   - name: Auth
   - name: Panen
+  - name: IPD
   - name: Audit
   - name: Master
   - name: Admin
@@ -149,7 +150,7 @@ components:
         disetujui_username:
           type: string
           example: mandor1
-          description: Mandor penyetuju (memegang `panen.setujui`). Opsional: kosong berarti pengirim yang memegang hak itu menyetujui sendiri; pengirim tanpa hak itu (mandor) menyimpan catatan berstatus MENUNGGU untuk disetujui krani.
+          description: "Mandor penyetuju (memegang `panen.setujui`). Opsional: kosong berarti pengirim yang memegang hak itu menyetujui sendiri; pengirim tanpa hak itu (mandor) menyimpan catatan berstatus MENUNGGU untuk disetujui krani."
         disetujui_pada: { type: string, format: date-time }
         grading:
           type: array
@@ -329,6 +330,50 @@ components:
           type: array
           items: { type: string }
           example: [panen.lihat, panen.buat, panen.kirim]
+    TolakInput:
+      type: object
+      required: [alasan]
+      properties:
+        alasan: { type: string, maxLength: 300, example: Blok salah }
+    IpdInput:
+      type: object
+      required: [ipd_id, unit_kode, tanggal_inspeksi, divisi_kode, asm3_oid, pemanen_hrmb_code, mandor_blok_username, mandor_ancak_username, pokok]
+      properties:
+        ipd_id: { type: string, format: uuid, description: Dibuat di HP. }
+        unit_kode: { type: string, description: Harus sama dengan unit akun. }
+        tanggal_inspeksi: { type: string, format: date }
+        divisi_kode: { type: string, description: Dipilih di awal inspeksi; asisten terisi otomatis dari divisi. }
+        asm3_oid: { type: integer, format: int64, minimum: 1, description: OID blok di ERP; blok harus milik divisi itu. }
+        blok_kode: { type: string }
+        pemanen_hrmb_code: { type: integer, minimum: 1, description: Satu catatan = satu pemanen. }
+        ancak_no: { type: string, maxLength: 30 }
+        mandor_blok_username: { type: string, description: Akun aktif berperan MANDOR (mandor di blok). }
+        mandor_ancak_username: { type: string, description: Akun aktif berperan MANDOR (mandor di ancak). }
+        catatan: { type: string, maxLength: 500 }
+        dibuat_pada: { type: string, format: date-time }
+        kirim_ulang:
+          type: boolean
+          description: true mengubah catatan MENUNGGU (isi diganti, tetap MENUNGGU) atau memperbaiki DITOLAK. Catatan DISETUJUI terkunci (423).
+        pokok:
+          type: array
+          minItems: 1
+          maxItems: 3000
+          description: Semua pokok yang diperiksa, termasuk yang bersih (temuan kosong). no_baris dan no_pokok 1 sampai 9999, tidak boleh ganda.
+          items:
+            type: object
+            required: [no_baris, no_pokok]
+            properties:
+              no_baris: { type: integer, minimum: 1, maximum: 9999 }
+              no_pokok: { type: integer, minimum: 1, maximum: 9999 }
+              temuan:
+                type: array
+                items:
+                  type: object
+                  required: [kode]
+                  properties:
+                    kode: { type: string, enum: [A, G, S, M1, M2, M3, M4, B1, B2, C, R] }
+                    jumlah: { type: integer, minimum: 1, maximum: 9999, description: Kosong dianggap 1. }
+                    catatan: { type: string, maxLength: 200 }
     DivisiInput:
       type: object
       required: [kode, nama]
@@ -337,6 +382,7 @@ components:
         nama: { type: string, maxLength: 100 }
         erp_oid: { type: integer, nullable: true }
         aktif: { type: boolean, description: Kosong berarti tidak diubah. }
+        asisten_user_id: { type: integer, nullable: true, description: "Asisten divisi: akun aktif berperan ASISTEN di unit ini. Dipakai IPD untuk mengisi asisten otomatis; saat diganti, inspeksi MENUNGGU divisi ini pindah ke asisten baru. Tidak dikirim berarti dikosongkan." }
     BlokInput:
       type: object
       required: [kode, erp_oid]
@@ -1025,6 +1071,257 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/ipd:
+    post:
+      tags: [IPD]
+      summary: Kirim satu inspeksi panen detail
+      description: |
+        Permission `ipd.kirim`. Satu catatan = satu pemanen (satu ancak), pokok per pokok. Pengirim, unit, dan asisten ditentukan server. Aman diulang: `ipd_id` yang sudah ada dan tanpa `kirim_ulang` dijawab 200 `SUDAH_ADA`.
+        `kirim_ulang=true` mengubah catatan MENUNGGU (isi diganti, tetap MENUNGGU) atau memperbaiki DITOLAK; catatan DISETUJUI terkunci (423). Pengirim yang memegang `ipd.setujui` langsung DISETUJUI.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/IpdInput' }
+      responses:
+        '201':
+          description: Diterima (baru atau diperbarui).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PanenDiterima' }
+        '200':
+          description: Sudah pernah diterima; tidak ada yang berubah.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PanenDiterima' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '409': { description: Bentrok (sudah diproses, atau nomor ganda)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '423': { description: Inspeksi sudah disetujui asisten, tidak bisa diubah lagi., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '500': { $ref: '#/components/responses/SalahServer' }
+    get:
+      tags: [IPD]
+      summary: Status inspeksi milik sendiri
+      description: |
+        Permission `ipd.buat`. Status inspeksi milik pengguna sejak `sejak` (ISO 8601 UTC); status HP: MENUNGGU_SETUJU, DISETUJUI, DITOLAK.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: sejak, in: query, required: false, description: "ISO 8601 UTC", schema: { type: string } }
+      responses:
+        '200':
+          description: Daftar status.
+          content:
+            application/json:
+              schema: { type: array, items: { type: object, additionalProperties: true } }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/ipd/inspeksi-terakhir:
+    get:
+      tags: [IPD]
+      summary: Peringatan inspeksi ulang (7 hari)
+      description: |
+        Permission `ipd.buat`. Adakah inspeksi (selain DITOLAK) untuk pemanen + blok yang sama dalam 7 hari sampai `tanggal`. Hanya peringatan; inspeksi ulang tetap boleh.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: pemanen_hrmb_code, in: query, required: true, description: "HRMBCODE pemanen", schema: { type: integer } }
+        - { name: asm3_oid, in: query, required: true, description: "OID blok di ERP", schema: { type: integer } }
+        - { name: tanggal, in: query, required: false, description: "YYYY-MM-DD, kosong = hari ini WIB", schema: { type: string } }
+        - { name: kecuali, in: query, required: false, description: "UUID inspeksi yang sedang diedit", schema: { type: string } }
+      responses:
+        '200':
+          description: Hasil pemeriksaan.
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/ipd/menunggu:
+    get:
+      tags: [IPD]
+      summary: Inspeksi yang menunggu persetujuan pengguna
+      description: |
+        Permission `ipd.setujui`. Inspeksi MENUNGGU yang ditujukan ke asisten ini (atau divisinya belum punya asisten), dengan ringkasan loses per kode dan daftar foto.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Daftar inspeksi menunggu.
+          content:
+            application/json:
+              schema: { type: array, items: { type: object, additionalProperties: true } }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/ipd/{id}/setujui:
+    post:
+      tags: [IPD]
+      summary: Setujui satu inspeksi
+      description: |
+        Permission `ipd.setujui`. MENUNGGU menjadi DISETUJUI (terkunci). Galat: 403 ditujukan ke asisten lain, 404, 409 sudah diproses, 422 id bukan UUID.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Disetujui.
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (sudah diproses, atau nomor ganda)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/ipd/{id}/tolak:
+    post:
+      tags: [IPD]
+      summary: Tolak satu inspeksi dengan alasan
+      description: |
+        Permission `ipd.setujui`. MENUNGGU menjadi DITOLAK; alasan (wajib, maksimal 300 karakter, body `{"alasan": "..."}`) tampil di HP inspektur yang dapat memperbaiki dan mengirim ulang.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TolakInput' }
+      responses:
+        '200':
+          description: Ditolak.
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (sudah diproses, atau nomor ganda)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/ipd/{id}/media:
+    post:
+      tags: [IPD]
+      summary: Unggah satu foto bukti inspeksi
+      description: |
+        Permission `ipd.kirim`. Body mentah JPEG (maksimal 8 MB), header `X-Foto-Id` (UUID) dan `X-Sha256` (64 hex), query `keterangan` (maksimal 200 karakter) dan `urut` (0 sampai 9999). Tanpa batas jumlah foto per inspeksi. Idempoten menurut `X-Foto-Id`. HP boleh menghapus berkas fotonya setelah jawaban 200 atau 201.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: keterangan, in: query, required: false, description: "Keterangan foto", schema: { type: string } }
+        - { name: urut, in: query, required: false, description: "Urutan foto", schema: { type: integer } }
+      responses:
+        '201':
+          description: Foto baru diterima.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PanenDiterima' }
+        '200':
+          description: Foto ini sudah pernah diterima.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PanenDiterima' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '413': { description: Foto melebihi 8 MB., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '415': { description: Bukan JPEG., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/ipd/foto/{id}:
+    get:
+      tags: [IPD]
+      summary: Unduh foto bukti inspeksi
+      description: |
+        Permission `ipd.lihat`. Mengembalikan byte JPEG (`Content-Type: image/jpeg`) foto bukti inspeksi di unit pengguna.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Byte JPEG.
+          content:
+            application/json:
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/ipd:
+    get:
+      tags: [IPD]
+      summary: Daftar inspeksi (web)
+      description: |
+        Permission `ipd.lihat`. Terbaru dulu, dengan ringkasan loses dan foto tiap baris. Penyaring: dari, sampai, status, divisi_kode, blok_kode, pemanen_hrmb_code; halaman dan per_halaman (bawaan 25, maksimal 100).
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: dari, in: query, required: false, description: "YYYY-MM-DD", schema: { type: string } }
+        - { name: sampai, in: query, required: false, description: "YYYY-MM-DD", schema: { type: string } }
+        - { name: status, in: query, required: false, description: "MENUNGGU, DISETUJUI, atau DITOLAK", schema: { type: string } }
+        - { name: divisi_kode, in: query, required: false, description: "Kode divisi", schema: { type: string } }
+        - { name: blok_kode, in: query, required: false, description: "Kode blok", schema: { type: string } }
+        - { name: pemanen_hrmb_code, in: query, required: false, description: "HRMBCODE pemanen", schema: { type: integer } }
+        - { name: halaman, in: query, required: false, description: "Mulai 1", schema: { type: integer } }
+        - { name: per_halaman, in: query, required: false, description: "Bawaan 25, maksimal 100", schema: { type: integer } }
+      responses:
+        '200':
+          description: Satu halaman.
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/ipd/laporan:
+    get:
+      tags: [IPD]
+      summary: Laporan loses
+      description: |
+        Permission `laporan.ipd`. Dihitung dari inspeksi DISETUJUI saja; `dari` dan `sampai` kosong berarti 30 hari terakhir (WIB). persen_pokok_bertemuan = pokok bertemuan dibagi pokok diperiksa; persen_pokok per kode = pokok yang memuat kode itu dibagi pokok diperiksa (1 desimal). Berisi ringkasan, per_kelompok (BUAH, BRONDOLAN, PELEPAH), per_pemanen, per_blok, per_divisi, dan per_tanggal.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: dari, in: query, required: false, description: "YYYY-MM-DD", schema: { type: string } }
+        - { name: sampai, in: query, required: false, description: "YYYY-MM-DD", schema: { type: string } }
+        - { name: divisi_kode, in: query, required: false, description: "Kode divisi", schema: { type: string } }
+        - { name: blok_kode, in: query, required: false, description: "Kode blok", schema: { type: string } }
+        - { name: pemanen_hrmb_code, in: query, required: false, description: "HRMBCODE pemanen", schema: { type: integer } }
+      responses:
+        '200':
+          description: Laporan loses.
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/ipd/{id}:
+    get:
+      tags: [IPD]
+      summary: Rincian satu inspeksi
+      description: |
+        Permission `ipd.lihat`. Seperti satu baris daftar, ditambah `pokok`: semua pokok yang diperiksa berurutan dengan temuannya (kosong bila bersih).
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Rincian inspeksi.
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '422': { $ref: '#/components/responses/TidakValid' }
         '500': { $ref: '#/components/responses/SalahServer' }
   /api/admin/divisi:

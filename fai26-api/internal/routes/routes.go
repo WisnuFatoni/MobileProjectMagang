@@ -15,6 +15,7 @@ type Controller struct {
 	Health      *controller.HealthController
 	Auth        *controller.AuthController
 	Panen       *controller.PanenController
+	Ipd         *controller.IpdController
 	Media       *controller.MediaController
 	Audit       *controller.AuditController
 	Master      *controller.MasterController
@@ -58,6 +59,16 @@ func tabel(c Controller, login middleware.Middleware, izin func(string) []middle
 		{"POST /api/panen/{id}/tolak", c.Panen.Tolak, izin("panen.setujui")},
 		{"POST /api/panen/{id}/media", c.Media.Terima, izin("panen.kirim")},
 		{"GET /api/master", c.Master.Ambil, izin("master.lihat")},
+
+		// IPD (Inspeksi Panen Detail): HP inspektur dan asisten
+		{"POST /api/ipd", c.Ipd.Terima, izin("ipd.kirim")},
+		{"GET /api/ipd", c.Ipd.DaftarStatus, izin("ipd.buat")},
+		{"GET /api/ipd/inspeksi-terakhir", c.Ipd.InspeksiTerakhir, izin("ipd.buat")},
+		{"GET /api/ipd/menunggu", c.Ipd.Menunggu, izin("ipd.setujui")},
+		{"POST /api/ipd/{id}/setujui", c.Ipd.Setujui, izin("ipd.setujui")},
+		{"POST /api/ipd/{id}/tolak", c.Ipd.Tolak, izin("ipd.setujui")},
+		{"POST /api/ipd/{id}/media", c.Ipd.Media, izin("ipd.kirim")},
+		{"GET /api/ipd/foto/{id}", c.Ipd.Foto, izin("ipd.lihat")},
 		{"PUT /api/tph/{id}/koordinat", c.Tph.RekamKoordinat, izin("panen.kirim")},
 
 		// Web admin: master (baca master.lihat, tulis master.kelola)
@@ -94,6 +105,9 @@ func tabel(c Controller, login middleware.Middleware, izin func(string) []middle
 		{"GET /api/admin/panen", c.Admin.DaftarPanen, izin("panen.lihat")},
 		{"GET /api/admin/panen/{id}", c.Admin.DetailPanen, izin("panen.lihat")},
 		{"GET /api/admin/foto/{id}", c.Admin.Foto, izin("panen.lihat")},
+		{"GET /api/admin/ipd", c.Ipd.DaftarAdmin, izin("ipd.lihat")},
+		{"GET /api/admin/ipd/laporan", c.Ipd.Laporan, izin("laporan.ipd")},
+		{"GET /api/admin/ipd/{id}", c.Ipd.Detail, izin("ipd.lihat")},
 		{"GET /api/admin/audit", c.Admin.DaftarAudit, izin("audit.lihat")},
 	}
 }

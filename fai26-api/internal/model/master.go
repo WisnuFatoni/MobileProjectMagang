@@ -34,6 +34,8 @@ type Master struct {
 	Tph     []BarisMaster `json:"tph,omitempty"`
 	Pemanen []BarisMaster `json:"pemanen,omitempty"`
 	User    []MasterUser  `json:"user,omitempty"`
+	// KodeTemuan adalah master kode temuan IPD (A, G, S, M1 ... R). Daftar mandor dan asisten untuk IPD diambil dari User.
+	KodeTemuan []BarisMaster `json:"kode_temuan,omitempty"`
 	// RolePermission adalah hak SEMUA role (bukan per unit). Bila kunci ini tidak ada, HP tidak mengubah hak role-nya.
 	RolePermission []RoleIzin `json:"role_permission,omitempty"`
 }
@@ -53,5 +55,6 @@ type IsiMaster struct {
 	Tph            []BarisMaster
 	Pemanen        []BarisMaster
 	User           []MasterUser
+	KodeTemuan     []BarisMaster
 	RolePermission []RoleIzin
 }

@@ -26,9 +26,10 @@ func (r *AdminMasterRepository) rows(ctx context.Context, q string, args ...any)
 
 func (r *AdminMasterRepository) DaftarDivisi(ctx context.Context, unitID int64) ([]model.BarisMaster, error) {
 	return r.rows(ctx, `
-SELECT d.divisi_id, d.kode, d.nama, d.erp_oid, d.aktif,
+SELECT d.divisi_id, d.kode, d.nama, d.erp_oid, d.aktif, d.asisten_user_id, a.nama AS asisten_nama,
   (SELECT COUNT(*) FROM dbo.blok b WHERE b.divisi_id = d.divisi_id AND b.dihapus_pada IS NULL) AS jumlah_blok
-FROM dbo.divisi d WHERE d.unit_id=@p1 AND d.dihapus_pada IS NULL ORDER BY d.kode`, unitID)
+FROM dbo.divisi d LEFT JOIN dbo.app_user a ON a.user_id = d.asisten_user_id
+WHERE d.unit_id=@p1 AND d.dihapus_pada IS NULL ORDER BY d.kode`, unitID)
 }
 
 func (r *AdminMasterRepository) DaftarBlok(ctx context.Context, unitID int64) ([]model.BarisMaster, error) {
@@ -82,6 +83,25 @@ func catat(ctx context.Context, tx *sql.Tx, tabel string, id int64, aksi string,
 
 func aktifAtauBawaan(p *bool) bool { return p == nil || *p }
 
+// periksaAsisten memastikan asisten divisi adalah akun aktif di unit itu yang berperan ASISTEN (nil berarti belum diatur).
+func periksaAsisten(ctx context.Context, tx *sql.Tx, unitID int64, asisten *int64) error {
+	if asisten == nil {
+		return nil
+	}
+	ok, err := ada(ctx, tx, `
+SELECT COUNT(*) FROM dbo.app_user u
+WHERE u.user_id=@p1 AND u.unit_id=@p2 AND u.aktif=1 AND u.dihapus_pada IS NULL
+  AND EXISTS (SELECT 1 FROM dbo.user_role ur JOIN dbo.role r ON r.role_id = ur.role_id
+              WHERE ur.user_id = u.user_id AND ur.dihapus_pada IS NULL AND r.kode='ASISTEN' AND r.dihapus_pada IS NULL)`, *asisten, unitID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return ErrAsistenTidakSah
+	}
+	return nil
+}
+
 // ---- Divisi --------------------------------------------------------------------------------------
 
 func (r *AdminMasterRepository) BuatDivisi(ctx context.Context, unitID, userID int64, in model.DivisiInput) (int64, error) {
@@ -90,9 +110,12 @@ func (r *AdminMasterRepository) BuatDivisi(ctx context.Context, unitID, userID i
 		if dup, err := ada(ctx, tx, `SELECT COUNT(*) FROM dbo.divisi WHERE unit_id=@p1 AND kode=@p2 AND dihapus_pada IS NULL`, unitID, in.Kode); err != nil || dup {
 			return pilihGalat(err, ErrDuplikat)
 		}
+		if err := periksaAsisten(ctx, tx, unitID, in.AsistenUserID); err != nil {
+			return err
+		}
 		if err := tx.QueryRowContext(ctx, `
-INSERT INTO dbo.divisi (unit_id, erp_oid, kode, nama, aktif, dibuat_oleh) OUTPUT INSERTED.divisi_id VALUES (@p1,@p2,@p3,@p4,@p5,@p6)`,
-			unitID, ptrAny(in.ErpOid), in.Kode, in.Nama, aktifAtauBawaan(in.Aktif), userID).Scan(&id); err != nil {
+INSERT INTO dbo.divisi (unit_id, erp_oid, kode, nama, aktif, asisten_user_id, dibuat_oleh) OUTPUT INSERTED.divisi_id VALUES (@p1,@p2,@p3,@p4,@p5,@p7,@p6)`,
+			unitID, ptrAny(in.ErpOid), in.Kode, in.Nama, aktifAtauBawaan(in.Aktif), userID, ptrAny(in.AsistenUserID)).Scan(&id); err != nil {
 			return err
 		}
 		return catat(ctx, tx, "divisi", id, "BUAT", userID, in.Kode)
@@ -108,9 +131,20 @@ func (r *AdminMasterRepository) UbahDivisi(ctx context.Context, unitID, userID, 
 		if dup, err := ada(ctx, tx, `SELECT COUNT(*) FROM dbo.divisi WHERE unit_id=@p1 AND kode=@p2 AND dihapus_pada IS NULL AND divisi_id<>@p3`, unitID, in.Kode, id); err != nil || dup {
 			return pilihGalat(err, ErrDuplikat)
 		}
+		if err := periksaAsisten(ctx, tx, unitID, in.AsistenUserID); err != nil {
+			return err
+		}
 		if _, err := tx.ExecContext(ctx, `
-UPDATE dbo.divisi SET kode=@p2, nama=@p3, erp_oid=@p4, aktif=COALESCE(@p5, aktif), diubah_pada=SYSUTCDATETIME(), diubah_oleh=@p6 WHERE divisi_id=@p1`,
-			id, in.Kode, in.Nama, ptrAny(in.ErpOid), ptrAny(in.Aktif), userID); err != nil {
+UPDATE dbo.divisi SET kode=@p2, nama=@p3, erp_oid=@p4, aktif=COALESCE(@p5, aktif), asisten_user_id=@p7, diubah_pada=SYSUTCDATETIME(), diubah_oleh=@p6 WHERE divisi_id=@p1`,
+			id, in.Kode, in.Nama, ptrAny(in.ErpOid), ptrAny(in.Aktif), userID, ptrAny(in.AsistenUserID)); err != nil {
+			return err
+		}
+		// Asisten diganti: inspeksi IPD divisi ini yang masih MENUNGGU ikut pindah ke asisten baru (atau ke semua pemegang
+		// ipd.setujui bila asisten dikosongkan), supaya tidak tertahan di asisten yang sudah berhenti.
+		if _, err := tx.ExecContext(ctx, `
+UPDATE dbo.fai_ipd SET asisten_user_id=@p2, diubah_pada=SYSUTCDATETIME(), diubah_oleh=@p3
+WHERE divisi_id=@p1 AND status='MENUNGGU' AND dihapus_pada IS NULL AND ISNULL(asisten_user_id, 0) <> ISNULL(@p2, 0)`,
+			id, ptrAny(in.AsistenUserID), userID); err != nil {
 			return err
 		}
 		return catat(ctx, tx, "divisi", id, "UBAH", userID, in.Kode)

@@ -215,7 +215,7 @@ func TestAdminPengguna(t *testing.T) {
 	tok := ad.AccessToken
 
 	roles := e.daftar("/api/admin/peran", tok)
-	if cari(roles, "kode", "MANDOR") == nil || len(roles) != 5 {
+	if cari(roles, "kode", "MANDOR") == nil || len(roles) != 7 || cari(roles, "kode", "ASKEP") == nil || cari(roles, "kode", "KTU") == nil {
 		t.Fatalf("role: %v", roles)
 	}
 
