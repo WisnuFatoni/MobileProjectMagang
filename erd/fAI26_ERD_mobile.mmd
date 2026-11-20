@@ -38,6 +38,9 @@ erDiagram
     ipd_pokok ||--o{ ipd_temuan : "temuan"
     kode_temuan ||--o{ ipd_temuan : "jenis temuan"
     ipd_header ||--o{ ipd_foto : "punya foto"
+    divisi ||--o{ ipd_header : "dipilih saat inspeksi"
+    petugas ||--o{ ipd_header : "mandor blok, mandor ancak, asisten"
+    unit ||--o{ petugas : "daftar mandor dan asisten"
 
     unit {
         INTEGER unit_id PK
@@ -59,6 +62,7 @@ erDiagram
         INTEGER erp_oid
         TEXT kode
         TEXT nama
+        INTEGER asisten_user_id "asisten divisi (petugas.user_id), diatur admin"
         INTEGER aktif
         TEXT dibuat_pada "waktu UTC saat baris dibuat"
         INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
@@ -383,6 +387,21 @@ erDiagram
         TEXT dihapus_pada "hapus lunak"
         INTEGER dihapus_oleh
     }
+    petugas {
+        INTEGER user_id PK "sama dengan app_user.user_id di server"
+        INTEGER unit_id FK
+        TEXT nama
+        TEXT peran "MANDOR atau ASISTEN"
+        INTEGER hrmb_code "kode HRMB mandor"
+        TEXT afdeling_kode
+        INTEGER aktif
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat"
+        TEXT diubah_pada
+        INTEGER diubah_oleh
+        TEXT dihapus_pada "hapus lunak"
+        INTEGER dihapus_oleh
+    }
     ipd_header {
         TEXT ipd_id PK "UUID dibuat di HP"
         INTEGER unit_id FK
@@ -392,9 +411,11 @@ erDiagram
         TEXT device_id FK
         TEXT tanggal_inspeksi "YYYY-MM-DD"
         TEXT ancak_no
-        TEXT mandor_blok_nama
-        INTEGER mandor_blok_hrmb
-        TEXT mandor_ancak_nama
+        INTEGER divisi_id FK "Divisi 1 atau 2, dipilih di awal"
+        INTEGER asisten_user_id FK "terisi otomatis dari divisi"
+        INTEGER mandor_blok_user_id FK "dipilih dari akun berperan MANDOR"
+        INTEGER mandor_blok_hrmb "salinan kode HRMB"
+        INTEGER mandor_ancak_user_id FK
         INTEGER mandor_ancak_hrmb
         TEXT catatan
         TEXT status "DRAFT, MENUNGGU_SETUJU, DISETUJUI, DITOLAK"
@@ -442,10 +463,11 @@ erDiagram
         TEXT ipd_id FK
         TEXT keterangan "boleh lebih dari satu foto per inspeksi"
         INTEGER urut
-        TEXT path_lokal
+        TEXT path_lokal "NULL setelah terkirim, berkas HP dihapus"
         TEXT sha256
         INTEGER lebar
         INTEGER tinggi
+        INTEGER ukuran_byte "setelah dikompres"
         TEXT status_unggah
         TEXT dibuat_pada "waktu UTC saat baris dibuat"
         INTEGER dibuat_oleh "user_id pembuat"

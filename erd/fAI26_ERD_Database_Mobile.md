@@ -912,20 +912,24 @@ Ditambahkan 21 Nov 2026 (rencana: `progres/RENCANA_IPD.md`). IPD mencatat **lose
 1. Satu catatan IPD = satu pemanen (satu ancak). Pindah ancak berarti catatan baru dari awal.
 2. Yang menginspeksi (biasanya mandor, bisa asisten) mengisi pokok per pokok. **Semua pokok yang diperiksa dicatat**, termasuk yang bersih, supaya persen loses bisa dihitung.
 3. Satu pokok boleh punya beberapa temuan (kode berbeda). Tiap temuan punya jumlah (bawaan 1).
-4. Kepala catatan memuat tanggal, blok, pemanen, nomor ancak (opsional), nama mandor di blok dan nama mandor di ancak (diketik; kode HRMB opsional untuk ERP nanti).
-5. Foto bukti boleh lebih dari satu, tiap foto punya keterangan.
-6. Persetujuan dua tingkat: inspektur menyatakan valid saat menekan **Kirim** (otomatis), lalu asisten (permission `ipd.setujui`) menyetujui atau menolak dengan alasan. Aturan edit sama dengan panen: selama MENUNGGU asisten inspektur boleh mengubah (kirim ulang); setelah DISETUJUI terkunci (server menjawab 423). Bila yang mengirim memegang `ipd.setujui` (asisten), catatan langsung DISETUJUI.
-7. Tahap ini belum terhubung ke ERP (TCode belum ditentukan). Kode blok (`asm3_oid`) dan pemanen (`pemanen_hrmb_code`) sudah disimpan terstruktur agar siap dijembatani nanti.
+4. Di awal inspeksi inspektur memilih **Divisi** (Divisi 1 atau Divisi 2). **Asisten terisi otomatis** dari divisi itu (contoh yang disebut Ptoni: Divisi 1 = Ferdi, Divisi 2 = Ginting). Asisten tiap divisi disimpan di `divisi.asisten_user_id` dan **diatur admin lewat web**, jadi bila asisten diganti cukup diganti di sana. Saat diganti, inspeksi divisi itu yang masih MENUNGGU ikut pindah ke asisten baru. Daftar blok difilter menurut divisi yang dipilih.
+5. Kepala catatan juga memuat tanggal, blok, pemanen, nomor ancak (opsional), **mandor di blok** dan **mandor di ancak**. Kedua mandor **dipilih dari daftar akun berperan MANDOR** (tabel `petugas`, diunduh sebagai master), bukan diketik. Kode HRMB mandor disalin ke catatan untuk ERP nanti.
+6. Foto bukti **tidak dibatasi jumlahnya** (pohon banyak), tiap foto punya keterangan. Foto **dikompres saat disimpan** di HP. Setelah foto terkirim ke server, **berkas di HP dihapus** (`ipd_foto.path_lokal` menjadi NULL) supaya memori tidak penuh; fotonya dilihat dari server bila perlu.
+7. Persetujuan dua tingkat: inspektur menyatakan valid saat menekan **Kirim** (otomatis), lalu **asisten yang tercatat di catatan itu** (`asisten_user_id`, pemegang `ipd.setujui`) menyetujui atau menolak dengan alasan. Bila divisi belum punya asisten, pemegang `ipd.setujui` di unit itu melihat catatannya. Aturan edit sama dengan panen: selama MENUNGGU inspektur boleh mengubah (kirim ulang); setelah DISETUJUI terkunci (server menjawab 423). Bila yang mengirim memegang `ipd.setujui` (asisten), catatan langsung DISETUJUI.
+8. **Inspeksi ulang bebas** (mengikuti instruksi ASKEP, tidak ada anti ganda), tetapi HP memberi **peringatan** saat pemanen dan blok yang sama pernah diinspeksi dalam 30 hari terakhir: tanggal, inspektur, dan statusnya ditampilkan, lalu inspektur boleh lanjut. Pencarian memakai data server (bila ada sinyal) dan data HP sendiri.
+9. Tahap ini belum terhubung ke ERP (TCode belum ditentukan). Kode blok (`asm3_oid`) dan pemanen (`pemanen_hrmb_code`) sudah disimpan terstruktur agar siap dijembatani nanti.
 
 ### 13.2 Tabel
 
 | Tabel HP | Tabel server | Isi |
 |---|---|---|
 | `kode_temuan` | `ipd_kode_temuan` | Master 11 kode temuan (kode, nama, kelompok, urut, aktif). Diunduh HP lewat master. |
-| `ipd_header` | `fai_ipd` | Satu inspeksi: tanggal, blok, pemanen, inspektur, mandor blok/ancak, status, validasi, persetujuan. |
+| `petugas` | `app_user` (peran MANDOR dan ASISTEN) | Daftar mandor dan asisten unit untuk dipilih di HP (master, dibaca dari server; tidak ada tabel baru di server). |
+| `divisi` (kolom baru `asisten_user_id`) | `divisi` (kolom baru `asisten_user_id`) | Asisten tiap divisi, diatur admin. |
+| `ipd_header` | `fai_ipd` | Satu inspeksi: tanggal, divisi, asisten, blok, pemanen, inspektur, mandor blok dan ancak, status, validasi, persetujuan. |
 | `ipd_pokok` | `fai_ipd_pokok` | Pokok yang diperiksa: nomor baris dan nomor pokok, unik per inspeksi. |
 | `ipd_temuan` | `fai_ipd_temuan` | Temuan pada pokok: kode dan jumlah, unik per pokok dan kode. |
-| `ipd_foto` | `fai_ipd_foto` | Foto bukti dengan keterangan dan urutan. |
+| `ipd_foto` | `fai_ipd_foto` | Foto bukti (tanpa batas jumlah) dengan keterangan dan urutan. Di HP dikompres, berkasnya dihapus setelah terkirim. |
 
 Kode temuan:
 
@@ -952,10 +956,11 @@ Status HP: `DRAFT` (belum terkirim), `MENUNGGU_SETUJU` (sudah di server, menungg
 | `akses.panen` | Kotak Panen muncul di layar awal HP. |
 | `akses.ipd` | Kotak IPD muncul di layar awal HP. |
 | `ipd.buat`, `ipd.kirim` | Mengisi dan mengirim inspeksi (kirim = valid). |
-| `ipd.setujui` | Menyetujui atau menolak inspeksi (asisten). |
+| `ipd.setujui` | Menyetujui atau menolak inspeksi yang ditujukan ke dirinya (asisten divisi). |
 | `ipd.lihat` | Melihat daftar inspeksi di web. |
 | `laporan.ipd` | Melihat laporan loses di web. |
 | `ipd.kelola` | Mengelola kode temuan (admin). |
+| `master.kelola` (sudah ada) | Admin mengganti asisten tiap divisi di halaman Divisi web. |
 
 `akses.panen` dan `akses.ipd` dapat dipasang ke role mana pun lewat halaman Hak Akses web, jadi siapa yang melihat kotak apa bisa diubah tanpa mengubah aplikasi. Role baru **ASKEP** dan **KTU** hanya melihat (`panen.lihat`, `laporan.lihat`, `master.lihat`, `ipd.lihat`, `laporan.ipd`).
 

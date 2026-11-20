@@ -23,6 +23,7 @@ CREATE TABLE divisi (
     erp_oid               INTEGER,
     kode                  TEXT NOT NULL,
     nama                  TEXT NOT NULL,
+    asisten_user_id       INTEGER,                       -- asisten divisi (petugas.user_id), diatur admin; dipakai IPD
     aktif                 INTEGER NOT NULL DEFAULT 1,
     dibuat_pada           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
     dibuat_oleh           INTEGER,
@@ -410,6 +411,23 @@ CREATE TABLE kode_temuan (
     dihapus_oleh          INTEGER
 );
 
+-- Daftar akun berperan MANDOR dan ASISTEN di unit (master, diunduh dari server). Dipakai memilih mandor dan menampilkan asisten.
+CREATE TABLE petugas (
+    user_id               INTEGER PRIMARY KEY,           -- sama dengan app_user.user_id di server
+    unit_id               INTEGER NOT NULL REFERENCES unit(unit_id),
+    nama                  TEXT NOT NULL,
+    peran                 TEXT NOT NULL CHECK (peran IN ('MANDOR','ASISTEN')),
+    hrmb_code             INTEGER,                       -- kode HRMB mandor (app_user.mandor_hrmb_code), kosong untuk asisten
+    afdeling_kode         TEXT,
+    aktif                 INTEGER NOT NULL DEFAULT 1,
+    dibuat_pada           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+    dibuat_oleh           INTEGER,
+    diubah_pada           TEXT,
+    diubah_oleh           INTEGER,
+    dihapus_pada          TEXT,
+    dihapus_oleh          INTEGER
+);
+
 CREATE TABLE ipd_header (
     ipd_id                TEXT PRIMARY KEY,              -- UUID dibuat di HP, sama dengan fai_ipd.id di server
     unit_id               INTEGER NOT NULL REFERENCES unit(unit_id),
@@ -419,9 +437,11 @@ CREATE TABLE ipd_header (
     device_id             TEXT NOT NULL REFERENCES device(device_id),
     tanggal_inspeksi      TEXT NOT NULL,                 -- YYYY-MM-DD
     ancak_no              TEXT,                          -- nomor/nama ancak, boleh kosong
-    mandor_blok_nama      TEXT,                          -- nama mandor di blok itu (diketik)
-    mandor_blok_hrmb      INTEGER,                       -- kode HRMB bila diketahui (untuk ERP nanti)
-    mandor_ancak_nama     TEXT,                          -- nama mandor di ancak itu (diketik)
+    divisi_id             INTEGER NOT NULL REFERENCES divisi(divisi_id),   -- dipilih di awal inspeksi (Divisi 1 atau 2)
+    asisten_user_id       INTEGER REFERENCES petugas(user_id),             -- terisi otomatis dari divisi, penyetuju catatan ini
+    mandor_blok_user_id   INTEGER REFERENCES petugas(user_id),             -- dipilih dari daftar akun berperan MANDOR
+    mandor_blok_hrmb      INTEGER,                       -- salinan kode HRMB mandor saat dipilih (untuk ERP nanti)
+    mandor_ancak_user_id  INTEGER REFERENCES petugas(user_id),
     mandor_ancak_hrmb     INTEGER,
     catatan               TEXT,
     status                TEXT NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT','MENUNGGU_SETUJU','DISETUJUI','DITOLAK')),
@@ -443,6 +463,8 @@ CREATE TABLE ipd_header (
 CREATE INDEX ix_ipd_header_tanggal_inspeksi_unit_id ON ipd_header (tanggal_inspeksi, unit_id);
 CREATE INDEX ix_ipd_header_status ON ipd_header (status);
 CREATE INDEX ix_ipd_header_pemanen_id_tanggal_inspeksi ON ipd_header (pemanen_id, tanggal_inspeksi);
+-- Peringatan "ancak ini sudah pernah diinspeksi": mencari inspeksi terakhir pemanen + blok yang sama.
+CREATE INDEX ix_ipd_header_pemanen_id_blok_id_tanggal_inspeksi ON ipd_header (pemanen_id, blok_id, tanggal_inspeksi);
 
 CREATE TABLE ipd_pokok (
     pokok_id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -480,10 +502,11 @@ CREATE TABLE ipd_foto (
     ipd_id                TEXT NOT NULL REFERENCES ipd_header(ipd_id) ON DELETE CASCADE,
     keterangan            TEXT,                          -- keterangan foto, diisi inspektur
     urut                  INTEGER NOT NULL DEFAULT 0,
-    path_lokal            TEXT NOT NULL,
+    path_lokal            TEXT,                          -- NULL setelah terkirim ke server: berkas di HP dihapus agar tidak menumpuk
     sha256                TEXT,
     lebar                 INTEGER,
     tinggi                INTEGER,
+    ukuran_byte           INTEGER,                       -- ukuran setelah dikompres saat disimpan
     status_unggah         TEXT NOT NULL DEFAULT 'BELUM',
     dibuat_pada           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
     dibuat_oleh           INTEGER,

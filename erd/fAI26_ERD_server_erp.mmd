@@ -22,6 +22,9 @@ erDiagram
     fai_ipd_pokok ||--o{ fai_ipd_temuan : "temuan"
     ipd_kode_temuan ||--o{ fai_ipd_temuan : "jenis temuan"
     fai_ipd ||--o{ fai_ipd_foto : "punya foto"
+    divisi ||--o{ fai_ipd : "divisi inspeksi"
+    app_user ||--o{ fai_ipd : "mandor blok, mandor ancak, asisten"
+    app_user |o--o{ divisi : "asisten divisi"
     fai_ipd }o..|| asm3 : "blok asm3_oid"
 
     fai_panen {
@@ -115,6 +118,7 @@ erDiagram
         INT erp_oid
         NVARCHAR kode
         NVARCHAR nama
+        INT asisten_user_id FK "asisten divisi (app_user), diatur admin"
     }
     blok {
         INT blok_id PK
@@ -212,9 +216,11 @@ erDiagram
         NVARCHAR blok_kode
         INT pemanen_hrmb_code "satu catatan = satu pemanen"
         NVARCHAR ancak_no
-        NVARCHAR mandor_blok_nama
+        INT divisi_id FK
+        INT asisten_user_id FK "penyetuju, dari divisi saat dikirim"
+        INT mandor_blok_user_id FK
         INT mandor_blok_hrmb
-        NVARCHAR mandor_ancak_nama
+        INT mandor_ancak_user_id FK
         INT mandor_ancak_hrmb
         NVARCHAR catatan
         NVARCHAR status "MENUNGGU, DISETUJUI, DITOLAK"

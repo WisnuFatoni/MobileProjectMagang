@@ -48,10 +48,12 @@ Cara membuatnya: `MainActivity` sekarang memuat satu set tab tetap. Diubah menja
 Rinci di `erd/fAI26_ERD_Database_Mobile.md` bab 13. Tabel (HP / server):
 
 - `kode_temuan` / `ipd_kode_temuan`: master 11 kode temuan.
-- `ipd_header` / `fai_ipd`: satu inspeksi = satu pemanen; kepala: tanggal, blok, pemanen, inspektur, nomor ancak (opsional), nama mandor blok, nama mandor ancak; status, validasi (inspektur), persetujuan (asisten).
+- `ipd_header` / `fai_ipd`: satu inspeksi = satu pemanen; kepala: tanggal, **divisi**, **asisten (otomatis dari divisi)**, blok, pemanen, inspektur, nomor ancak (opsional), **mandor blok dan mandor ancak (dipilih dari akun berperan MANDOR)**; status, validasi (inspektur), persetujuan (asisten).
+- `petugas` (hanya HP): daftar akun MANDOR dan ASISTEN unit, diunduh sebagai master. Di server dibaca dari `app_user`.
+- `divisi.asisten_user_id` (kolom baru di HP dan server): asisten tiap divisi, **diatur admin lewat web** (halaman Divisi), bisa diganti bila asisten berhenti; inspeksi yang masih MENUNGGU ikut pindah ke asisten baru.
 - `ipd_pokok` / `fai_ipd_pokok`: pokok yang diperiksa (nomor baris, nomor pokok), semuanya dicatat termasuk yang bersih.
 - `ipd_temuan` / `fai_ipd_temuan`: kode temuan dan jumlah per pokok (boleh beberapa kode).
-- `ipd_foto` / `fai_ipd_foto`: foto lebih dari satu, tiap foto punya keterangan dan urutan.
+- `ipd_foto` / `fai_ipd_foto`: foto **tanpa batas jumlah**, tiap foto punya keterangan dan urutan. Dikompres saat disimpan di HP; setelah terkirim ke server berkas di HP dihapus (`path_lokal` NULL).
 
 Status HP: DRAFT, MENUNGGU_SETUJU, DISETUJUI, DITOLAK. Status server: MENUNGGU, DISETUJUI, DITOLAK. Offline lebih dulu (Room v5 + antrean sinkron yang sama dengan panen).
 
@@ -60,13 +62,14 @@ Berkas yang sudah diperbarui: `erd/fAI26_ERD_mobile.mmd`, `erd/fAI26_ERD_server_
 ## 5. Server (API Go + SQL Server)
 
 - Migrasi `009_ipd.sql`: tabel IPD, seed 11 kode, permission `ipd.*`, role **ASKEP** dan **KTU** (hanya lihat).
-- Endpoint (usulan): `GET /api/master` ditambah kode temuan; `POST /api/ipd` (kirim satu sesi, idempoten seperti panen); `GET /api/ipd/menunggu`, `POST /api/ipd/{id}/setujui|tolak`; `GET /api/admin/ipd` (daftar); `GET /api/admin/ipd/laporan` (loses per kode, per kelompok, per pemanen, per blok, per periode).
+- Endpoint (usulan): `GET /api/master` ditambah kode temuan, daftar `petugas` (mandor dan asisten) dan `asisten_user_id` pada tiap divisi; `PUT /api/admin/divisi/{id}` menerima `asisten_user_id` (hanya akun berperan ASISTEN; inspeksi MENUNGGU divisi itu dipindah ke asisten baru); `GET /api/ipd/inspeksi-terakhir?pemanen=&blok=` untuk peringatan inspeksi ulang; `POST /api/ipd` (kirim satu sesi, idempoten seperti panen); `GET /api/ipd/menunggu`, `POST /api/ipd/{id}/setujui|tolak`; `GET /api/admin/ipd` (daftar); `GET /api/admin/ipd/laporan` (loses per kode, per kelompok, per pemanen, per blok, per periode).
 - Permission baru (sudah ada di migrasi 009): `akses.panen`, `akses.ipd` (menentukan kotak di HP, bisa dipasang ke role mana pun), `ipd.buat`, `ipd.kirim`, `ipd.setujui`, `ipd.lihat`, `laporan.ipd`, `ipd.kelola`. Role baru ASKEP dan KTU (hanya lihat).
 - Versi API naik (0.16.0), dokumentasi API wajib diperbarui (ada tes yang memaksanya).
 - Tes unit + integrasi di `fai26_tes` (bukan `fai26_dev`).
 
 ## 6. Web (React + Ant Design)
 
+- Halaman **Divisi** (master) mendapat pilihan **Asisten** per divisi (admin dapat menggantinya kapan saja).
 - Menu baru grup **IPD**: Daftar Inspeksi, Laporan Loses.
 - Laporan: loses per kode temuan (jumlah dan persen), per kelompok (buah, brondolan, pelepah), per pemanen/ancak, per blok, filter tanggal. Grafik batang + tabel, bisa diekspor.
 - Role **ASKEP** dan **KTU**: login web, hanya melihat laporan (menu lain tersembunyi sesuai hak).
@@ -83,6 +86,13 @@ Berkas yang sudah diperbarui: `erd/fAI26_ERD_mobile.mmd`, `erd/fAI26_ERD_server_
 7. Tahap ini hanya di fAI26. Nanti diintegrasikan ke ERP (TCode belum diketahui), jadi data dirancang siap diekspor (kode, tanggal, blok, pemanen, mandor tersimpan terstruktur).
 8. ASKEP dan KTU boleh melihat dashboard, catatan panen, produktivitas, dan laporan IPD (tanpa mengubah).
 9. Git lokal dibuat dulu. 10. Nomor baris dan pokok angka bebas.
+
+**Keputusan Ptoni, putaran kedua (21 Nov 2026):**
+- Mandor dipilih dari daftar akun berperan MANDOR (bukan diketik).
+- Asisten inspektur langsung disetujui; jumlah temuan bawaan 1 dan boleh diubah.
+- Foto tidak dibatasi (pohon banyak): dikompres saat disimpan, dan setelah terkirim ke server berkas di HP dihapus.
+- Inspeksi ulang pemanen yang sama bebas (mengikuti instruksi ASKEP), tetapi diberi **peringatan** bila pemanen + blok itu pernah diinspeksi (contoh: minggu lalu).
+- Di awal inspeksi pilih **Divisi** (1 atau 2); **asisten terisi otomatis** (contoh: Divisi 1 = Ferdi, Divisi 2 = Ginting). Pemetaan ini bisa diganti admin bila asisten berganti.
 
 **Dari foto form lapangan "Pemeriksaan Mutu Ancak" (Tanggal Panen, Blok, Seksi, Mandor Panen, Mandor 1; kolom per pemanen):**
 - Satu pemanen punya beberapa pasang baris (contoh Haruani: baris 11 dan 10, lalu 15 dan 14). Tiap baris punya dua sisi, **Kn** dan **Kr** (dugaan: kanan dan kiri).
@@ -107,10 +117,13 @@ Pertanyaan terbuka tentang form ini ada di balasan Claude kepada Ptoni (arti tan
 
 Tiap tahap diakhiri pembaruan `PROGRES.md`. Fitur Panen yang sudah ada tidak diubah perilakunya; hanya pintu masuknya yang pindah ke kotak Panen.
 
-## 9. Pertanyaan desain yang masih terbuka (jawaban bawaan dipakai bila tidak dijawab)
+## 9. Pertanyaan desain: sudah dijawab, dan asumsi yang dipakai
 
-1. **Nama mandor**: diketik bebas (dua isian: mandor di blok dan mandor di ancak). Bawaan: ya, diketik bebas; kode HRMB mandor opsional. Atau dipilih dari daftar mandor?
-2. **Asisten sebagai inspektur**: bila yang mengirim memegang `ipd.setujui`, catatan langsung DISETUJUI. Bawaan: ya.
-3. **Jumlah temuan**: tiap kode bawaan 1 per pokok, boleh diubah (misalnya 5 butir). Bawaan: ya.
-4. **Batas foto** per inspeksi. Bawaan: tidak dibatasi (maksimal 10 di HP agar memori aman).
-5. **Satu pemanen satu hari dua kali diinspeksi** (dua catatan untuk blok dan tanggal yang sama)? Bawaan: boleh, tidak ada anti ganda.
+Dijawab Ptoni 21 Nov 2026: mandor dari daftar akun, asisten inspektur langsung sah, jumlah temuan bawaan 1, foto tanpa batas (dikompres dan dihapus dari HP setelah terkirim), inspeksi ulang bebas dengan peringatan, divisi dan asisten otomatis (diatur admin).
+
+Asumsi yang kupakai (koreksi bila salah):
+1. **Penyetuju** hanyalah asisten yang tercatat pada catatan itu (asisten divisinya). Asisten divisi lain tidak melihatnya. Bila divisi belum punya asisten, semua pemegang `ipd.setujui` di unit melihatnya.
+2. **Jendela peringatan inspeksi ulang: 30 hari terakhir** untuk pemanen + blok yang sama. Isi peringatan: tanggal, inspektur, status inspeksi sebelumnya.
+3. Daftar blok difilter menurut divisi yang dipilih.
+4. Divisi bisa diubah selama catatan belum dikirim; asisten ikut berubah otomatis.
+5. Foto lama di HP dihapus hanya sesudah server mengonfirmasi menerimanya (cek sha256).

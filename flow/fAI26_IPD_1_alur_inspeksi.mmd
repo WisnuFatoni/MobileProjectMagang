@@ -2,7 +2,12 @@ flowchart TB
     subgraph A["A. PERSIAPAN (HP inspektur, boleh offline)"]
         direction TB
         A1(["Inspektur buka kotak IPD"]) --> A2["Mulai inspeksi baru"]
-        A2 --> A3["Isi kepala catatan:<br/>tanggal, blok, pemanen (satu ancak),<br/>nama mandor di blok dan di ancak"]
+        A2 --> A3["Pilih DIVISI (1 atau 2)<br/>asisten terisi otomatis dari divisi<br/>(diatur admin di web, bisa diganti)"]
+        A3 --> A4["Pilih blok (difilter divisi), pemanen (satu ancak),<br/>mandor di blok dan mandor di ancak<br/>(dipilih dari daftar akun berperan MANDOR)"]
+        A4 --> A5{"Pemanen + blok ini<br/>diinspeksi 30 hari terakhir?"}
+        A5 -->|"ya"| A6["PERINGATAN (bukan larangan):<br/>tampilkan tanggal, inspektur, status<br/>inspektur boleh lanjut"]
+        A5 -->|"tidak"| A7(["Lanjut"])
+        A6 --> A7
     end
 
     subgraph B["B. PEMERIKSAAN POKOK PER POKOK"]
@@ -15,7 +20,7 @@ flowchart TB
         B5 -->|"pokok berikutnya"| B1
         B5 -->|"pindah baris"| B1
         B5 -->|"selesai"| B6["Ringkasan otomatis:<br/>pokok diperiksa, pokok bertemuan,<br/>temuan per kode, persen loses"]
-        B6 --> B7["Tambah foto (lebih dari satu)<br/>tiap foto boleh diberi keterangan"]
+        B6 --> B7["Tambah foto (tanpa batas jumlah)<br/>tiap foto diberi keterangan<br/>dikompres saat disimpan di HP"]
     end
 
     subgraph C["C. KIRIM DAN VALIDASI"]
@@ -23,12 +28,13 @@ flowchart TB
         C1["Inspektur tekan KIRIM<br/>(otomatis menyatakan valid)"] --> C2{"Ada sinyal?"}
         C2 -->|"tidak"| C3["Antre di HP<br/>terkirim saat ada sinyal"]
         C3 --> C2
-        C2 -->|"ya"| C4["Server menyimpan<br/>status MENUNGGU asisten"]
+        C2 -->|"ya"| C4["Server menyimpan<br/>status MENUNGGU asisten divisi"]
+        C4 --> C5["Foto terunggah:<br/>berkas di HP dihapus<br/>(foto dilihat dari server)"]
     end
 
     subgraph D["D. PERSETUJUAN ASISTEN (HP asisten)"]
         direction TB
-        D1["Asisten lihat daftar menunggu<br/>rincian, ringkasan loses, foto"] --> D2{"Keputusan"}
+        D1["Asisten divisi (yang tercatat di catatan)<br/>melihat daftar menunggu:<br/>rincian, ringkasan loses, foto"] --> D2{"Keputusan"}
         D2 -->|"setujui"| D3["Status DISETUJUI<br/>terkunci, tidak bisa diubah lagi"]
         D2 -->|"tolak + alasan"| D4["Status DITOLAK<br/>kembali ke inspektur"]
         D4 --> D5["Inspektur perbaiki lalu kirim ulang"]

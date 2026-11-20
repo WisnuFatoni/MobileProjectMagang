@@ -27,6 +27,14 @@ CREATE TABLE dbo.ipd_kode_temuan (
 );
 GO
 
+-- Asisten tiap divisi (Divisi 1 = Ferdi, Divisi 2 = Ginting menurut Ptoni; diisi admin lewat web, bisa diganti kapan saja).
+IF COL_LENGTH('dbo.divisi', 'asisten_user_id') IS NULL
+    ALTER TABLE dbo.divisi ADD asisten_user_id INT NULL;
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'fk_divisi_asisten_user_id')
+    ALTER TABLE dbo.divisi ADD CONSTRAINT fk_divisi_asisten_user_id FOREIGN KEY (asisten_user_id) REFERENCES dbo.app_user(user_id);
+GO
+
 IF OBJECT_ID('dbo.fai_ipd', 'U') IS NULL
 CREATE TABLE dbo.fai_ipd (
     id                    UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,    -- sama dengan ipd_id di HP
@@ -35,11 +43,13 @@ CREATE TABLE dbo.fai_ipd (
     tanggal_inspeksi      DATE NOT NULL,
     asm3_oid              BIGINT NOT NULL,                 -- OID blok di ERP (disalin dari master saat diterima)
     blok_kode             NVARCHAR(20),
+    divisi_id             INT NOT NULL,                    -- dipilih di awal inspeksi
+    asisten_user_id       INT,                             -- asisten divisi saat dikirim = penyetuju; NULL bila divisi belum punya asisten
     pemanen_hrmb_code     INT NOT NULL,                    -- satu catatan = satu pemanen
     ancak_no              NVARCHAR(30),
-    mandor_blok_nama      NVARCHAR(100),
-    mandor_blok_hrmb      INT,
-    mandor_ancak_nama     NVARCHAR(100),
+    mandor_blok_user_id   INT,                             -- akun berperan MANDOR
+    mandor_blok_hrmb      INT,                             -- salinan kode HRMB saat dipilih
+    mandor_ancak_user_id  INT,
     mandor_ancak_hrmb     INT,
     catatan               NVARCHAR(500),
     status                NVARCHAR(12) NOT NULL DEFAULT 'MENUNGGU',   -- MENUNGGU asisten, DISETUJUI, DITOLAK
@@ -57,6 +67,10 @@ CREATE TABLE dbo.fai_ipd (
     dihapus_oleh          INT,            -- dibuat_oleh = yang menginspeksi
     CONSTRAINT fk_fai_ipd_unit_id FOREIGN KEY (unit_id) REFERENCES dbo.unit(unit_id),
     CONSTRAINT fk_fai_ipd_device_id FOREIGN KEY (device_id) REFERENCES dbo.device(device_id),
+    CONSTRAINT fk_fai_ipd_divisi_id FOREIGN KEY (divisi_id) REFERENCES dbo.divisi(divisi_id),
+    CONSTRAINT fk_fai_ipd_asisten FOREIGN KEY (asisten_user_id) REFERENCES dbo.app_user(user_id),
+    CONSTRAINT fk_fai_ipd_mandor_blok FOREIGN KEY (mandor_blok_user_id) REFERENCES dbo.app_user(user_id),
+    CONSTRAINT fk_fai_ipd_mandor_ancak FOREIGN KEY (mandor_ancak_user_id) REFERENCES dbo.app_user(user_id),
     CONSTRAINT ck_fai_ipd_status CHECK (status IN ('MENUNGGU','DISETUJUI','DITOLAK'))
 );
 GO
@@ -65,6 +79,11 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'ix_fai_ipd_unit_id_tangga
     CREATE INDEX ix_fai_ipd_unit_id_tanggal_inspeksi ON dbo.fai_ipd (unit_id, tanggal_inspeksi);
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'ix_fai_ipd_status')
     CREATE INDEX ix_fai_ipd_status ON dbo.fai_ipd (status, tanggal_inspeksi);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'ix_fai_ipd_asisten_status')
+    CREATE INDEX ix_fai_ipd_asisten_status ON dbo.fai_ipd (asisten_user_id, status);
+-- Peringatan "ancak ini sudah pernah diinspeksi": inspeksi terakhir pemanen + blok yang sama.
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'ix_fai_ipd_pemanen_blok_tanggal')
+    CREATE INDEX ix_fai_ipd_pemanen_blok_tanggal ON dbo.fai_ipd (pemanen_hrmb_code, asm3_oid, tanggal_inspeksi);
 GO
 
 IF OBJECT_ID('dbo.fai_ipd_pokok', 'U') IS NULL
