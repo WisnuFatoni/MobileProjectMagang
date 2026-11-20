@@ -111,9 +111,9 @@ Pertanyaan terbuka tentang form ini ada di balasan Claude kepada Ptoni (arti tan
 | 0 | Git lokal, baseline | **Selesai 21 Nov** (repo di `L:\GRADING_MAGANG`, commit awal "Titik awal sebelum fitur IPD"; `.env`, DataKEBUN, TUGAS, node_modules, build dikecualikan; tidak diunggah ke mana pun) |
 | 1 | Desain data: ERD mermaid, SQL SQLite dan SQL Server, migrasi 009, alur di `flow/` | **Selesai 21 Nov, menunggu pemeriksaan Ptoni** |
 | 2 | API: endpoint IPD, master kode temuan, persetujuan, laporan loses, tes, dokumentasi | **Selesai 21 Nov** (API 0.16.0, 23 tes integrasi lolos, migrasi 009 di dev) |
-| 3 | HP: Home dua kotak, menu bertingkat, Room v5, layar IPD, Riwayat dan Persetujuan IPD, sinkron | Belum |
-| 4 | Web: Daftar Inspeksi, Laporan Loses, halaman Hak Akses untuk kotak, tampilan role ASKEP dan KTU | Belum |
-| 5 | Dokumentasi akhir, `PROGRES.md`, memori, daftar tes manual | Belum |
+| 3 | HP: Home dua kotak, menu bertingkat, Room v5, layar IPD, Riwayat dan Persetujuan IPD, sinkron | **Selesai 21 Nov** (dicoba di HP; kamera dan kirim ke server belum) |
+| 4 | Web: Daftar Inspeksi, Laporan Loses, halaman Hak Akses untuk kotak, tampilan role ASKEP dan KTU | **Selesai 21 Nov** (tes lolos; belum dilihat di browser) |
+| 5 | Dokumentasi akhir, `PROGRES.md`, memori, daftar tes manual | **Selesai 21 Nov** (menunggu uji Ptoni) |
 
 Tiap tahap diakhiri pembaruan `PROGRES.md`. Fitur Panen yang sudah ada tidak diubah perilakunya; hanya pintu masuknya yang pindah ke kotak Panen.
 

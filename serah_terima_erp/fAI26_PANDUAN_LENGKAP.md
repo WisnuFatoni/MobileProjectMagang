@@ -814,3 +814,23 @@ Koreksi alur: **mandor menginput, krani memvalidasi dan menyetujui**, masing-mas
 - Untuk HVDM tidak ada yang berubah: kolom `disetujui_username` pada view kini berisi **krani** penyetujunya, `pencatat_username` tetap mandor. Siklus status ke HP: `MENUNGGU_SETUJU` (menunggu krani), `TERKIRIM` (BARU/DIBACA), `DITERIMA`, `DITOLAK`.
 - Hak akses dibaca dari database (bisa diubah admin di web): saat ini `panen.setujui` dipegang KRANI dan ADMIN, bukan MANDOR.
 
+---
+
+## 21. IPD: Inspeksi Panen Detail dan layar awal dua kotak (21 Nov 2026, migrasi 009, API 0.16.0)
+
+**Tujuan:** mengetahui **loses** (kehilangan hasil) di titik panen: brondolan tidak dikutip, buah tinggal, dan temuan lain. Fitur ini berdiri sendiri di fAI26 (belum terhubung ke ERP; TCode belum ditentukan, data sudah disimpan terstruktur: `asm3_oid`, `pemanen_hrmb_code`, kode HRMB mandor).
+
+**Layar awal HP (Home):** dua kotak, **Panen** (semua fitur panen yang sudah ada, tidak diubah) dan **IPD**. Kotak yang tampil mengikuti hak `akses.panen` dan `akses.ipd` yang diatur admin di halaman Hak Akses web (dinamis). Menu bawah bertingkat: di Home hanya Home dan Akun; di Panen: Home, Beranda, Riwayat, Persetujuan (bila `panen.setujui`), Akun; di IPD: Home, Mulai, Riwayat, Persetujuan (bila `ipd.setujui`), Akun.
+
+**Alur inspeksi:**
+1. Inspektur (biasanya mandor, bisa asisten) memilih **tanggal, divisi** (asisten terisi otomatis dari divisi), blok (difilter divisi), **pemanen** (satu catatan = satu ancak), nomor ancak (opsional), **mandor di blok** dan **mandor di ancak** (dipilih dari akun berperan MANDOR). Bila pemanen + blok yang sama pernah diinspeksi dalam **7 hari terakhir** (inspeksi tiap Jumat), HP memberi **peringatan** (bukan larangan).
+2. **Pokok per pokok:** nomor baris dan nomor pokok (naik otomatis), tombol besar **BERSIH** atau pilih kode temuan **A, G, S, M1, M2, M3, M4, B1, B2, C, R** (boleh beberapa, jumlah bawaan 1). Semua pokok yang diperiksa dicatat supaya persen loses bisa dihitung. Draf baru tersimpan otomatis tiap pokok.
+3. **Ringkasan dan kirim:** loses langsung terhitung; foto bukti **tanpa batas jumlah**, dikompres (sisi terpanjang 1600 px, JPEG 80), tiap foto diberi keterangan; setelah foto terkirim ke server, **berkas di HP dihapus**. **Kirim** otomatis menyatakan inspeksi valid.
+4. **Persetujuan asisten:** inspeksi menunggu **asisten divisi yang tercatat** (`divisi.asisten_user_id`, diatur admin di halaman Divisi web, bisa diganti; yang masih menunggu ikut pindah). Asisten melihat ringkasan per kode dan foto, lalu menyetujui (terkunci) atau menolak dengan alasan. Pengirim yang memegang `ipd.setujui` (asisten) langsung disetujui.
+5. **Aturan edit** sama dengan panen: selama belum disetujui (draf, menunggu asisten, ditolak) inspektur boleh mengubah dari Riwayat dan kirim ulang; setelah disetujui terkunci (server 423, HP menandai disetujui).
+
+**Laporan (web):** menu **Inspeksi IPD** (daftar, rincian pokok, foto) dan **Laporan Loses IPD** (per kode, kelompok buah/brondolan/pelepah, pemanen, blok, divisi, tanggal; hanya inspeksi disetujui). Rumus: persen = pokok yang memuat temuan dibagi pokok diperiksa. Role baru **ASKEP** dan **KTU** (hanya melihat): dasbor, catatan panen, produktivitas, daftar dan laporan IPD.
+
+**Tabel baru:** `ipd_kode_temuan`, `fai_ipd`, `fai_ipd_pokok`, `fai_ipd_temuan`, `fai_ipd_foto`; kolom `divisi.asisten_user_id`. Detail di `erd/fAI26_ERD_Database_Mobile.md` bab 13, diagram di `flow/fAI26_IPD_*.mmd`, endpoint di `docs/API.md`.
+
+**Belum / catatan:** (1) tidak ada jembatan ke ERP; (2) migrasi 009 baru dijalankan di database dev lokal dan `fai26_tes`, belum di server sungguhan; (3) master HP untuk akun mandor dibatasi ke pemanen dan blok afdelingnya (aturan panen): bila mandor harus menginspeksi pemanen mandor lain, aturan itu perlu dilonggarkan untuk IPD; (4) kode temuan dikelola lewat migrasi (belum ada halaman admin); (5) ambil foto lewat kamera sistem belum diuji otomatis.

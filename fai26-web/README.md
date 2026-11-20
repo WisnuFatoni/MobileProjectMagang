@@ -63,3 +63,10 @@ src/
 Bangun dengan `npm run build`, lalu sajikan dari alamat yang sama dengan API (satu origin: tanpa CORS). Cara paling sederhana: isi `FAI26_WEB_DIR` di `.env` API dengan folder `dist/` ini, lalu jalankan API. API melayani `/api/*` dan web sekaligus (fallback `index.html` untuk rute React, cache panjang untuk `/assets`, header keamanan dan CSP). Alternatifnya reverse proxy yang meneruskan `/api` ke API dan sisanya ke `dist/` dengan fallback ke `index.html`. Pakai HTTPS di depan keduanya.
 
 **Selalu coba hasil build di browser**, bukan hanya `npm run build`: build produksi dan mode dev bisa berbeda (pernah ada galat yang hanya muncul di produksi).
+
+## Halaman IPD (21 Nov 2026)
+
+- **Inspeksi IPD** (`/ipd`, hak `ipd.lihat`): daftar inspeksi panen detail dengan filter tanggal, status, divisi; klik baris untuk rincian pokok, temuan, dan foto bukti.
+- **Laporan Loses IPD** (`/ipd/laporan`, hak `laporan.ipd`): loses per kode temuan, kelompok, pemanen, blok, divisi, dan tanggal dari inspeksi yang disetujui.
+- **Divisi** (`/divisi`): kolom dan pilihan **Asisten** (akun berperan ASISTEN) yang menjadi penyetuju IPD; bisa diganti kapan saja.
+- Role **ASKEP** dan **KTU** hanya melihat (menu Master dan Administrasi tidak muncul tanpa haknya).

@@ -760,6 +760,10 @@ Tanggal panen menentukan rekap harian, rotasi, penguncian gaji, dan cluster tahu
 
 ---
 
+## 17. Tambahan: layar awal dua kotak dan IPD (21 Nov 2026)
+
+Aplikasi HP kini dibuka di **Home** dengan dua kotak: **Panen** (alur yang dijelaskan di dokumen ini) dan **IPD** (Inspeksi Panen Detail, mencatat loses di ancak pokok per pokok dengan kode temuan A, G, S, M1 sampai M4, B1, B2, C, R). Kotak yang tampil diatur lewat hak akses. Alur dan rumus IPD ada di `serah_terima_erp/fAI26_PANDUAN_LENGKAP.md` bab 21 dan `erd/fAI26_ERD_Database_Mobile.md` bab 13.
+
 ## Lampiran: yang sudah ada dan yang belum
 
 | Sudah | Belum |
