@@ -10,6 +10,8 @@ export const IZIN = {
   laporanLihat: 'laporan.lihat',
   panenLihat: 'panen.lihat',
   auditLihat: 'audit.lihat',
+  ipdLihat: 'ipd.lihat',
+  laporanIpd: 'laporan.ipd',
 } as const
 
 export function punyaIzin(profil: Pick<Profil, 'permission'> | null | undefined, izin: string): boolean {
@@ -30,6 +32,8 @@ export const HALAMAN: HalamanApp[] = [
   { path: '/', judul: 'Dasbor', izin: IZIN.laporanLihat },
   { path: '/panen', judul: 'Catatan Panen', izin: IZIN.panenLihat },
   { path: '/produktivitas', judul: 'Produktivitas Pemanen', izin: IZIN.laporanLihat },
+  { path: '/ipd', judul: 'Inspeksi IPD', izin: IZIN.ipdLihat },
+  { path: '/ipd/laporan', judul: 'Laporan Loses IPD', izin: IZIN.laporanIpd },
   { path: '/blok', judul: 'Blok', izin: IZIN.masterLihat },
   { path: '/tph', judul: 'TPH dan QR', izin: IZIN.masterLihat },
   { path: '/divisi', judul: 'Divisi', izin: IZIN.masterLihat },

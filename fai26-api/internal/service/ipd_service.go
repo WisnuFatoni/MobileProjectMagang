@@ -345,7 +345,7 @@ func (s *IpdService) DaftarAdmin(ctx context.Context, k *auth.Klaim, f model.Fil
 	f.Halaman, f.PerHal = halaman(f.Halaman, f.PerHal)
 	o, err := s.repo.DaftarAdmin(ctx, k.UnitID, f)
 	if err == nil {
-		err = s.isi(ctx, o.Data)
+		err = s.isi(ctx, o.Item)
 	}
 	if err != nil {
 		return nil, apperror.Internal("Gagal membaca daftar inspeksi", err)

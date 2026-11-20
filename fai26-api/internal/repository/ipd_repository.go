@@ -387,7 +387,7 @@ func (r *IpdRepository) DaftarAdmin(ctx context.Context, unitID int64, f model.F
 	if err != nil {
 		return nil, err
 	}
-	return &model.HalamanIpd{Data: data, Total: total, Halaman: f.Halaman, PerHal: f.PerHal}, nil
+	return &model.HalamanIpd{Item: data, Total: total, Halaman: f.Halaman, PerHal: f.PerHal}, nil
 }
 
 // Baris mengembalikan satu inspeksi di unit itu, atau ErrNotFound.

@@ -6,10 +6,15 @@ import type {
   Divisi,
   DivisiInput,
   FilterAudit,
+  FilterIpd,
+  FilterLosesIpd,
   FilterPanen,
   HakAkses,
   Halaman,
   IdDibuat,
+  IpdBaris,
+  IpdDetail,
+  IpdLaporan,
   Ok,
   OkQr,
   PanenDetail,
@@ -88,4 +93,11 @@ export const hakAksesApi = {
   daftar: () => api.get<HakAkses>('/admin/hak-akses'),
   /** Mengganti SELURUH hak satu role dengan daftar ini. */
   ubah: (roleId: number, permission: string[]) => api.put<Ok>(`/admin/hak-akses/${roleId}`, { permission }),
+}
+
+export const ipdApi = {
+  daftar: (f: FilterIpd) => api.get<Halaman<IpdBaris>>('/admin/ipd', { ...f }),
+  detail: (id: string) => api.get<IpdDetail>(`/admin/ipd/${id}`),
+  laporan: (f: FilterLosesIpd) => api.get<IpdLaporan>('/admin/ipd/laporan', { ...f }),
+  foto: (id: string) => api.blob(`/ipd/foto/${id}`),
 }

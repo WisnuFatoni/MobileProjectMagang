@@ -1,8 +1,8 @@
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
-import { Button, Card, Form, Input, InputNumber, Modal, Popconfirm, Space, Switch, Table, Tag } from 'antd'
+import { Button, Card, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Switch, Table, Tag } from 'antd'
 import { useState } from 'react'
-import { divisiApi } from '@/api/endpoints'
+import { divisiApi, penggunaApi } from '@/api/endpoints'
 import type { Divisi, DivisiInput, IdDibuat, Ok } from '@/api/types'
 import { ErrorState } from '@/components/ErrorState'
 import { PageHeader } from '@/components/PageHeader'
@@ -16,6 +16,10 @@ export function DivisiPage() {
   const { bisa } = useAuth()
   const kelola = bisa(IZIN.masterKelola)
   const q = useQuery({ queryKey: ['divisi'], queryFn: divisiApi.daftar })
+  // Daftar akun berperan ASISTEN untuk dipilih sebagai asisten divisi (hanya admin pengguna yang boleh membacanya).
+  const { bisa: bisaPengguna } = useAuth()
+  const pengguna = useQuery({ queryKey: ['pengguna'], queryFn: penggunaApi.daftar, enabled: kelola && bisaPengguna(IZIN.userKelola) })
+  const asisten = (pengguna.data ?? []).filter((u) => u.aktif && u.role.includes('ASISTEN'))
   const [edit, setEdit] = useState<Edit>(null)
   const [form] = Form.useForm<DivisiInput>()
 
@@ -30,7 +34,7 @@ export function DivisiPage() {
   function buka(d: Edit) {
     setEdit(d)
     form.resetFields()
-    if (d && d !== 'baru') form.setFieldsValue({ kode: d.kode, nama: d.nama, erp_oid: d.erp_oid, aktif: d.aktif })
+    if (d && d !== 'baru') form.setFieldsValue({ kode: d.kode, nama: d.nama, erp_oid: d.erp_oid, aktif: d.aktif, asisten_user_id: d.asisten_user_id })
     else form.setFieldsValue({ aktif: true })
   }
 
@@ -53,6 +57,7 @@ export function DivisiPage() {
             { title: 'Kode', dataIndex: 'kode', render: (v: string) => <strong>{v}</strong> },
             { title: 'Nama', dataIndex: 'nama' },
             { title: 'OID ERP', dataIndex: 'erp_oid', render: (v: number | null) => v ?? '-' },
+            { title: 'Asisten (penyetuju IPD)', dataIndex: 'asisten_nama', render: (v: string | null) => v ?? <Tag>Belum diatur</Tag> },
             { title: 'Jumlah blok', dataIndex: 'jumlah_blok', align: 'right' },
             { title: 'Status', dataIndex: 'aktif', render: (v: boolean) => (v ? <Tag color="green">Aktif</Tag> : <Tag>Nonaktif</Tag>) },
             ...(kelola
@@ -101,6 +106,18 @@ export function DivisiPage() {
           </Form.Item>
           <Form.Item name="erp_oid" label="OID di ERP (opsional)">
             <InputNumber style={{ width: '100%' }} min={1} />
+          </Form.Item>
+          <Form.Item
+            name="asisten_user_id"
+            label="Asisten divisi"
+            extra="Terisi otomatis di inspeksi IPD dan menjadi penyetujunya. Bila asisten berganti, pilih yang baru: inspeksi yang masih menunggu ikut pindah."
+          >
+            <Select
+              allowClear
+              placeholder={asisten.length === 0 ? 'Belum ada akun berperan ASISTEN' : 'Pilih asisten'}
+              options={asisten.map((u) => ({ value: u.user_id, label: `${u.nama} (${u.username})` }))}
+              disabled={!bisaPengguna(IZIN.userKelola)}
+            />
           </Form.Item>
           <Form.Item name="aktif" label="Aktif" valuePropName="checked">
             <Switch />

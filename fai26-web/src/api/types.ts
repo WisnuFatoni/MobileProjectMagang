@@ -32,6 +32,9 @@ export interface Divisi {
   nama: string
   erp_oid: number | null
   aktif: boolean
+  /** Asisten divisi (akun berperan ASISTEN); dipakai IPD untuk mengisi dan menentukan penyetuju. */
+  asisten_user_id: number | null
+  asisten_nama: string | null
   jumlah_blok: number
 }
 
@@ -74,6 +77,7 @@ export interface DivisiInput {
   nama: string
   erp_oid?: number | null
   aktif?: boolean
+  asisten_user_id?: number | null
 }
 
 export interface BlokInput {
@@ -309,4 +313,109 @@ export interface IzinKatalog {
 export interface HakAkses {
   role: HakAksesRole[]
   permission: IzinKatalog[]
+}
+
+// ---- IPD (Inspeksi Panen Detail) ----------------------------------------------------------------
+
+export type StatusIpd = 'MENUNGGU' | 'DISETUJUI' | 'DITOLAK'
+
+export interface IpdKodeAgg {
+  kode: string
+  nama: string
+  kelompok: 'BUAH' | 'BRONDOLAN' | 'PELEPAH'
+  pokok: number
+  jumlah: number
+  persen_pokok: number
+}
+
+export interface IpdRingkasan {
+  pokok_diperiksa: number
+  pokok_bertemuan: number
+  persen_pokok_bertemuan: number
+  total_temuan: number
+  per_kode: IpdKodeAgg[]
+}
+
+export interface IpdFotoRef {
+  id: string
+  keterangan: string | null
+  urut: number
+}
+
+export interface IpdBaris {
+  id: string
+  tanggal_inspeksi: string
+  divisi_kode: string
+  blok_kode: string | null
+  pemanen_hrmb_code: number
+  pemanen_nama: string | null
+  ancak_no: string | null
+  inspektur: string
+  inspektur_nama: string
+  mandor_blok_nama: string | null
+  mandor_ancak_nama: string | null
+  asisten_nama: string | null
+  status: StatusIpd
+  pesan_tolak: string | null
+  catatan: string | null
+  dibuat_pada: string
+  disetujui_pada: string | null
+  ringkasan: IpdRingkasan
+  foto: IpdFotoRef[]
+}
+
+export interface IpdPokokOut {
+  no_baris: number
+  no_pokok: number
+  temuan: { kode: string; jumlah: number; catatan: string | null }[]
+}
+
+export interface IpdDetail extends IpdBaris {
+  pokok: IpdPokokOut[]
+}
+
+export interface FilterIpd {
+  dari?: string
+  sampai?: string
+  status?: string
+  divisi_kode?: string
+  halaman?: number
+  per_halaman?: number
+}
+
+export interface IpdKelompokAgg {
+  kelompok: 'BUAH' | 'BRONDOLAN' | 'PELEPAH'
+  pokok: number
+  jumlah: number
+  persen_pokok: number
+}
+
+export interface IpdGrupLoses {
+  kunci: string
+  nama: string
+  inspeksi: number
+  pokok_diperiksa: number
+  pokok_bertemuan: number
+  persen_pokok_bertemuan: number
+  total_temuan: number
+  temuan_per_kode: Record<string, number>
+}
+
+export interface IpdLaporan {
+  dari: string
+  sampai: string
+  inspeksi: number
+  pemanen: number
+  ringkasan: IpdRingkasan
+  per_kelompok: IpdKelompokAgg[]
+  per_pemanen: IpdGrupLoses[]
+  per_blok: IpdGrupLoses[]
+  per_divisi: IpdGrupLoses[]
+  per_tanggal: IpdGrupLoses[]
+}
+
+export interface FilterLosesIpd {
+  dari?: string
+  sampai?: string
+  divisi_kode?: string
 }

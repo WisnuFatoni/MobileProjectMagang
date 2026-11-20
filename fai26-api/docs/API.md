@@ -1043,7 +1043,7 @@ Tanpa catatan pada tanggal itu, `pemanen` berupa `[]` dan semua angka nol.
 **200**
 
 ```json
-{ "data": [ { "id": "…", "status": "DISETUJUI", "ringkasan": { "pokok_diperiksa": 9 } } ], "total": 3, "halaman": 1, "per_halaman": 25 }
+{ "item": [ { "id": "…", "status": "DISETUJUI", "ringkasan": { "pokok_diperiksa": 9 } } ], "total": 3, "halaman": 1, "per_halaman": 25 }
 ```
 
 **Galat:** 422 tanggal salah atau status tidak dikenal

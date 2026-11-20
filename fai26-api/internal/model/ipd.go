@@ -268,7 +268,7 @@ type FilterIpd struct {
 
 // HalamanIpd adalah satu halaman daftar inspeksi.
 type HalamanIpd struct {
-	Data    []IpdBaris `json:"data"`
+	Item    []IpdBaris `json:"item"`
 	Total   int64      `json:"total"`
 	Halaman int        `json:"halaman"`
 	PerHal  int        `json:"per_halaman"`

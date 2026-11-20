@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { HALAMAN, halamanAwal, halamanBoleh, punyaIzin } from './izin'
 
-const admin = { permission: ['master.lihat', 'master.kelola', 'user.kelola', 'role.kelola', 'device.kelola', 'laporan.lihat', 'panen.lihat', 'audit.lihat'] }
+const admin = { permission: ['master.lihat', 'master.kelola', 'user.kelola', 'role.kelola', 'device.kelola', 'laporan.lihat', 'panen.lihat', 'audit.lihat', 'ipd.lihat', 'laporan.ipd'] }
 const krani = { permission: ['master.lihat', 'panen.lihat', 'panen.kirim'] }
 
 describe('izin', () => {
