@@ -117,11 +117,18 @@ export function IpdPage() {
             { title: 'Diinspeksi', dataIndex: 'inspektur_nama' },
             { title: 'Pokok', key: 'pokok', align: 'right', width: 90, render: (_: unknown, r) => r.ringkasan.pokok_diperiksa },
             {
-              title: 'Pokok bertemuan',
+              title: 'Loses',
               key: 'persen',
               align: 'right',
-              width: 150,
-              render: (_: unknown, r) => `${r.ringkasan.pokok_bertemuan} (${desimal(r.ringkasan.persen_pokok_bertemuan)}%)`,
+              width: 130,
+              render: (_: unknown, r) => `${r.ringkasan.pokok_loses} (${desimal(r.ringkasan.persen_pokok_loses)}%)`,
+            },
+            {
+              title: 'Temuan lain',
+              key: 'lain',
+              align: 'right',
+              width: 130,
+              render: (_: unknown, r) => `${r.ringkasan.pokok_temuan_lain} (${desimal(r.ringkasan.persen_pokok_temuan_lain)}%)`,
             },
             { title: 'Asisten', dataIndex: 'asisten_nama', render: (v: string | null) => v ?? '-' },
             {
@@ -166,8 +173,9 @@ function IpdDetailDrawer({ id, onTutup }: { id: string | null; onTutup: () => vo
           <div>
             <Typography.Title level={5}>Ringkasan loses</Typography.Title>
             <Typography.Paragraph>
-              {d.ringkasan.pokok_diperiksa} pokok diperiksa, {d.ringkasan.pokok_bertemuan} bertemuan ({desimal(d.ringkasan.persen_pokok_bertemuan)}%), total temuan{' '}
-              {d.ringkasan.total_temuan}.
+              {d.ringkasan.pokok_diperiksa} pokok diperiksa. Loses: {d.ringkasan.pokok_loses} pokok ({desimal(d.ringkasan.persen_pokok_loses)}%), jumlah{' '}
+              {d.ringkasan.total_loses}. Temuan lain (pelepah): {d.ringkasan.pokok_temuan_lain} pokok ({desimal(d.ringkasan.persen_pokok_temuan_lain)}%), jumlah{' '}
+              {d.ringkasan.total_temuan_lain}.
             </Typography.Paragraph>
             <Table
               size="small"
@@ -177,6 +185,12 @@ function IpdDetailDrawer({ id, onTutup }: { id: string | null; onTutup: () => vo
               locale={{ emptyText: 'Tidak ada temuan: semua pokok bersih.' }}
               columns={[
                 { title: 'Kode', dataIndex: 'kode', width: 70, render: (v: string) => <strong>{v}</strong> },
+                {
+                  title: 'Jenis',
+                  dataIndex: 'jenis',
+                  width: 110,
+                  render: (v: string) => <Tag color={v === 'LOSES' ? 'orange' : 'default'}>{v === 'LOSES' ? 'Loses' : 'Temuan lain'}</Tag>,
+                },
                 { title: 'Temuan', dataIndex: 'nama' },
                 { title: 'Pokok', dataIndex: 'pokok', align: 'right', width: 80 },
                 { title: 'Jumlah', dataIndex: 'jumlah', align: 'right', width: 80 },

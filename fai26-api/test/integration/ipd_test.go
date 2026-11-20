@@ -338,9 +338,17 @@ WHERE p.ipd_id=@p1 AND p.dihapus_pada IS NULL AND t.dihapus_pada IS NULL AND k.k
 	if l.Inspeksi != 2 || l.Pemanen != 2 || l.Ringkasan.PokokDiperiksa != 9 || l.Ringkasan.PokokBertemuan != 4 || l.Ringkasan.TotalTemuan != 14 {
 		t.Fatalf("laporan: inspeksi=%d pemanen=%d %+v", l.Inspeksi, l.Pemanen, l.Ringkasan)
 	}
+	// Loses (buah, brondolan) dipisah dari temuan lain (pelepah C): 3 pokok loses dengan 13 temuan; 1 pokok temuan lain.
+	if l.Ringkasan.PokokLoses != 3 || l.Ringkasan.PersenPokokLoses != 33.3 || l.Ringkasan.TotalLoses != 13 ||
+		l.Ringkasan.PokokTemuanLain != 1 || l.Ringkasan.PersenPokokTemuanLain != 11.1 || l.Ringkasan.TotalTemuanLain != 1 {
+		t.Fatalf("pemisahan loses dan temuan lain: %+v", l.Ringkasan)
+	}
 	kodeAgg := map[string]model.IpdKodeAgg{}
 	for _, k := range l.Ringkasan.PerKode {
 		kodeAgg[k.Kode] = k
+	}
+	if kodeAgg["B1"].Jenis != "LOSES" || kodeAgg["C"].Jenis != "TEMUAN" {
+		t.Fatalf("jenis kode: %+v", kodeAgg)
 	}
 	if kodeAgg["B1"].Pokok != 2 || kodeAgg["B1"].Jumlah != 11 || kodeAgg["C"].Jumlah != 1 || kodeAgg["A"].Jumlah != 1 || kodeAgg["S"].Jumlah != 1 {
 		t.Fatalf("per kode: %+v", kodeAgg)

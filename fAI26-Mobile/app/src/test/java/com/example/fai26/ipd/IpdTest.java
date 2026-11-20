@@ -40,6 +40,31 @@ public class IpdTest {
     }
 
     @Test
+    public void rekapMemisahkanLosesDariTemuanLain() {
+        // Loses = buah dan brondolan; pelepah (C, R) adalah temuan lain yang tidak memengaruhi produksi.
+        java.util.Map<String, String> jenis = new java.util.HashMap<>();
+        jenis.put("A", "LOSES");
+        jenis.put("B1", "LOSES");
+        jenis.put("C", "TEMUAN");
+        List<IpdDraf.Pokok> daftar = Arrays.asList(
+                pokok(11, 1), pokok(11, 2, "B1", 6), pokok(11, 3, "C", 2), pokok(10, 1, "A", 1, "C", 1), pokok(10, 2));
+        IpdRekap r = IpdRekap.hitung(daftar, jenis);
+        assertEquals(5, r.pokokDiperiksa);
+        assertEquals("pokok dengan temuan apa pun", 3, r.pokokBertemuan);
+        assertEquals("loses: B1 dan A", 2, r.pokokLoses);
+        assertEquals("temuan lain: C pada dua pokok", 2, r.pokokTemuanLain);
+        assertEquals(7, r.totalLoses);
+        assertEquals(3, r.totalTemuanLain);
+        assertEquals(40.0, r.persenLoses(), 0.0001);
+        assertEquals(40.0, r.persenTemuanLain(), 0.0001);
+        // Pokok yang hanya berisi pelepah tidak dihitung sebagai loses.
+        IpdRekap hanyaLain = IpdRekap.hitung(Arrays.asList(pokok(1, 1, "C", 1)), jenis);
+        assertEquals(0, hanyaLain.pokokLoses);
+        assertEquals(1, hanyaLain.pokokTemuanLain);
+        assertEquals(0.0, hanyaLain.persenLoses(), 0.0001);
+    }
+
+    @Test
     public void rekapKosongTidakMembagiNol() {
         IpdRekap r = IpdRekap.hitung(new ArrayList<>());
         assertEquals(0, r.pokokDiperiksa);

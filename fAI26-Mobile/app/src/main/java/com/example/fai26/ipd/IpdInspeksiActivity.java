@@ -125,7 +125,16 @@ public class IpdInspeksiActivity extends AppCompatActivity {
     private TextView txtRekapMini;
     private MaterialButton btnLanjut;
     private final Map<String, BarisKode> barisKode = new LinkedHashMap<>();
-    private int posisi;
+    private com.google.android.material.materialswitch.MaterialSwitch swDuaBaris;
+    private EditText edBaris2;
+    private LinearLayout kolomBaris2;
+    private LinearLayout tabSisi;
+    private final MaterialButton[] btnSisi = new MaterialButton[2];
+    /** Sisi (baris) yang sedang diisi: 0 = baris pertama, 1 = baris ke-2. */
+    private int sisi;
+    /** Temuan per sisi untuk pokok yang sedang diisi (kode -> jumlah). */
+    @SuppressWarnings("unchecked")
+    private final Map<String, Integer>[] sisiTemuan = new Map[]{new LinkedHashMap<String, Integer>(), new LinkedHashMap<String, Integer>()};
 
     // langkah 3
     private LinearLayout kotakRekap;
@@ -212,8 +221,7 @@ public class IpdInspeksiActivity extends AppCompatActivity {
         }
         bangunLayar();
         kepalaLengkap(false); // mengisi teks info pemanen bila inspeksi dimuat dari draf
-        posisi = draf.pokok.size();
-        muatPosisi();
+        inisialisasiSlot();
         tampilkanLangkah(draf.pokok.isEmpty() ? 0 : 2);
     }
 
@@ -513,7 +521,7 @@ public class IpdInspeksiActivity extends AppCompatActivity {
         }
     }
 
-    // ---- Langkah 2: pokok per pokok ---------------------------------------------------------------
+    // ---- Langkah 2: pokok per pokok (satu atau dua baris sekali jalan) -----------------------------
 
     private LinearLayout stepper(EditText nilai, int min, int maks, Runnable saatUbah) {
         final Context c = this;
@@ -522,14 +530,19 @@ public class IpdInspeksiActivity extends AppCompatActivity {
         l.setGravity(Gravity.CENTER_VERTICAL);
         MaterialButton kurang = IpdUi.tombol(c, "−", false);
         MaterialButton tambah = IpdUi.tombol(c, "+", false);
+        for (MaterialButton x : new MaterialButton[]{kurang, tambah}) {
+            x.setMinWidth(0);
+            x.setMinimumWidth(0);
+            x.setPadding(0, 0, 0, 0);
+        }
         nilai.setInputType(InputType.TYPE_CLASS_NUMBER);
         nilai.setGravity(Gravity.CENTER);
-        nilai.setTextSize(24);
+        nilai.setTextSize(22);
         nilai.setTypeface(androidx.core.content.res.ResourcesCompat.getFont(c, R.font.outfit_semibold));
         nilai.setSelectAllOnFocus(true);
-        l.addView(kurang, new LinearLayout.LayoutParams(IpdUi.dp(c, 56), IpdUi.dp(c, 56)));
-        l.addView(nilai, new LinearLayout.LayoutParams(0, IpdUi.dp(c, 56), 1f));
-        l.addView(tambah, new LinearLayout.LayoutParams(IpdUi.dp(c, 56), IpdUi.dp(c, 56)));
+        l.addView(kurang, new LinearLayout.LayoutParams(IpdUi.dp(c, 48), IpdUi.dp(c, 52)));
+        l.addView(nilai, new LinearLayout.LayoutParams(0, IpdUi.dp(c, 52), 1f));
+        l.addView(tambah, new LinearLayout.LayoutParams(IpdUi.dp(c, 48), IpdUi.dp(c, 52)));
         kurang.setOnClickListener(v -> {
             nilai.setText(String.valueOf(Math.max(min, angka(nilai, min) - 1)));
             saatUbah.run();
@@ -568,31 +581,82 @@ public class IpdInspeksiActivity extends AppCompatActivity {
         LinearLayout[] kartuIsi = new LinearLayout[1];
         MaterialCardView kartu = IpdUi.kartu(c, kartuIsi);
         LinearLayout kl = kartuIsi[0];
-        LinearLayout dua = new LinearLayout(c);
-        dua.setOrientation(LinearLayout.HORIZONTAL);
+
+        // Satu lorong biasanya memeriksa dua baris sekaligus (mis. baris 120 dan 121): satu langkah mencatat pokok yang sama di keduanya.
+        swDuaBaris = new com.google.android.material.materialswitch.MaterialSwitch(c);
+        swDuaBaris.setText("Periksa 2 baris sekaligus");
+        swDuaBaris.setTextSize(16);
+        swDuaBaris.setChecked(true);
+        swDuaBaris.setOnCheckedChangeListener((v, ok) -> {
+            kolomBaris2.setVisibility(ok ? View.VISIBLE : View.GONE);
+            tabSisi.setVisibility(ok ? View.VISIBLE : View.GONE);
+            if (!ok) simpanUiKeSisi();
+            sisi = 0;
+            muatSlot();
+        });
+        kl.addView(swDuaBaris);
+
+        LinearLayout baris3 = new LinearLayout(c);
+        baris3.setOrientation(LinearLayout.HORIZONTAL);
+        baris3.setPadding(0, IpdUi.dp(c, 8), 0, 0);
         edBaris = new EditText(c);
+        edBaris2 = new EditText(c);
         edPokok = new EditText(c);
-        LinearLayout colBaris = new LinearLayout(c);
-        colBaris.setOrientation(LinearLayout.VERTICAL);
-        colBaris.addView(IpdUi.redup(c, "No. baris", 13));
-        colBaris.addView(stepper(edBaris, 1, 9999, this::barisBerubah));
-        LinearLayout colPokok = new LinearLayout(c);
-        colPokok.setOrientation(LinearLayout.VERTICAL);
-        colPokok.addView(IpdUi.redup(c, "No. pokok", 13));
-        colPokok.addView(stepper(edPokok, 1, 9999, () -> {
-        }));
-        dua.addView(colBaris, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        LinearLayout.LayoutParams plp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        plp.setMarginStart(IpdUi.dp(c, 12));
-        dua.addView(colPokok, plp);
-        kl.addView(dua);
+        LinearLayout colA = new LinearLayout(c);
+        colA.setOrientation(LinearLayout.VERTICAL);
+        colA.addView(IpdUi.redup(c, "Baris", 13));
+        colA.addView(stepper(edBaris, 1, 9999, this::barisBerubah));
+        kolomBaris2 = new LinearLayout(c);
+        kolomBaris2.setOrientation(LinearLayout.VERTICAL);
+        kolomBaris2.addView(IpdUi.redup(c, "Baris ke-2", 13));
+        kolomBaris2.addView(stepper(edBaris2, 1, 9999, this::baris2Berubah));
+        LinearLayout colP = new LinearLayout(c);
+        colP.setOrientation(LinearLayout.VERTICAL);
+        colP.addView(IpdUi.redup(c, "No. pokok", 13));
+        colP.addView(stepper(edPokok, 1, 9999, this::muatSlot));
+        baris3.addView(colA, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        LinearLayout.LayoutParams l2 = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        l2.setMarginStart(IpdUi.dp(c, 12));
+        baris3.addView(kolomBaris2, l2);
+        kl.addView(baris3);
+        // Nomor pokok di baris sendiri supaya tiga pengatur angka tidak berdesakan.
+        colP.setPadding(0, IpdUi.dp(c, 10), 0, 0);
+        kl.addView(colP);
         txtPosisi = IpdUi.redup(c, "", 13);
         txtPosisi.setPadding(0, IpdUi.dp(c, 8), 0, 0);
         kl.addView(txtPosisi);
         k.addView(kartu);
 
-        k.addView(IpdUi.judul(c, "Temuan pada pokok ini (kosongkan bila bersih)", 14), IpdUi.lebarPenuh(c, 4, 6));
-        for (KodeTemuan kd : kode) k.addView(buatBarisKode(kd));
+        // Pilihan sisi: temuan dicatat per baris; baris yang tidak diberi pilihan dianggap bersih.
+        tabSisi = new LinearLayout(c);
+        tabSisi.setOrientation(LinearLayout.HORIZONTAL);
+        for (int i = 0; i < 2; i++) {
+            final int n = i;
+            MaterialButton t = IpdUi.tombol(c, "", false);
+            t.setOnClickListener(v -> gantiSisi(n));
+            btnSisi[i] = t;
+            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            p.setMargins(IpdUi.dp(c, 2), 0, IpdUi.dp(c, 2), 0);
+            tabSisi.addView(t, p);
+        }
+        k.addView(tabSisi, IpdUi.lebarPenuh(c, 4, 8));
+
+        // Kode dikelompokkan: loses (buah dan brondolan) dan temuan lain (pelepah, tidak memengaruhi produksi).
+        boolean judulLoses = false;
+        boolean judulLain = false;
+        for (KodeTemuan kd : kode) {
+            boolean lain = "PELEPAH".equals(kd.kelompok);
+            if (!lain && !judulLoses) {
+                k.addView(IpdUi.judul(c, "Loses (memengaruhi hasil panen)", 14), IpdUi.lebarPenuh(c, 4, 6));
+                judulLoses = true;
+            }
+            if (lain && !judulLain) {
+                TextView j = IpdUi.judul(c, "Temuan lain (tidak memengaruhi hasil)", 14);
+                k.addView(j, IpdUi.lebarPenuh(c, 12, 6));
+                judulLain = true;
+            }
+            k.addView(buatBarisKode(kd));
+        }
 
         txtRekapMini = IpdUi.redup(c, "", 14);
         k.addView(txtRekapMini, IpdUi.lebarPenuh(c, 8, 0));
@@ -690,11 +754,35 @@ public class IpdInspeksiActivity extends AppCompatActivity {
     /** Batas jumlah per temuan (sama dengan server). */
     private static final int MAKS_JUMLAH = 9999;
 
+    private boolean dua() {
+        return swDuaBaris != null && swDuaBaris.isChecked();
+    }
+
+    private boolean adaPilihanUi() {
+        for (BarisKode b : barisKode.values()) if (b.pilih) return true;
+        return false;
+    }
+
     private void perbaruiTombolLanjut() {
         if (btnLanjut == null) return;
-        boolean ada = false;
-        for (BarisKode b : barisKode.values()) if (b.pilih) ada = true;
+        boolean ada = adaPilihanUi() || (dua() && !sisiTemuan[1 - sisi].isEmpty());
         btnLanjut.setText(ada ? "SIMPAN TEMUAN, pokok berikutnya" : "BERSIH, pokok berikutnya");
+        perbaruiLabelSisi();
+    }
+
+    private void perbaruiLabelSisi() {
+        if (btnSisi[0] == null) return;
+        int[] n = {sisiTemuan[0].size(), sisiTemuan[1].size()};
+        int aktif = 0;
+        for (BarisKode b : barisKode.values()) if (b.pilih) aktif++;
+        n[sisi] = aktif; // sisi aktif dibaca langsung dari layar
+        int[] nomor = {angka(edBaris, 1), angka(edBaris2, 2)};
+        for (int i = 0; i < 2; i++) {
+            btnSisi[i].setText("Baris " + nomor[i] + (n[i] > 0 ? "  •  " + n[i] + " temuan" : "  •  bersih"));
+            boolean a = i == sisi;
+            btnSisi[i].setBackgroundTintList(ColorStateList.valueOf(a ? ContextCompat.getColor(this, R.color.brand_primary) : 0x00000000));
+            btnSisi[i].setTextColor(a ? 0xFFFFFFFF : ContextCompat.getColor(this, R.color.brand_primary));
+        }
     }
 
     private void setCentang(Map<String, Integer> temuan) {
@@ -708,106 +796,166 @@ public class IpdInspeksiActivity extends AppCompatActivity {
         perbaruiTombolLanjut();
     }
 
-    /** Menampilkan pokok pada {@link #posisi}: yang sudah dicatat, atau slot baru (pokok berikutnya di baris yang sama). */
-    private void muatPosisi() {
-        if (posisi < draf.pokok.size()) {
-            IpdDraf.Pokok p = draf.pokok.get(posisi);
-            edBaris.setText(String.valueOf(p.baris));
-            edPokok.setText(String.valueOf(p.pokok));
-            setCentang(p.temuan);
-            txtPosisi.setText("Mengubah pokok yang sudah dicatat (" + (posisi + 1) + " dari " + draf.pokok.size() + ")");
-        } else {
-            int baris = draf.pokok.isEmpty() ? 1 : draf.pokok.get(draf.pokok.size() - 1).baris;
-            edBaris.setText(String.valueOf(baris));
-            edPokok.setText(String.valueOf(pokokBerikut(baris)));
-            setCentang(null);
-            txtPosisi.setText("Pokok baru");
-        }
-        perbaruiRekapMini();
+    /** Menyalin pilihan di layar ke penampung sisi yang sedang aktif. */
+    private void simpanUiKeSisi() {
+        sisiTemuan[sisi].clear();
+        for (Map.Entry<String, BarisKode> e : barisKode.entrySet()) if (e.getValue().pilih) sisiTemuan[sisi].put(e.getKey(), e.getValue().jumlah);
     }
 
-    private int pokokBerikut(int baris) {
+    private void gantiSisi(int n) {
+        if (n == sisi) return;
+        simpanUiKeSisi();
+        sisi = n;
+        setCentang(sisiTemuan[n]);
+    }
+
+    private IpdDraf.Pokok cariPokok(int baris, int pokok) {
+        for (IpdDraf.Pokok p : draf.pokok) if (p.baris == baris && p.pokok == pokok) return p;
+        return null;
+    }
+
+    private int pokokBerikut(int... baris) {
         int maks = 0;
-        for (IpdDraf.Pokok p : draf.pokok) if (p.baris == baris) maks = Math.max(maks, p.pokok);
+        for (IpdDraf.Pokok p : draf.pokok) for (int b : baris) if (p.baris == b) maks = Math.max(maks, p.pokok);
         return maks + 1;
     }
 
+    private int[] barisAktif() {
+        return dua() ? new int[]{angka(edBaris, 1), angka(edBaris2, 2)} : new int[]{angka(edBaris, 1)};
+    }
+
+    /** Memuat isian slot (baris + nomor pokok) dari catatan yang sudah ada; yang belum ada dianggap baru. */
+    private void muatSlot() {
+        int pokok = Math.max(1, angka(edPokok, 1));
+        int[] baris = barisAktif();
+        sisiTemuan[0].clear();
+        sisiTemuan[1].clear();
+        boolean ada = false;
+        for (int i = 0; i < baris.length; i++) {
+            IpdDraf.Pokok p = cariPokok(baris[i], pokok);
+            if (p != null) {
+                ada = true;
+                sisiTemuan[i].putAll(p.temuan);
+            }
+        }
+        if (sisi >= baris.length) sisi = 0;
+        setCentang(sisiTemuan[sisi]);
+        txtPosisi.setText(ada ? "Pokok ini sudah dicatat: mengubah isinya" : "Pokok baru");
+        perbaruiRekapMini();
+    }
+
+    /** Mengisi baris dan nomor pokok awal: lanjutan dari catatan terakhir, atau baris 1 dan 2 bila masih kosong. */
+    private void inisialisasiSlot() {
+        int a = draf.pokok.isEmpty() ? 1 : draf.pokok.get(draf.pokok.size() - 1).baris;
+        // Bila baris terakhir adalah yang kedua dari sepasang, mulai dari pasangannya.
+        if (!draf.pokok.isEmpty() && a > 1 && cariPokok(a - 1, draf.pokok.get(draf.pokok.size() - 1).pokok) != null) a = a - 1;
+        edBaris.setText(String.valueOf(a));
+        edBaris2.setText(String.valueOf(a + 1));
+        edPokok.setText(String.valueOf(pokokBerikut(a, a + 1)));
+        sisi = 0;
+        muatSlot();
+    }
+
+    /** Baris diubah: baris ke-2 mengikuti (baris + 1) dan pokok kembali ke pokok berikutnya yang belum dicatat di lorong itu. */
     private void barisBerubah() {
-        if (posisi >= draf.pokok.size()) edPokok.setText(String.valueOf(pokokBerikut(angka(edBaris, 1))));
+        int a = angka(edBaris, 1);
+        edBaris2.setText(String.valueOf(a + 1));
+        edPokok.setText(String.valueOf(dua() ? pokokBerikut(a, a + 1) : pokokBerikut(a)));
+        sisi = 0;
+        muatSlot();
+    }
+
+    /** Baris ke-2 diubah sendiri (pasangan bukan baris + 1): pokok menyesuaikan dengan yang sudah dicatat di kedua baris. */
+    private void baris2Berubah() {
+        edPokok.setText(String.valueOf(pokokBerikut(angka(edBaris, 1), angka(edBaris2, 2))));
+        sisi = 0;
+        muatSlot();
     }
 
     private void perbaruiRekapMini() {
-        IpdRekap r = IpdRekap.hitung(draf.pokok);
-        txtRekapMini.setText("Sudah dicatat: " + r.pokokDiperiksa + " pokok • " + r.pokokBertemuan + " bertemuan (" + IpdUi.persen(r.persenBertemuan()) + ")");
+        IpdRekap r = IpdRekap.hitung(draf.pokok, jenisKode());
+        txtRekapMini.setText("Sudah dicatat: " + r.pokokDiperiksa + " pokok • loses " + IpdUi.persen(r.persenLoses()) + " • temuan lain " + IpdUi.persen(r.persenTemuanLain()));
     }
 
-    /** Menyimpan isian pokok saat ini. @return true bila berhasil. */
+    /** kode temuan -> jenis (LOSES atau TEMUAN), menurut kelompoknya. */
+    private Map<String, String> jenisKode() {
+        Map<String, String> m = new HashMap<>();
+        for (KodeTemuan k : kode) m.put(k.kode, "PELEPAH".equals(k.kelompok) ? "TEMUAN" : "LOSES");
+        return m;
+    }
+
+    /** Menyimpan pokok pada slot saat ini (kedua baris bila 2 baris). @return true bila berhasil. */
     private boolean simpanSlot(boolean maju) {
-        int baris = angka(edBaris, 0);
+        simpanUiKeSisi();
         int pokok = angka(edPokok, 0);
-        if (baris < 1 || pokok < 1) {
+        int[] baris = barisAktif();
+        if (pokok < 1 || baris[0] < 1 || (baris.length > 1 && baris[1] < 1)) {
             Toast.makeText(this, "Nomor baris dan pokok minimal 1", Toast.LENGTH_SHORT).show();
             return false;
         }
-        for (int i = 0; i < draf.pokok.size(); i++) {
-            IpdDraf.Pokok x = draf.pokok.get(i);
-            if (i != posisi && x.baris == baris && x.pokok == pokok) {
-                Toast.makeText(this, "Baris " + baris + " pokok " + pokok + " sudah dicatat", Toast.LENGTH_SHORT).show();
-                return false;
+        if (baris.length > 1 && baris[0] == baris[1]) {
+            Toast.makeText(this, "Kedua baris tidak boleh sama", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        for (int i = 0; i < baris.length; i++) {
+            IpdDraf.Pokok p = cariPokok(baris[i], pokok);
+            if (p == null) {
+                p = new IpdDraf.Pokok(baris[i], pokok);
+                draf.pokok.add(p);
             }
+            p.temuan.clear();
+            p.temuan.putAll(sisiTemuan[i]);
         }
-        IpdDraf.Pokok p;
-        if (posisi < draf.pokok.size()) {
-            p = draf.pokok.get(posisi);
-        } else {
-            p = new IpdDraf.Pokok(baris, pokok);
-            draf.pokok.add(p);
-        }
-        p.baris = baris;
-        p.pokok = pokok;
-        p.temuan.clear();
-        for (Map.Entry<String, BarisKode> e : barisKode.entrySet()) if (e.getValue().pilih) p.temuan.put(e.getKey(), e.getValue().jumlah);
         kotor = true;
         if (maju) {
-            posisi++;
-            muatPosisi();
+            edPokok.setText(String.valueOf(pokok + 1));
+            sisi = 0;
+            muatSlot();
             autoSimpan();
+        } else {
+            perbaruiRekapMini();
         }
         return true;
     }
 
-    /** Menyimpan slot baru bila ada isinya (dipakai saat pindah langkah). */
+    /** Menyimpan slot saat pindah langkah, hanya bila ada isinya atau sudah pernah dicatat. */
     private void simpanSlotBila() {
-        boolean adaPilihan = false;
-        for (BarisKode b : barisKode.values()) if (b.pilih) adaPilihan = true;
-        if (posisi < draf.pokok.size() || adaPilihan) simpanSlot(false);
+        simpanUiKeSisi();
+        boolean isi = !sisiTemuan[0].isEmpty() || !sisiTemuan[1].isEmpty();
+        int pokok = angka(edPokok, 0);
+        boolean sudah = false;
+        for (int b : barisAktif()) if (cariPokok(b, pokok) != null) sudah = true;
+        if (isi || sudah) simpanSlot(false);
     }
 
     private void sebelumnya() {
-        if (posisi <= 0) {
+        int pokok = angka(edPokok, 1);
+        if (pokok <= 1) {
             Toast.makeText(this, "Ini pokok pertama", Toast.LENGTH_SHORT).show();
             return;
         }
-        if (posisi == draf.pokok.size()) {
-            // Slot baru yang sudah diberi pilihan ikut disimpan sebelum pindah.
-            boolean adaPilihan = false;
-            for (BarisKode b : barisKode.values()) if (b.pilih) adaPilihan = true;
-            if (adaPilihan && !simpanSlot(false)) return;
-        } else if (!simpanSlot(false)) {
-            return;
-        }
-        posisi--;
-        muatPosisi();
+        simpanSlotBila();
+        edPokok.setText(String.valueOf(pokok - 1));
+        sisi = 0;
+        muatSlot();
     }
 
     private void hapusPokok() {
-        if (posisi >= draf.pokok.size()) {
+        int pokok = angka(edPokok, 1);
+        boolean ada = false;
+        for (int b : barisAktif()) {
+            IpdDraf.Pokok p = cariPokok(b, pokok);
+            if (p != null) {
+                draf.pokok.remove(p);
+                ada = true;
+            }
+        }
+        if (!ada) {
             Toast.makeText(this, "Pokok ini belum dicatat", Toast.LENGTH_SHORT).show();
             return;
         }
-        draf.pokok.remove(posisi);
         kotor = true;
-        muatPosisi();
+        muatSlot();
         autoSimpan();
     }
 
@@ -891,15 +1039,18 @@ public class IpdInspeksiActivity extends AppCompatActivity {
     private void segarkanRingkasan() {
         final Context c = this;
         kotakRekap.removeAllViews();
-        IpdRekap r = IpdRekap.hitung(draf.pokok);
+        Map<String, String> jenis = jenisKode();
+        IpdRekap r = IpdRekap.hitung(draf.pokok, jenis);
         LinearLayout[] isi = new LinearLayout[1];
         MaterialCardView kartu = IpdUi.kartu(c, isi);
-        isi[0].addView(IpdUi.judul(c, r.pokokDiperiksa + " pokok diperiksa • " + r.pokokBertemuan + " bertemuan", 16));
-        TextView persen = IpdUi.judul(c, "Loses: " + IpdUi.persen(r.persenBertemuan()) + " pokok bertemuan", 20);
-        persen.setPadding(0, IpdUi.dp(c, 4), 0, IpdUi.dp(c, 6));
+        isi[0].addView(IpdUi.redup(c, r.pokokDiperiksa + " pokok diperiksa", 14));
+        TextView persen = IpdUi.judul(c, "Loses: " + IpdUi.persen(r.persenLoses()), 24);
+        persen.setPadding(0, IpdUi.dp(c, 2), 0, 0);
         isi[0].addView(persen);
+        isi[0].addView(IpdUi.redup(c, r.pokokLoses + " pokok kehilangan hasil (buah atau brondolan) • " + r.totalLoses + " temuan", 13));
         boolean ada = false;
         for (KodeTemuan kd : kode) {
+            if (!"LOSES".equals(jenis.get(kd.kode))) continue;
             Integer jml = r.jumlahPerKode.get(kd.kode);
             if (jml == null) continue;
             ada = true;
@@ -907,8 +1058,25 @@ public class IpdInspeksiActivity extends AppCompatActivity {
             t.setPadding(0, IpdUi.dp(c, 3), 0, 0);
             isi[0].addView(t);
         }
-        if (!ada) isi[0].addView(IpdUi.redup(c, "Tidak ada temuan: semua pokok bersih.", 14));
+        if (!ada) isi[0].addView(IpdUi.redup(c, "Tidak ada loses.", 14));
         kotakRekap.addView(kartu);
+
+        LinearLayout[] isi2 = new LinearLayout[1];
+        MaterialCardView kartu2 = IpdUi.kartu(c, isi2);
+        isi2[0].addView(IpdUi.judul(c, "Temuan lain: " + r.pokokTemuanLain + " pokok (" + IpdUi.persen(r.persenTemuanLain()) + ")", 15));
+        isi2[0].addView(IpdUi.redup(c, "Tidak memengaruhi hasil panen, tidak dihitung sebagai loses.", 12));
+        boolean ada2 = false;
+        for (KodeTemuan kd : kode) {
+            if (!"TEMUAN".equals(jenis.get(kd.kode))) continue;
+            Integer jml = r.jumlahPerKode.get(kd.kode);
+            if (jml == null) continue;
+            ada2 = true;
+            TextView t = IpdUi.redup(c, kd.kode + "  " + kd.nama + ": " + r.pokokPerKode.get(kd.kode) + " pokok, jumlah " + jml, 14);
+            t.setPadding(0, IpdUi.dp(c, 3), 0, 0);
+            isi2[0].addView(t);
+        }
+        if (!ada2) isi2[0].addView(IpdUi.redup(c, "Tidak ada temuan lain.", 14));
+        kotakRekap.addView(kartu2);
         segarkanFoto();
     }
 

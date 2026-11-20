@@ -189,9 +189,11 @@ func IpdStatusUntukHP(s string) string {
 
 // IpdKodeAgg adalah hitungan satu kode temuan: Pokok = banyak pokok yang memuat kode itu, Jumlah = jumlah temuan.
 type IpdKodeAgg struct {
-	Kode        string  `json:"kode"`
-	Nama        string  `json:"nama"`
-	Kelompok    string  `json:"kelompok"`
+	Kode     string `json:"kode"`
+	Nama     string `json:"nama"`
+	Kelompok string `json:"kelompok"`
+	// Jenis: LOSES (kehilangan hasil: buah dan brondolan) atau TEMUAN (temuan lain yang tidak memengaruhi produksi, mis. pelepah).
+	Jenis       string  `json:"jenis"`
 	Pokok       int64   `json:"pokok"`
 	Jumlah      int64   `json:"jumlah"`
 	PersenPokok float64 `json:"persen_pokok"`
@@ -199,11 +201,26 @@ type IpdKodeAgg struct {
 
 // IpdRingkasan adalah hasil hitung satu inspeksi (atau gabungan beberapa). Persen = pokok bertemuan dibagi pokok diperiksa.
 type IpdRingkasan struct {
-	PokokDiperiksa       int64        `json:"pokok_diperiksa"`
-	PokokBertemuan       int64        `json:"pokok_bertemuan"`
-	PersenPokokBertemuan float64      `json:"persen_pokok_bertemuan"`
-	TotalTemuan          int64        `json:"total_temuan"`
-	PerKode              []IpdKodeAgg `json:"per_kode"`
+	PokokDiperiksa       int64   `json:"pokok_diperiksa"`
+	PokokBertemuan       int64   `json:"pokok_bertemuan"` // pokok dengan temuan apa pun (loses atau temuan lain)
+	PersenPokokBertemuan float64 `json:"persen_pokok_bertemuan"`
+	TotalTemuan          int64   `json:"total_temuan"`
+	// Loses = kehilangan hasil (kelompok BUAH dan BRONDOLAN). Temuan lain (kelompok PELEPAH) tidak memengaruhi produksi.
+	PokokLoses            int64        `json:"pokok_loses"`
+	PersenPokokLoses      float64      `json:"persen_pokok_loses"`
+	TotalLoses            int64        `json:"total_loses"`
+	PokokTemuanLain       int64        `json:"pokok_temuan_lain"`
+	PersenPokokTemuanLain float64      `json:"persen_pokok_temuan_lain"`
+	TotalTemuanLain       int64        `json:"total_temuan_lain"`
+	PerKode               []IpdKodeAgg `json:"per_kode"`
+}
+
+// IpdJenisKelompok: kelompok PELEPAH adalah temuan lain (tidak memengaruhi produksi); BUAH dan BRONDOLAN adalah loses.
+func IpdJenisKelompok(kelompok string) string {
+	if kelompok == "PELEPAH" {
+		return "TEMUAN"
+	}
+	return "LOSES"
 }
 
 // IpdFotoRef menunjuk satu foto bukti; berkasnya diunduh lewat GET /api/ipd/foto/{id}.
@@ -310,6 +327,8 @@ type IpdHitung struct {
 type IpdMentah struct {
 	PokokDiperiksa int64
 	PokokBertemuan int64
+	PokokLoses     int64                // pokok yang memuat temuan kelompok BUAH atau BRONDOLAN
+	PokokLain      int64                // pokok yang memuat temuan kelompok PELEPAH
 	PerKode        map[string]IpdHitung // kode temuan
 	PerKelompok    map[string]IpdHitung // BUAH, BRONDOLAN, PELEPAH
 }
@@ -354,14 +373,21 @@ type IpdKelompokAgg struct {
 
 // IpdGrupLoses adalah loses satu kelompok data (satu pemanen, satu blok, satu divisi, atau satu tanggal).
 type IpdGrupLoses struct {
-	Kunci                string           `json:"kunci"`
-	Nama                 string           `json:"nama"`
-	Inspeksi             int64            `json:"inspeksi"`
-	PokokDiperiksa       int64            `json:"pokok_diperiksa"`
-	PokokBertemuan       int64            `json:"pokok_bertemuan"`
-	PersenPokokBertemuan float64          `json:"persen_pokok_bertemuan"`
-	TotalTemuan          int64            `json:"total_temuan"`
-	TemuanPerKode        map[string]int64 `json:"temuan_per_kode"`
+	Kunci                string  `json:"kunci"`
+	Nama                 string  `json:"nama"`
+	Inspeksi             int64   `json:"inspeksi"`
+	PokokDiperiksa       int64   `json:"pokok_diperiksa"`
+	PokokBertemuan       int64   `json:"pokok_bertemuan"`
+	PersenPokokBertemuan float64 `json:"persen_pokok_bertemuan"`
+	TotalTemuan          int64   `json:"total_temuan"`
+	// Loses (buah dan brondolan) dipisah dari temuan lain (pelepah); urutan tabel mengikuti persen loses.
+	PokokLoses            int64            `json:"pokok_loses"`
+	PersenPokokLoses      float64          `json:"persen_pokok_loses"`
+	TotalLoses            int64            `json:"total_loses"`
+	PokokTemuanLain       int64            `json:"pokok_temuan_lain"`
+	PersenPokokTemuanLain float64          `json:"persen_pokok_temuan_lain"`
+	TotalTemuanLain       int64            `json:"total_temuan_lain"`
+	TemuanPerKode         map[string]int64 `json:"temuan_per_kode"`
 }
 
 // IpdLaporan adalah jawaban GET /api/admin/ipd/laporan.

@@ -8,6 +8,7 @@ const kode = (k: string, nama: string, pokok: number, jumlah: number, persen: nu
   kode: k,
   nama,
   kelompok: 'BUAH',
+  jenis: 'LOSES',
   pokok,
   jumlah,
   persen_pokok: persen,

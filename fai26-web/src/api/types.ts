@@ -323,6 +323,8 @@ export interface IpdKodeAgg {
   kode: string
   nama: string
   kelompok: 'BUAH' | 'BRONDOLAN' | 'PELEPAH'
+  /** LOSES = memengaruhi hasil panen (buah, brondolan); TEMUAN = temuan lain (pelepah), tidak dihitung loses. */
+  jenis: 'LOSES' | 'TEMUAN'
   pokok: number
   jumlah: number
   persen_pokok: number
@@ -330,9 +332,16 @@ export interface IpdKodeAgg {
 
 export interface IpdRingkasan {
   pokok_diperiksa: number
+  /** Pokok dengan temuan apa pun (loses atau temuan lain). */
   pokok_bertemuan: number
   persen_pokok_bertemuan: number
   total_temuan: number
+  pokok_loses: number
+  persen_pokok_loses: number
+  total_loses: number
+  pokok_temuan_lain: number
+  persen_pokok_temuan_lain: number
+  total_temuan_lain: number
   per_kode: IpdKodeAgg[]
 }
 
@@ -398,6 +407,12 @@ export interface IpdGrupLoses {
   pokok_bertemuan: number
   persen_pokok_bertemuan: number
   total_temuan: number
+  pokok_loses: number
+  persen_pokok_loses: number
+  total_loses: number
+  pokok_temuan_lain: number
+  persen_pokok_temuan_lain: number
+  total_temuan_lain: number
   temuan_per_kode: Record<string, number>
 }
 

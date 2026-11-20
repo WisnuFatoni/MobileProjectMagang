@@ -24,13 +24,20 @@ function TabelGrup({ data, judul }: { data: IpdGrupLoses[]; judul: string }) {
         { title: judul, dataIndex: 'nama', render: (v: string) => <strong>{v}</strong> },
         { title: 'Inspeksi', dataIndex: 'inspeksi', align: 'right', width: 90 },
         { title: 'Pokok diperiksa', dataIndex: 'pokok_diperiksa', align: 'right', width: 130, render: (v: number) => angka(v) },
-        { title: 'Pokok bertemuan', dataIndex: 'pokok_bertemuan', align: 'right', width: 130, render: (v: number) => angka(v) },
+        { title: 'Pokok loses', dataIndex: 'pokok_loses', align: 'right', width: 110, render: (v: number) => angka(v) },
         {
           title: 'Loses',
-          dataIndex: 'persen_pokok_bertemuan',
+          dataIndex: 'persen_pokok_loses',
           align: 'right',
           width: 90,
           render: (v: number) => <strong style={{ color: warnaLoses(v) }}>{desimal(v)}%</strong>,
+        },
+        {
+          title: 'Temuan lain',
+          dataIndex: 'pokok_temuan_lain',
+          align: 'right',
+          width: 120,
+          render: (v: number, g) => `${angka(v)} (${desimal(g.persen_pokok_temuan_lain)}%)`,
         },
         { title: 'Temuan terbanyak', key: 'teratas', render: (_: unknown, g) => temuanTeratas(g) },
       ]}
@@ -40,7 +47,7 @@ function TabelGrup({ data, judul }: { data: IpdGrupLoses[]; judul: string }) {
 
 /**
  * Laporan loses dari inspeksi IPD yang sudah disetujui asisten: loses per kode temuan, per kelompok (buah, brondolan, pelepah),
- * per pemanen, blok, divisi, dan tanggal. Persen = pokok bertemuan dibagi pokok diperiksa.
+ * per pemanen, blok, divisi, dan tanggal. Loses = buah dan brondolan (memengaruhi hasil panen); pelepah adalah temuan lain dan dihitung terpisah. Persen = pokok bersangkutan dibagi pokok diperiksa.
  */
 export function IpdLaporanPage() {
   const [rentang, setRentang] = useState<[Dayjs, Dayjs]>([dayjs().subtract(29, 'day'), dayjs()])
@@ -58,7 +65,7 @@ export function IpdLaporanPage() {
     <>
       <PageHeader
         judul="Laporan Loses IPD"
-        keterangan="Kehilangan hasil di titik panen dari inspeksi yang sudah disetujui asisten: brondolan tidak dikutip, buah tinggal, dan temuan lain."
+        keterangan="Kehilangan hasil di titik panen dari inspeksi yang sudah disetujui asisten: brondolan tidak dikutip dan buah tinggal. Kerusakan pelepah dilaporkan terpisah sebagai temuan lain."
         aksi={
           <Space wrap>
             <DatePicker.RangePicker
@@ -104,17 +111,18 @@ export function IpdLaporanPage() {
             <Col xs={12} md={6}>
               <Card className="kartu-statistik">
                 <Statistic
-                  title="Pokok bertemuan (loses)"
-                  value={r.ringkasan.persen_pokok_bertemuan}
+                  title="Loses (pokok kehilangan hasil)"
+                  value={r.ringkasan.persen_pokok_loses}
                   suffix="%"
-                  valueStyle={{ color: warnaLoses(r.ringkasan.persen_pokok_bertemuan) }}
+                  valueStyle={{ color: warnaLoses(r.ringkasan.persen_pokok_loses) }}
                   formatter={(v) => desimal(Number(v))}
                 />
               </Card>
             </Col>
             <Col xs={12} md={6}>
               <Card className="kartu-statistik">
-                <Statistic title="Total temuan" value={r.ringkasan.total_temuan} formatter={(v) => angka(Number(v))} />
+                <Statistic title="Temuan lain (pelepah)" value={r.ringkasan.persen_pokok_temuan_lain} suffix="%" formatter={(v) => desimal(Number(v))} />
+                <Typography.Text type="secondary">{angka(r.ringkasan.pokok_temuan_lain)} pokok • tidak dihitung loses</Typography.Text>
               </Card>
             </Col>
           </Row>
@@ -135,8 +143,12 @@ export function IpdLaporanPage() {
             ))}
           </Row>
 
-          <Card title="Loses per kode temuan">
-            <BatangLoses data={r.ringkasan.per_kode} />
+          <Card title="Loses per kode (memengaruhi hasil panen)">
+            <BatangLoses data={r.ringkasan.per_kode.filter((k) => k.jenis === 'LOSES')} judul="Loses per kode" />
+          </Card>
+
+          <Card title="Temuan lain (tidak memengaruhi hasil panen)">
+            <BatangLoses data={r.ringkasan.per_kode.filter((k) => k.jenis !== 'LOSES')} judul="Temuan lain per kode" />
           </Card>
 
           <Card styles={{ body: { paddingTop: 0 } }}>

@@ -208,10 +208,19 @@ func susunRingkasan(m *model.IpdMentah, kode []model.IpdKodeMaster) model.IpdRin
 	}
 	r.PokokDiperiksa, r.PokokBertemuan = m.PokokDiperiksa, m.PokokBertemuan
 	r.PersenPokokBertemuan = persen(m.PokokBertemuan, m.PokokDiperiksa)
+	r.PokokLoses, r.PokokTemuanLain = m.PokokLoses, m.PokokLain
+	r.PersenPokokLoses = persen(m.PokokLoses, m.PokokDiperiksa)
+	r.PersenPokokTemuanLain = persen(m.PokokLain, m.PokokDiperiksa)
 	for _, k := range kode {
 		h := m.PerKode[k.Kode]
 		r.TotalTemuan += h.Jumlah
-		r.PerKode = append(r.PerKode, model.IpdKodeAgg{Kode: k.Kode, Nama: k.Nama, Kelompok: k.Kelompok,
+		jenis := model.IpdJenisKelompok(k.Kelompok)
+		if jenis == "LOSES" {
+			r.TotalLoses += h.Jumlah
+		} else {
+			r.TotalTemuanLain += h.Jumlah
+		}
+		r.PerKode = append(r.PerKode, model.IpdKodeAgg{Kode: k.Kode, Nama: k.Nama, Kelompok: k.Kelompok, Jenis: jenis,
 			Pokok: h.Pokok, Jumlah: h.Jumlah, PersenPokok: persen(h.Pokok, m.PokokDiperiksa)})
 	}
 	return r
@@ -410,6 +419,10 @@ func susunLaporan(dasar []model.IpdDasar, kode []model.IpdKodeMaster, dari, samp
 	grup := func() map[string]*model.IpdGrupLoses { return map[string]*model.IpdGrupLoses{} }
 	pemanen, blok, divisi, tanggal := grup(), grup(), grup(), grup()
 	pemanenUnik := map[int64]bool{}
+	jenisKode := map[string]string{}
+	for _, k := range kode {
+		jenisKode[k.Kode] = model.IpdJenisKelompok(k.Kelompok)
+	}
 
 	tambahGrup := func(g map[string]*model.IpdGrupLoses, kunci, nama string, d model.IpdDasar) {
 		x := g[kunci]
@@ -420,15 +433,24 @@ func susunLaporan(dasar []model.IpdDasar, kode []model.IpdKodeMaster, dari, samp
 		x.Inspeksi++
 		x.PokokDiperiksa += d.Mentah.PokokDiperiksa
 		x.PokokBertemuan += d.Mentah.PokokBertemuan
+		x.PokokLoses += d.Mentah.PokokLoses
+		x.PokokTemuanLain += d.Mentah.PokokLain
 		for kd, h := range d.Mentah.PerKode {
 			x.TotalTemuan += h.Jumlah
 			x.TemuanPerKode[kd] += h.Jumlah
+			if jenisKode[kd] == "TEMUAN" {
+				x.TotalTemuanLain += h.Jumlah
+			} else {
+				x.TotalLoses += h.Jumlah
+			}
 		}
 	}
 	for _, d := range dasar {
 		pemanenUnik[d.PemanenHrmb] = true
 		total.PokokDiperiksa += d.Mentah.PokokDiperiksa
 		total.PokokBertemuan += d.Mentah.PokokBertemuan
+		total.PokokLoses += d.Mentah.PokokLoses
+		total.PokokLain += d.Mentah.PokokLain
 		for kd, h := range d.Mentah.PerKode {
 			t := total.PerKode[kd]
 			t.Pokok += h.Pokok
@@ -461,11 +483,13 @@ func susunLaporan(dasar []model.IpdDasar, kode []model.IpdKodeMaster, dari, samp
 		l := make([]model.IpdGrupLoses, 0, len(g))
 		for _, x := range g {
 			x.PersenPokokBertemuan = persen(x.PokokBertemuan, x.PokokDiperiksa)
+			x.PersenPokokLoses = persen(x.PokokLoses, x.PokokDiperiksa)
+			x.PersenPokokTemuanLain = persen(x.PokokTemuanLain, x.PokokDiperiksa)
 			l = append(l, *x)
 		}
 		sort.Slice(l, func(i, j int) bool {
-			if urutPersen && l[i].PersenPokokBertemuan != l[j].PersenPokokBertemuan {
-				return l[i].PersenPokokBertemuan > l[j].PersenPokokBertemuan // paling banyak loses dulu
+			if urutPersen && l[i].PersenPokokLoses != l[j].PersenPokokLoses {
+				return l[i].PersenPokokLoses > l[j].PersenPokokLoses // paling banyak loses dulu
 			}
 			return l[i].Nama < l[j].Nama
 		})

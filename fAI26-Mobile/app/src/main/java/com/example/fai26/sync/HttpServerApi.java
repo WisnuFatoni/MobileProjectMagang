@@ -317,6 +317,10 @@ public class HttpServerApi implements ServerApi {
                     m.pokokBertemuan = rg.optLong("pokok_bertemuan", 0);
                     m.persenBertemuan = rg.optDouble("persen_pokok_bertemuan", 0);
                     m.totalTemuan = rg.optLong("total_temuan", 0);
+                    m.pokokLoses = rg.optLong("pokok_loses", m.pokokBertemuan);
+                    m.persenLoses = rg.optDouble("persen_pokok_loses", m.persenBertemuan);
+                    m.pokokTemuanLain = rg.optLong("pokok_temuan_lain", 0);
+                    m.persenTemuanLain = rg.optDouble("persen_pokok_temuan_lain", 0);
                     JSONArray pk = rg.optJSONArray("per_kode");
                     for (int k = 0; pk != null && k < pk.length(); k++) {
                         JSONObject x = pk.getJSONObject(k);
@@ -324,6 +328,7 @@ public class HttpServerApi implements ServerApi {
                         IpdKode kd = new IpdKode();
                         kd.kode = x.getString("kode");
                         kd.nama = x.optString("nama", kd.kode);
+                        kd.jenis = x.optString("jenis", "LOSES");
                         kd.pokok = x.optLong("pokok", 0);
                         kd.jumlah = x.optLong("jumlah", 0);
                         kd.persenPokok = x.optDouble("persen_pokok", 0);

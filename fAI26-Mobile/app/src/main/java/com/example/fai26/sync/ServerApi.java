@@ -117,6 +117,11 @@ public interface ServerApi {
         public long pokokBertemuan;
         public double persenBertemuan;
         public long totalTemuan;
+        /** Loses = temuan buah atau brondolan; temuan lain = pelepah (tidak memengaruhi produksi). */
+        public long pokokLoses;
+        public double persenLoses;
+        public long pokokTemuanLain;
+        public double persenTemuanLain;
         /** Hanya kode yang punya temuan. */
         public final List<IpdKode> perKode = new java.util.ArrayList<>();
         public final List<IpdFotoRef> foto = new java.util.ArrayList<>();
@@ -125,6 +130,8 @@ public interface ServerApi {
     final class IpdKode {
         public String kode;
         public String nama;
+        /** LOSES atau TEMUAN (temuan lain). */
+        public String jenis = "LOSES";
         public long pokok;
         public long jumlah;
         public double persenPokok;

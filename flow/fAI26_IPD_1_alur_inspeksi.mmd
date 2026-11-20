@@ -12,14 +12,14 @@ flowchart TB
 
     subgraph B["B. PEMERIKSAAN POKOK PER POKOK"]
         direction TB
-        B1["Isi nomor baris<br/>pokok mulai dari 1, naik otomatis"] --> B2{"Ada temuan<br/>pada pokok ini?"}
+        B1["Isi nomor baris (bawaan dua baris sekaligus,<br/>mis. 120 dan 121) dan nomor pokok, naik otomatis"] --> B2{"Ada temuan<br/>pada pokok ini?"}
         B2 -->|"tidak"| B3["Tekan BERSIH<br/>pokok dicatat tanpa temuan"]
-        B2 -->|"ya"| B4["Pilih satu atau lebih kode temuan<br/>A G S M1 M2 M3 M4 B1 B2 C R<br/>jumlah bawaan 1, boleh diubah"]
+        B2 -->|"ya"| B4["Pilih kode per baris<br/>LOSES (buah, brondolan): A G S M1 M2 M3 M4 B1 B2<br/>TEMUAN LAIN (pelepah): C R<br/>jumlah bawaan 1, boleh diubah"]
         B3 --> B5{"Lanjut?"}
         B4 --> B5
         B5 -->|"pokok berikutnya"| B1
         B5 -->|"pindah baris"| B1
-        B5 -->|"selesai"| B6["Ringkasan otomatis:<br/>pokok diperiksa, pokok bertemuan,<br/>temuan per kode, persen loses"]
+        B5 -->|"selesai"| B6["Ringkasan otomatis:<br/>pokok diperiksa, persen loses (buah dan brondolan),<br/>temuan lain (pelepah) terpisah, per kode"]
         B6 --> B7["Tambah foto (tanpa batas jumlah)<br/>tiap foto diberi keterangan<br/>dikompres saat disimpan di HP"]
     end
 

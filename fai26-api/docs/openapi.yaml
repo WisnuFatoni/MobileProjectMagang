@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: fai26-api
-  version: 0.16.0
+  version: 0.17.0
   description: |
     API sinkronisasi aplikasi fAI26 (HP krani ke database `fai26`). Panduan yang lebih mudah dibaca ada di `API.md`.
 
@@ -1286,7 +1286,7 @@ paths:
       tags: [IPD]
       summary: Laporan loses
       description: |
-        Permission `laporan.ipd`. Dihitung dari inspeksi DISETUJUI saja; `dari` dan `sampai` kosong berarti 30 hari terakhir (WIB). persen_pokok_bertemuan = pokok bertemuan dibagi pokok diperiksa; persen_pokok per kode = pokok yang memuat kode itu dibagi pokok diperiksa (1 desimal). Berisi ringkasan, per_kelompok (BUAH, BRONDOLAN, PELEPAH), per_pemanen, per_blok, per_divisi, dan per_tanggal.
+        Permission `laporan.ipd`. Dihitung dari inspeksi DISETUJUI saja; `dari` dan `sampai` kosong berarti 30 hari terakhir (WIB). Loses = temuan buah dan brondolan (kelompok BUAH, BRONDOLAN); temuan lain = pelepah (C, R), tidak memengaruhi produksi: ringkasan memuat pokok_loses, persen_pokok_loses, total_loses dan pokok_temuan_lain, persen_pokok_temuan_lain, total_temuan_lain, per_kode memuat jenis (LOSES atau TEMUAN), dan per_pemanen/per_blok diurutkan menurut persen loses. persen_pokok_bertemuan = pokok dengan temuan apa pun dibagi pokok diperiksa; persen_pokok per kode = pokok yang memuat kode itu dibagi pokok diperiksa (1 desimal). Berisi ringkasan, per_kelompok (BUAH, BRONDOLAN, PELEPAH), per_pemanen, per_blok, per_divisi, dan per_tanggal.
       security: [{ bearerAuth: [] }]
       parameters:
         - { name: dari, in: query, required: false, description: "YYYY-MM-DD", schema: { type: string } }

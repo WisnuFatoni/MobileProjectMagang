@@ -37,10 +37,11 @@ final class IpdKartu {
         atas.addView(IpdUi.lencana(c, IpdUi.labelStatus(r.status), w[0], w[1]));
         l.addView(atas);
 
-        double persen = r.pokok > 0 ? Math.round(r.bertemuan * 1000.0 / r.pokok) / 10.0 : 0;
+        double persenLoses = r.pokok > 0 ? Math.round(r.loses * 1000.0 / r.pokok) / 10.0 : 0;
         StringBuilder meta = new StringBuilder();
         meta.append(IpdUi.tanggal(r.tanggalInspeksi)).append(" • ").append(r.divisi);
-        meta.append("\n").append(r.pokok).append(" pokok diperiksa • ").append(r.bertemuan).append(" bertemuan (").append(IpdUi.persen(persen)).append(")");
+        meta.append("\n").append(r.pokok).append(" pokok • loses ").append(IpdUi.persen(persenLoses));
+        if (r.lain > 0) meta.append(" • temuan lain ").append(r.lain).append(" pokok");
         if (r.asisten != null && !r.asisten.isEmpty()) meta.append("\nAsisten: ").append(r.asisten);
         TextView txt = IpdUi.redup(c, meta, 13);
         txt.setPadding(0, IpdUi.dp(c, 4), 0, 0);

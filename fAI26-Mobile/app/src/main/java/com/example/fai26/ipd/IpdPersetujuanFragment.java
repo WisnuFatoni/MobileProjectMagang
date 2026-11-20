@@ -167,7 +167,7 @@ public class IpdPersetujuanFragment extends Fragment {
         txtMeta.setPadding(0, IpdUi.dp(c, 4), 0, IpdUi.dp(c, 8));
         l.addView(txtMeta);
 
-        TextView rg = IpdUi.judul(c, m.pokokDiperiksa + " pokok diperiksa • " + m.pokokBertemuan + " bertemuan (" + IpdUi.persen(m.persenBertemuan) + ")", 15);
+        TextView rg = IpdUi.judul(c, m.pokokDiperiksa + " pokok diperiksa • loses " + IpdUi.persen(m.persenLoses) + " (" + m.pokokLoses + " pokok)", 15);
         l.addView(rg);
         if (m.perKode.isEmpty()) {
             TextView bersih = IpdUi.redup(c, "Tidak ada temuan: semua pokok bersih.", 14);
@@ -175,9 +175,21 @@ public class IpdPersetujuanFragment extends Fragment {
             l.addView(bersih);
         }
         for (ServerApi.IpdKode k : m.perKode) {
+            if (!"LOSES".equals(k.jenis)) continue;
             TextView t = IpdUi.redup(c, k.kode + "  " + k.nama + ": " + k.pokok + " pokok (" + IpdUi.persen(k.persenPokok) + "), jumlah " + k.jumlah, 14);
             t.setPadding(0, IpdUi.dp(c, 4), 0, 0);
             l.addView(t);
+        }
+        if (m.pokokTemuanLain > 0) {
+            TextView lain = IpdUi.judul(c, "Temuan lain: " + m.pokokTemuanLain + " pokok (tidak memengaruhi hasil)", 14);
+            lain.setPadding(0, IpdUi.dp(c, 8), 0, 0);
+            l.addView(lain);
+            for (ServerApi.IpdKode k : m.perKode) {
+                if ("LOSES".equals(k.jenis)) continue;
+                TextView t = IpdUi.redup(c, k.kode + "  " + k.nama + ": " + k.pokok + " pokok, jumlah " + k.jumlah, 14);
+                t.setPadding(0, IpdUi.dp(c, 3), 0, 0);
+                l.addView(t);
+            }
         }
 
         if (!m.foto.isEmpty()) {

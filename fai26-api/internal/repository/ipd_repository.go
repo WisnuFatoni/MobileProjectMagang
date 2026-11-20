@@ -460,8 +460,12 @@ func (r *IpdRepository) mentah(ctx context.Context, where string, args []any) (m
 		return m
 	}
 	rows, err := r.db.QueryContext(ctx, `
-SELECT CONVERT(NVARCHAR(36), x.ipd_id), COUNT(*), SUM(x.ada)
-FROM (SELECT p.ipd_id, CASE WHEN EXISTS (SELECT 1 FROM dbo.fai_ipd_temuan t WHERE t.pokok_id = p.id AND t.dihapus_pada IS NULL) THEN 1 ELSE 0 END AS ada
+SELECT CONVERT(NVARCHAR(36), x.ipd_id), COUNT(*), SUM(x.ada), SUM(x.loses), SUM(x.lain)
+FROM (SELECT p.ipd_id, CASE WHEN EXISTS (SELECT 1 FROM dbo.fai_ipd_temuan t WHERE t.pokok_id = p.id AND t.dihapus_pada IS NULL) THEN 1 ELSE 0 END AS ada,
+        CASE WHEN EXISTS (SELECT 1 FROM dbo.fai_ipd_temuan t JOIN dbo.ipd_kode_temuan k ON k.kode_id = t.kode_id
+                          WHERE t.pokok_id = p.id AND t.dihapus_pada IS NULL AND k.kelompok <> 'PELEPAH') THEN 1 ELSE 0 END AS loses,
+        CASE WHEN EXISTS (SELECT 1 FROM dbo.fai_ipd_temuan t JOIN dbo.ipd_kode_temuan k ON k.kode_id = t.kode_id
+                          WHERE t.pokok_id = p.id AND t.dihapus_pada IS NULL AND k.kelompok = 'PELEPAH') THEN 1 ELSE 0 END AS lain
       FROM dbo.fai_ipd_pokok p JOIN dbo.fai_ipd f ON f.id = p.ipd_id
       WHERE p.dihapus_pada IS NULL AND `+where+`) x GROUP BY x.ipd_id`, args...)
 	if err != nil {
@@ -469,13 +473,13 @@ FROM (SELECT p.ipd_id, CASE WHEN EXISTS (SELECT 1 FROM dbo.fai_ipd_temuan t WHER
 	}
 	for rows.Next() {
 		var id string
-		var n, b int64
-		if err := rows.Scan(&id, &n, &b); err != nil {
+		var n, b, lo, la int64
+		if err := rows.Scan(&id, &n, &b, &lo, &la); err != nil {
 			rows.Close()
 			return nil, err
 		}
 		m := ambil(id)
-		m.PokokDiperiksa, m.PokokBertemuan = n, b
+		m.PokokDiperiksa, m.PokokBertemuan, m.PokokLoses, m.PokokLain = n, b, lo, la
 	}
 	rows.Close()
 

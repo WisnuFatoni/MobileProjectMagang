@@ -364,19 +364,20 @@ func TestIpdInspeksiTerakhirJendelaTujuhHari(t *testing.T) {
 }
 
 func TestSusunRingkasanDanPersen(t *testing.T) {
-	kode := []model.IpdKodeMaster{{Kode: "A", Nama: "a", Kelompok: "BUAH"}, {Kode: "B1", Nama: "b", Kelompok: "BRONDOLAN"}}
-	m := &model.IpdMentah{PokokDiperiksa: 40, PokokBertemuan: 10,
-		PerKode: map[string]model.IpdHitung{"B1": {Pokok: 7, Jumlah: 30}, "A": {Pokok: 3, Jumlah: 3}}}
+	kode := []model.IpdKodeMaster{{Kode: "A", Nama: "a", Kelompok: "BUAH"}, {Kode: "B1", Nama: "b", Kelompok: "BRONDOLAN"}, {Kode: "C", Nama: "c", Kelompok: "PELEPAH"}}
+	m := &model.IpdMentah{PokokDiperiksa: 40, PokokBertemuan: 12, PokokLoses: 10, PokokLain: 2,
+		PerKode: map[string]model.IpdHitung{"B1": {Pokok: 7, Jumlah: 30}, "A": {Pokok: 3, Jumlah: 3}, "C": {Pokok: 2, Jumlah: 2}}}
 	r := susunRingkasan(m, kode)
-	if r.PersenPokokBertemuan != 25 || r.TotalTemuan != 33 || len(r.PerKode) != 2 {
+	// Loses (buah, brondolan) dipisah dari temuan lain (pelepah): 10 pokok loses = 25%, 2 pokok temuan lain = 5%.
+	if r.PersenPokokBertemuan != 30 || r.PersenPokokLoses != 25 || r.PersenPokokTemuanLain != 5 || r.TotalLoses != 33 || r.TotalTemuanLain != 2 || r.TotalTemuan != 35 || len(r.PerKode) != 3 {
 		t.Fatalf("ringkasan: %+v", r)
 	}
-	if r.PerKode[0].Kode != "A" || r.PerKode[1].PersenPokok != 17.5 {
+	if r.PerKode[0].Kode != "A" || r.PerKode[1].PersenPokok != 17.5 || r.PerKode[0].Jenis != "LOSES" || r.PerKode[2].Jenis != "TEMUAN" {
 		t.Fatalf("urutan dan persen per kode: %+v", r.PerKode)
 	}
 	// Tanpa pokok: tidak membagi dengan nol; kode tetap muncul dengan nol.
 	k := susunRingkasan(nil, kode)
-	if k.PersenPokokBertemuan != 0 || len(k.PerKode) != 2 || k.PerKode[0].Jumlah != 0 {
+	if k.PersenPokokBertemuan != 0 || k.PersenPokokLoses != 0 || len(k.PerKode) != 3 || k.PerKode[0].Jumlah != 0 {
 		t.Fatalf("kosong: %+v", k)
 	}
 }
@@ -384,7 +385,7 @@ func TestSusunRingkasanDanPersen(t *testing.T) {
 func TestSusunLaporanMenjumlahkanPerKelompokData(t *testing.T) {
 	kode := []model.IpdKodeMaster{{Kode: "A", Nama: "a", Kelompok: "BUAH", Urut: 1}, {Kode: "B1", Nama: "b", Kelompok: "BRONDOLAN", Urut: 2}}
 	mk := func(diperiksa, bertemuan int64, a, b model.IpdHitung) model.IpdMentah {
-		return model.IpdMentah{PokokDiperiksa: diperiksa, PokokBertemuan: bertemuan,
+		return model.IpdMentah{PokokDiperiksa: diperiksa, PokokBertemuan: bertemuan, PokokLoses: bertemuan,
 			PerKode:     map[string]model.IpdHitung{"A": a, "B1": b},
 			PerKelompok: map[string]model.IpdHitung{"BUAH": a, "BRONDOLAN": b}}
 	}

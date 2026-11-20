@@ -93,7 +93,11 @@ public interface IpdDao {
             + "b.kode AS blok, pm.nama AS pemanen, d.kode AS divisi, a.nama AS asisten, "
             + "(SELECT COUNT(*) FROM ipd_pokok p WHERE p.ipd_id = h.ipd_id AND p.dihapus_pada IS NULL) AS pokok, "
             + "(SELECT COUNT(*) FROM ipd_pokok p WHERE p.ipd_id = h.ipd_id AND p.dihapus_pada IS NULL AND EXISTS "
-            + "(SELECT 1 FROM ipd_temuan t WHERE t.pokok_id = p.pokok_id AND t.dihapus_pada IS NULL)) AS bertemuan, "
+            + "(SELECT 1 FROM ipd_temuan t JOIN kode_temuan k ON k.kode_id = t.kode_id WHERE t.pokok_id = p.pokok_id "
+            + "AND t.dihapus_pada IS NULL AND k.kelompok <> 'PELEPAH')) AS loses, "
+            + "(SELECT COUNT(*) FROM ipd_pokok p WHERE p.ipd_id = h.ipd_id AND p.dihapus_pada IS NULL AND EXISTS "
+            + "(SELECT 1 FROM ipd_temuan t JOIN kode_temuan k ON k.kode_id = t.kode_id WHERE t.pokok_id = p.pokok_id "
+            + "AND t.dihapus_pada IS NULL AND k.kelompok = 'PELEPAH')) AS lain, "
             + "h.dibuat_pada AS dibuatPada, h.user_id AS userId "
             + "FROM ipd_header h JOIN blok b ON b.blok_id = h.blok_id JOIN pemanen pm ON pm.pemanen_id = h.pemanen_id "
             + "JOIN divisi d ON d.divisi_id = h.divisi_id LEFT JOIN app_user a ON a.user_id = h.asisten_user_id "
@@ -103,6 +107,23 @@ public interface IpdDao {
 
     @Query("SELECT COUNT(*) FROM ipd_header WHERE dihapus_pada IS NULL AND status = 'DRAFT' AND (:userId = 0 OR user_id = :userId)")
     long jumlahDraf(long userId);
+
+    /** Rekap sejak tanggal tertentu (inspeksi yang tidak ditolak). Loses = temuan buah atau brondolan; temuan lain = pelepah. */
+    @Query("SELECT COUNT(DISTINCT h.ipd_id) AS inspeksi, COUNT(p.pokok_id) AS pokok, "
+            + "COALESCE(SUM(CASE WHEN EXISTS (SELECT 1 FROM ipd_temuan t JOIN kode_temuan k ON k.kode_id = t.kode_id WHERE t.pokok_id = p.pokok_id "
+            + "AND t.dihapus_pada IS NULL AND k.kelompok <> 'PELEPAH') THEN 1 ELSE 0 END), 0) AS pokokLoses, "
+            + "COALESCE(SUM(CASE WHEN EXISTS (SELECT 1 FROM ipd_temuan t JOIN kode_temuan k ON k.kode_id = t.kode_id WHERE t.pokok_id = p.pokok_id "
+            + "AND t.dihapus_pada IS NULL AND k.kelompok = 'PELEPAH') THEN 1 ELSE 0 END), 0) AS pokokLain "
+            + "FROM ipd_header h JOIN ipd_pokok p ON p.ipd_id = h.ipd_id AND p.dihapus_pada IS NULL "
+            + "WHERE h.dihapus_pada IS NULL AND h.status <> 'DITOLAK' AND h.tanggal_inspeksi >= :dari AND (:userId = 0 OR h.user_id = :userId)")
+    IpdHasil.RekapPekan rekapSejak(long userId, String dari);
+
+    @Query("SELECT k.kode AS kode, k.nama AS nama, k.kelompok AS kelompok, COUNT(*) AS pokok, SUM(t.jumlah) AS jumlah "
+            + "FROM ipd_temuan t JOIN ipd_pokok p ON p.pokok_id = t.pokok_id AND p.dihapus_pada IS NULL "
+            + "JOIN ipd_header h ON h.ipd_id = p.ipd_id JOIN kode_temuan k ON k.kode_id = t.kode_id "
+            + "WHERE t.dihapus_pada IS NULL AND h.dihapus_pada IS NULL AND h.status <> 'DITOLAK' AND h.tanggal_inspeksi >= :dari "
+            + "AND (:userId = 0 OR h.user_id = :userId) GROUP BY k.kode, k.nama, k.kelompok, k.urut ORDER BY k.urut")
+    List<IpdHasil.KodePekan> perKodeSejak(long userId, String dari);
 
     @Query("SELECT h.ipd_id AS ipdId, h.tanggal_inspeksi AS tanggalInspeksi, u.nama AS inspektur, h.status AS status FROM ipd_header h "
             + "JOIN app_user u ON u.user_id = h.user_id "

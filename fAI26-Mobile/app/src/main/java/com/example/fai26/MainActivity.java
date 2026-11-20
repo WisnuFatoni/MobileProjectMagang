@@ -184,7 +184,7 @@ public class MainActivity extends AppCompatActivity {
             case "ipd_setuju":
                 return "Persetujuan";
             case "ipd_mulai":
-                return "Mulai";
+                return "Beranda";
             default:
                 return "Akun";
         }
@@ -203,7 +203,7 @@ public class MainActivity extends AppCompatActivity {
             case "ipd_setuju":
                 return R.drawable.ic_nav_check;
             case "ipd_mulai":
-                return R.drawable.ic_nav_tambah;
+                return R.drawable.ic_nav_ipd;
             default:
                 return R.drawable.ic_nav_person;
         }

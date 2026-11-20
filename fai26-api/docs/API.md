@@ -1,6 +1,6 @@
 # Dokumentasi API fai26-api
 
-Versi 0.16.0 · terakhir diperbarui 21 Nov 2026 · spesifikasi mesin: [`openapi.yaml`](openapi.yaml)
+Versi 0.17.0 · terakhir diperbarui 21 Nov 2026 · spesifikasi mesin: [`openapi.yaml`](openapi.yaml)
 (bisa dibuka di Swagger Editor, Postman, atau Insomnia).
 
 > **Aturan tim:** setiap endpoint baru atau perubahan bentuk data **wajib** memperbarui `openapi.yaml`, dokumen ini,
@@ -551,7 +551,9 @@ Perlu login, permission `ipd.setujui` (asisten). Inspeksi `MENUNGGU` yang **ditu
 }]
 ```
 
-`ringkasan.per_kode` memuat semua kode aktif (nol bila tidak ada temuan). `persen_*` = pokok dibagi pokok diperiksa (1 desimal). Foto diunduh dengan `GET /api/ipd/foto/{id}`.
+`ringkasan.per_kode` memuat semua kode aktif (nol bila tidak ada temuan), tiap kode dengan `jenis`. `persen_*` = pokok dibagi pokok diperiksa (1 desimal). Foto diunduh dengan `GET /api/ipd/foto/{id}`.
+
+**Loses dan temuan lain.** Hanya temuan yang berkaitan dengan buah dan brondolan (kelompok `BUAH` dan `BRONDOLAN`: A, G, S, M1, M2, M3, M4, B1, B2) yang dihitung sebagai **loses** (kehilangan hasil, `jenis: "LOSES"`). Kerusakan atau pekerjaan yang tidak memengaruhi produksi (kelompok `PELEPAH`: C pelepah sengkleh, R pelepah tidak disusun) adalah **temuan lain** (`jenis: "TEMUAN"`) dan tidak masuk loses. Ringkasan memuat keduanya terpisah: `pokok_loses`, `persen_pokok_loses`, `total_loses`, `pokok_temuan_lain`, `persen_pokok_temuan_lain`, `total_temuan_lain`; `pokok_bertemuan` dan `total_temuan` tetap berarti temuan apa pun.
 
 ## POST /api/ipd/{id}/setujui
 
@@ -1054,8 +1056,8 @@ Tanpa catatan pada tanggal itu, `pemanen` berupa `[]` dan semua angka nol.
 
 **Query:** `dari`, `sampai`, `divisi_kode`, `blok_kode`, `pemanen_hrmb_code`.
 
-**Rumus:** `persen_pokok_bertemuan` = pokok yang punya paling sedikit satu temuan dibagi pokok diperiksa; `persen_pokok` per kode = pokok yang memuat kode itu dibagi pokok diperiksa; `jumlah` = penjumlahan jumlah temuan.
-Semua persen dibulatkan 1 desimal. `per_kelompok` selalu BUAH, BRONDOLAN, PELEPAH. `per_pemanen`, `per_blok` diurutkan dari persen loses tertinggi; `per_divisi` dan `per_tanggal` menurut nama/tanggal.
+**Rumus:** loses = pokok yang memuat paling sedikit satu temuan buah atau brondolan dibagi pokok diperiksa (`persen_pokok_loses`); temuan lain (pelepah) dihitung terpisah (`persen_pokok_temuan_lain`); `persen_pokok_bertemuan` = pokok dengan temuan apa pun dibagi pokok diperiksa; `persen_pokok` per kode = pokok yang memuat kode itu dibagi pokok diperiksa; `jumlah` = penjumlahan jumlah temuan.
+Semua persen dibulatkan 1 desimal. `per_kelompok` selalu BUAH, BRONDOLAN, PELEPAH. `per_pemanen`, `per_blok` diurutkan dari `persen_pokok_loses` tertinggi; `per_divisi` dan `per_tanggal` menurut nama/tanggal.
 
 **200**
 
@@ -1102,6 +1104,7 @@ Semua persen dibulatkan 1 desimal. `per_kelompok` selalu BUAH, BRONDOLAN, PELEPA
 
 | Tanggal | Versi | Perubahan |
 |---|---|---|
+| 21 Nov 2026 | 0.17.0 | **IPD: loses dipisah dari temuan lain.** Temuan buah dan brondolan = loses; pelepah (C, R) = temuan lain yang tidak memengaruhi produksi. `IpdKodeAgg` menambah `jenis`; `ringkasan` menambah `pokok_loses`, `persen_pokok_loses`, `total_loses`, `pokok_temuan_lain`, `persen_pokok_temuan_lain`, `total_temuan_lain`; baris laporan (`per_pemanen`, `per_blok`, `per_divisi`, `per_tanggal`) menambah kolom yang sama dan `per_pemanen`/`per_blok` kini diurutkan menurut persen loses. Penambahan saja: field lama tidak berubah. |
 | 21 Nov 2026 | 0.16.0 | **Modul IPD (Inspeksi Panen Detail).** Endpoint baru: `POST /api/ipd`, `GET /api/ipd`, `GET /api/ipd/inspeksi-terakhir`, `GET /api/ipd/menunggu`, `POST /api/ipd/{id}/setujui`, `POST /api/ipd/{id}/tolak`, `POST /api/ipd/{id}/media`, `GET /api/ipd/foto/{id}`, `GET /api/admin/ipd`, `GET /api/admin/ipd/laporan`, `GET /api/admin/ipd/{id}`. `GET /api/master` menambah `kode_temuan` dan `divisi[].asisten_user_id`. `GET/POST/PUT /api/admin/divisi` menambah `asisten_user_id` (asisten divisi; `GET` juga `asisten_nama`). Permission baru: `akses.panen`, `akses.ipd`, `ipd.buat`, `ipd.kirim`, `ipd.setujui`, `ipd.lihat`, `laporan.ipd`, `ipd.kelola`; role baru ASKEP dan KTU (hanya melihat). Perlu migrasi `009_ipd.sql`. Penambahan saja: endpoint dan kolom lama tidak berubah. |
 | 20 Nov 2026 | 0.15.0 | `POST /api/panen` dengan `kirim_ulang=true`: pencatat kini boleh mengubah catatan yang masih `MENUNGGU` persetujuan krani (isi diganti, status tetap `MENUNGGU`), tidak hanya yang `DITOLAK`. Setelah krani menyetujui catatan terkunci dan `kirim_ulang` dijawab **423** (sebelumnya 200 `SUDAH_ADA` tanpa perubahan). Tanpa `kirim_ulang` perilaku tidak berubah. Respons baru 423 saja. |
 | 20 Nov 2026 | 0.14.1 | `GET /api/panen/ringkasan`: pemegang `panen.setujui` (krani) kini juga `lingkup: "UNIT"`. Sebelumnya hanya pemegang `panen.koreksi`, sehingga dashboard krani selalu 0 padahal catatan yang ia periksa dikirim mandor. Bentuk data tidak berubah. |

@@ -967,7 +967,10 @@ Status HP: `DRAFT` (belum terkirim), `MENUNGGU_SETUJU` (sudah di server, menungg
 ### 13.4 Rumus loses (untuk laporan, hanya inspeksi DISETUJUI)
 
 - **Pokok diperiksa** = jumlah baris `ipd_pokok`.
-- **Pokok bertemuan** = pokok yang punya paling sedikit satu temuan. **% pokok bertemuan** = pokok bertemuan dibagi pokok diperiksa.
+- **Loses** = kehilangan hasil: kode berkelompok BUAH atau BRONDOLAN (A, G, S, M1 sampai M4, B1, B2). **Temuan lain** = kode berkelompok PELEPAH (C, R): kerusakan yang tidak memengaruhi produksi, tidak dihitung sebagai loses. Jenis diturunkan dari `kode_temuan.kelompok`, tanpa kolom tambahan.
+- **Pokok loses** = pokok yang memuat paling sedikit satu kode loses. **% loses** = pokok loses dibagi pokok diperiksa. **% temuan lain** dihitung terpisah dengan cara yang sama.
+- **Pokok bertemuan** (temuan apa pun, loses atau lain) tetap tersedia: dibagi pokok diperiksa menjadi **% pokok bertemuan**.
+- **Dua baris sekaligus:** satu lorong memeriksa dua baris (mis. 120 dan 121) dengan nomor pokok yang sama; HP menyimpannya sebagai dua catatan `ipd_pokok` (satu per baris), jadi rumus di atas tidak berubah.
 - **% per kode** = pokok yang memuat kode itu dibagi pokok diperiksa. **Jumlah per kode** = penjumlahan `jumlah` temuan kode itu.
 - **Per kelompok** (BUAH, BRONDOLAN, PELEPAH) = penjumlahan kode dalam kelompok.
 - Pengelompokan laporan: per kode, per kelompok, per pemanen, per blok, per mandor, per periode tanggal.

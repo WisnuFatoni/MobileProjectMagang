@@ -114,6 +114,7 @@ Pertanyaan terbuka tentang form ini ada di balasan Claude kepada Ptoni (arti tan
 | 3 | HP: Home dua kotak, menu bertingkat, Room v5, layar IPD, Riwayat dan Persetujuan IPD, sinkron | **Selesai 21 Nov** (dicoba di HP; kamera dan kirim ke server belum) |
 | 4 | Web: Daftar Inspeksi, Laporan Loses, halaman Hak Akses untuk kotak, tampilan role ASKEP dan KTU | **Selesai 21 Nov** (tes lolos; belum dilihat di browser) |
 | 5 | Dokumentasi akhir, `PROGRES.md`, memori, daftar tes manual | **Selesai 21 Nov** (menunggu uji Ptoni) |
+| 6 | Putaran 3 (20 Nov malam): loses dipisah dari temuan lain (API 0.17.0), Beranda IPD, periksa 2 baris sekaligus, Home bergaya baru | **Selesai** (API, HP, web; diuji di HP sampai ringkasan; belum kamera dan kirim end-to-end) |
 
 Tiap tahap diakhiri pembaruan `PROGRES.md`. Fitur Panen yang sudah ada tidak diubah perilakunya; hanya pintu masuknya yang pindah ke kotak Panen.
 

@@ -17,9 +17,28 @@ public final class IpdHasil {
         public String divisi;
         public String asisten;
         public long pokok;
-        public long bertemuan;
+        /** Pokok dengan temuan loses (buah atau brondolan) dan dengan temuan lain (pelepah). */
+        public long loses;
+        public long lain;
         public String dibuatPada;
         public long userId;
+    }
+
+    /** Rekap beberapa hari terakhir milik pengguna (untuk Beranda IPD). */
+    public static class RekapPekan {
+        public long inspeksi;
+        public long pokok;
+        public long pokokLoses;
+        public long pokokLain;
+    }
+
+    /** Hitungan satu kode temuan pada rekap beberapa hari terakhir. */
+    public static class KodePekan {
+        public String kode;
+        public String nama;
+        public String kelompok;
+        public long pokok;
+        public long jumlah;
     }
 
     public static class DivisiPilihan {
