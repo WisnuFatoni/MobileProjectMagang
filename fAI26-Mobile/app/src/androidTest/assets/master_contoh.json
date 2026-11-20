@@ -1,0 +1,29 @@
+{
+  "catatan": "DATA CONTOH untuk pengembangan. Ganti dengan master dari ERP (blok, TPH, pemanen) bila sudah tersedia.",
+  "unit": {"unit_id": 1, "kode": "KP_STL", "nama": "Kebun Aas (contoh)", "erp_db": "kp_stl2025", "tahun_cluster": 2026},
+  "divisi": [
+    {"divisi_id": 1, "kode": "DIV2", "nama": "Divisi 2 (contoh)"}
+  ],
+  "blok": [
+    {"blok_id": 1, "divisi_id": 1, "erp_oid": 1012, "kode": "A12", "luas_ha": 28.5, "tahun_tanam": 2012, "sph": 133},
+    {"blok_id": 2, "divisi_id": 1, "erp_oid": 1013, "kode": "A13", "luas_ha": 30.0, "tahun_tanam": 2012, "sph": 133}
+  ],
+  "tph": [
+    {"tph_id": 1, "blok_id": 1, "no_tph": "01"},
+    {"tph_id": 2, "blok_id": 1, "no_tph": "02"},
+    {"tph_id": 3, "blok_id": 1, "no_tph": "03"},
+    {"tph_id": 4, "blok_id": 2, "no_tph": "01"},
+    {"tph_id": 5, "blok_id": 2, "no_tph": "02"}
+  ],
+  "pemanen": [
+    {"pemanen_id": 1, "erp_hrmb_code": 90001, "kode": "P-001", "nama": "Pemanen Contoh 1"},
+    {"pemanen_id": 2, "erp_hrmb_code": 90002, "kode": "P-002", "nama": "Pemanen Contoh 2"},
+    {"pemanen_id": 3, "erp_hrmb_code": 90003, "kode": "P-003", "nama": "Pemanen Contoh 3"},
+    {"pemanen_id": 4, "erp_hrmb_code": 90004, "kode": "P-004", "nama": "Pemanen Contoh 4"},
+    {"pemanen_id": 5, "erp_hrmb_code": 90005, "kode": "P-005", "nama": "Pemanen Contoh 5"}
+  ],
+  "user": [
+    {"user_id": 1, "username": "krani1", "nama": "Krani Contoh", "role": "KRANI", "password_awal": "krani123"},
+    {"user_id": 2, "username": "mandor1", "nama": "Mandor Contoh", "role": "MANDOR", "password_awal": "mandor123"}
+  ]
+}

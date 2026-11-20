@@ -1,0 +1,23 @@
+# Rahasia dan data perusahaan: jangan pernah masuk repository
+.env
+**/.env
+DataKEBUN/
+*.xlsx
+
+# Hasil build dan cache
+.cache/
+media/
+node_modules/
+dist/
+build/
+.gradle/
+.idea/
+local.properties
+*.exe
+*.apk
+
+# Berkas pribadi/tugas dan model mentah (bukan kode)
+TUGAS/
+.claude/
+best.pt
+best.tflite

@@ -1,0 +1,109 @@
+.login {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  background: var(--bg-layout);
+}
+
+.login__merek {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 56px;
+  color: #fff;
+  background:
+    radial-gradient(900px 500px at 10% -10%, rgba(254, 243, 199, 0.18), transparent 60%),
+    radial-gradient(700px 500px at 110% 110%, rgba(21, 128, 61, 0.55), transparent 60%),
+    linear-gradient(160deg, #0f2a1a 0%, #14532d 55%, #15803d 100%);
+}
+
+.login__merek-isi {
+  margin: auto 0;
+  max-width: 460px;
+}
+
+.login__merek h1 {
+  margin: 20px 0 8px;
+  font-size: 40px;
+  line-height: 1.1;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.login__tagline {
+  margin: 0 0 28px;
+  font-size: 18px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.login__merek ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 14px;
+}
+
+.login__merek li {
+  position: relative;
+  padding-left: 30px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.login__merek li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 5px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fef3c7;
+  box-shadow: inset 0 0 0 4px #15803d;
+}
+
+.login__merek small {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.login__form {
+  display: grid;
+  place-items: center;
+  padding: 32px 24px;
+}
+
+.login__kartu {
+  width: 100%;
+  max-width: 420px;
+  padding: 36px 32px;
+  border-radius: 18px;
+  background: var(--bg-kartu);
+  box-shadow: 0 10px 40px var(--bayangan);
+}
+
+.login__logo-kecil {
+  display: none;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 900px) {
+  .login {
+    grid-template-columns: 1fr;
+  }
+  .login__merek {
+    display: none;
+  }
+  .login__logo-kecil {
+    display: block;
+  }
+  .login__kartu {
+    padding: 28px 22px;
+    box-shadow: none;
+    background: transparent;
+  }
+}

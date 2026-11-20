@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pil status di kepala hijau: solid, tanpa transparansi. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/header_pill" />
+    <corners android:radius="20dp" />
+</shape>

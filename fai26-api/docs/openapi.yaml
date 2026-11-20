@@ -1,0 +1,1889 @@
+openapi: 3.0.3
+info:
+  title: fai26-api
+  version: 0.15.0
+  description: |
+    API sinkronisasi aplikasi fAI26 (HP krani ke database `fai26`). Panduan yang lebih mudah dibaca ada di `API.md`.
+
+    Aturan umum:
+    - Semua badan permintaan dan jawaban berbentuk JSON (UTF-8), kecuali unggah foto (isi mentah JPEG).
+    - Waktu memakai ISO 8601 UTC, contoh `2026-11-10T03:00:00Z`. Tanggal panen `YYYY-MM-DD`.
+    - Semua galat berbentuk `{"error": "pesan"}`.
+    - Rute yang butuh login memakai header `Authorization: Bearer <access_token>`.
+    - Hak akses (permission) dibaca ulang dari database pada setiap panggilan.
+    - Setiap permintaan dibatasi 20 detik. Bila database lambat, server menjawab 503 (sementara, aman diulang).
+servers:
+  - url: http://localhost:8080
+    description: Pengembangan lokal
+tags:
+  - name: Sistem
+  - name: Auth
+  - name: Panen
+  - name: Audit
+  - name: Master
+  - name: Admin
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token akses dari `/api/auth/login` atau `/api/auth/refresh` (berlaku 15 menit).
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          example: Username atau password salah
+    LoginRequest:
+      type: object
+      required: [username, password, device_id]
+      properties:
+        username: { type: string, example: krani1 }
+        password: { type: string, example: krani123 }
+        device_id:
+          type: string
+          format: uuid
+          description: ID perangkat yang dibuat aplikasi sekali saat pertama dipasang.
+          example: 11111111-1111-4111-8111-111111111111
+        device_nama: { type: string, example: Samsung A52 }
+        os_versi: { type: string, example: Android 14 }
+        app_versi: { type: string, example: 1.0 }
+    Profil:
+      type: object
+      properties:
+        mandor_hrmb_code: { type: integer, format: int64, nullable: true, description: Kode HRMB mandor (akun mandor), example: 7001 }
+        afdeling_kode: { type: string, nullable: true, description: Kode afdeling mandor (divisi.kode), example: DIV2 }
+        user_id: { type: integer, format: int64, example: 1 }
+        unit_id: { type: integer, format: int64, example: 1 }
+        unit_kode: { type: string, example: KP_STL }
+        username: { type: string, example: krani1 }
+        nama: { type: string, example: Krani Contoh }
+        role:
+          type: array
+          items: { type: string }
+          example: [KRANI]
+        permission:
+          type: array
+          items: { type: string }
+          example: [grading.ubah, master.lihat, panen.buat, panen.kirim, panen.lihat, panen.ubah]
+        wajib_ganti_password: { type: boolean, example: false }
+    LoginResponse:
+      type: object
+      properties:
+        access_token: { type: string }
+        access_expires: { type: string, format: date-time }
+        refresh_token:
+          type: string
+          description: Simpan di penyimpanan aman. Berlaku 30 hari dan diganti setiap dipakai.
+        profil: { $ref: '#/components/schemas/Profil' }
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token: { type: string }
+    RefreshResponse:
+      type: object
+      properties:
+        access_token: { type: string }
+        access_expires: { type: string, format: date-time }
+        refresh_token:
+          type: string
+          description: Token baru. Token lama langsung tidak berlaku.
+    GradingInput:
+      type: object
+      required: [kelas_kode, jml_final]
+      properties:
+        kelas_kode:
+          type: string
+          enum: [unripe, underripe, ripe, overripe, empty, abnormal]
+        erp_kolom:
+          type: string
+          nullable: true
+          description: Kolom HVD1 di ERP, contoh JJG_RIPE. Kosong untuk kelas yang belum punya kolom.
+          example: JJG_RIPE
+        jml_ai: { type: integer, minimum: 0, description: Hitungan kamera }
+        jml_final: { type: integer, minimum: 0, description: Hitungan setelah dikoreksi krani }
+        diubah_manual: { type: boolean }
+    PemanenInput:
+      type: object
+      properties:
+        hrmb_code: { type: integer, description: Kode pemanen di ERP, example: 5001 }
+        jjg_alokasi: { type: integer, minimum: 0, example: 10, description: Harus sama dengan total `jml_final` (satu TPH hanya untuk satu pemanen). }
+    PanenInput:
+      type: object
+      required: [panen_id, unit_kode, tanggal_panen, asm3_oid, tph_kode, status_lokasi, grading, pemanen]
+      properties:
+        panen_id:
+          type: string
+          format: uuid
+          description: Dibuat HP. Dipakai sebagai kunci idempotensi.
+        unit_kode: { type: string, example: KP_STL, description: Harus sama dengan unit akun }
+        tanggal_panen: { type: string, format: date, example: '2026-11-10' }
+        asm3_oid: { type: integer, format: int64, minimum: 1, description: OID blok di ERP, example: 101 }
+        blok_kode: { type: string, example: A12 }
+        tph_kode: { type: string, example: '01' }
+        rotasi: { type: integer, nullable: true }
+        kondisi_cuaca: { type: integer, nullable: true }
+        brondolan_kg: { type: number, minimum: 0, example: 12.5 }
+        gps_lat: { type: number, nullable: true, example: -2.000123 }
+        gps_lon: { type: number, nullable: true, example: 113.000456 }
+        gps_akurasi_m: { type: number, nullable: true, example: 8 }
+        gps_waktu: { type: string, format: date-time, nullable: true }
+        gps_mock: { type: boolean, description: Android menandai titik sebagai lokasi palsu }
+        jarak_ke_tph_m: { type: number, nullable: true, example: 22 }
+        status_lokasi:
+          type: string
+          enum: [DI_TPH, DI_LUAR, AKURASI_RENDAH, TANPA_GPS, TPH_TANPA_KOORDINAT]
+        model_versi: { type: string, example: best 1 }
+        catatan: { type: string }
+        dibuat_pada: { type: string, format: date-time, description: Waktu pencatatan di HP }
+        pencatat_username:
+          type: string
+          example: krani1
+          description: |
+            Pencatat catatan. Kosong berarti pengirim sendiri. Bila berbeda dari pengirim (misalnya mandor yang login di HP krani),
+            pengirim harus memegang `panen.koreksi`, kalau tidak 403. Pencatat tersimpan sebagai pemilik catatan.
+        disetujui_username:
+          type: string
+          example: mandor1
+          description: Mandor penyetuju (memegang `panen.setujui`). Opsional: kosong berarti pengirim yang memegang hak itu menyetujui sendiri; pengirim tanpa hak itu (mandor) menyimpan catatan berstatus MENUNGGU untuk disetujui krani.
+        disetujui_pada: { type: string, format: date-time }
+        grading:
+          type: array
+          minItems: 1
+          description: Satu baris per kelas, tidak boleh ada kelas ganda, total `jml_final` tidak boleh nol.
+          items: { $ref: '#/components/schemas/GradingInput' }
+        kirim_ulang:
+          type: boolean
+          description: |
+            true untuk mengubah catatan yang sudah terkirim (panen_id sama): isi diganti. Berlaku selama catatan masih MENUNGGU
+            persetujuan krani (status tetap MENUNGGU) atau DITOLAK setelah diperbaiki. Setelah krani menyetujui (BARU, DIBACA, DIIMPOR)
+            catatan terkunci dan dijawab 423. Tanpa ini catatan yang sudah ada dijawab 200 SUDAH_ADA tanpa perubahan.
+        pemanen:
+          type: array
+          minItems: 1
+          maxItems: 1
+          description: Wajib tepat satu pemanen (satu TPH hanya untuk satu pemanen); `hrmb_code` > 0 dan `jjg_alokasi` sama dengan total janjang.
+          items: { $ref: '#/components/schemas/PemanenInput' }
+    HakAksesRole:
+      type: object
+      properties:
+        role_id: { type: integer, format: int64 }
+        kode: { type: string, example: KRANI }
+        nama: { type: string, example: Krani }
+        bawaan: { type: boolean, description: true untuk role bawaan sistem }
+        permission:
+          type: array
+          items: { type: string }
+          example: [panen.lihat, panen.buat, panen.kirim]
+    IzinKatalog:
+      type: object
+      properties:
+        kode: { type: string, example: panen.setujui }
+        modul: { type: string, example: Panen }
+        nama: { type: string, example: Menyetujui catatan panen krani }
+    HakAkses:
+      type: object
+      properties:
+        role:
+          type: array
+          items: { $ref: '#/components/schemas/HakAksesRole' }
+        permission:
+          type: array
+          items: { $ref: '#/components/schemas/IzinKatalog' }
+    HakAksesInput:
+      type: object
+      required: [permission]
+      properties:
+        permission:
+          type: array
+          description: Daftar LENGKAP permission yang dipegang role (boleh kosong).
+          items: { type: string }
+          example: [panen.lihat, panen.buat, panen.kirim]
+    GantiPasswordRequest:
+      type: object
+      required: [password_lama, password_baru]
+      properties:
+        password_lama: { type: string, format: password }
+        password_baru: { type: string, format: password, minLength: 8, maxLength: 72 }
+    StatusOk:
+      type: object
+      properties:
+        status: { type: string, example: OK }
+    KoordinatInput:
+      type: object
+      required: [lat, lon, akurasi_m]
+      properties:
+        lat: { type: number, format: double, minimum: -90, maximum: 90, example: 3.123456 }
+        lon: { type: number, format: double, minimum: -180, maximum: 180, example: 101.654321 }
+        akurasi_m:
+          type: number
+          minimum: 0
+          maximum: 50
+          description: Akurasi horizontal GPS dalam meter (HP hanya merekam di bawah 30 m).
+          example: 8.5
+    KoordinatHasil:
+      type: object
+      properties:
+        diterapkan:
+          type: boolean
+          description: true bila titik dari HP disimpan; false bila TPH sudah punya titik (lat dan lon berisi titik server).
+        lat: { type: number, format: double }
+        lon: { type: number, format: double }
+    PanenDiterima:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [DITERIMA, SUDAH_ADA]
+        id: { type: string, format: uuid }
+    StatusPanen:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        status:
+          type: string
+          enum: [MENUNGGU_SETUJU, TERKIRIM, DITERIMA, DITOLAK]
+          description: Status untuk HP. MENUNGGU di server menjadi MENUNGGU_SETUJU, BARU dan DIBACA menjadi TERKIRIM, DIIMPOR menjadi DITERIMA.
+        status_erp:
+          type: string
+          enum: [MENUNGGU, BARU, DIBACA, DIIMPOR, DITOLAK]
+        pesan:
+          type: string
+          nullable: true
+          description: Alasan penolakan dari ERP, bila ada.
+        diubah: { type: string, format: date-time }
+    AuditInput:
+      type: object
+      required: [audit_id, tabel, baris_id, aksi, waktu]
+      properties:
+        audit_id: { type: string, format: uuid }
+        tabel: { type: string, example: panen_header }
+        baris_id: { type: string }
+        aksi: { type: string, example: BUAT }
+        nilai_lama: { type: string, nullable: true, description: JSON dalam bentuk teks }
+        nilai_baru: { type: string, nullable: true, description: JSON dalam bentuk teks }
+        username: { type: string }
+        waktu: { type: string, format: date-time }
+        keterangan: { type: string }
+    BarisMaster:
+      type: object
+      additionalProperties: true
+      description: |
+        Satu baris tabel master. Nama kunci sama dengan nama kolom tabel di HP. Waktu ISO 8601 UTC tanpa pecahan detik,
+        boolean true atau false. Kolom `dibuat_pada`, `diubah_pada`, `dihapus_pada` ikut dikirim; baris dengan
+        `dihapus_pada` terisi berarti dihapus lunak (HP menandainya, tidak membuangnya).
+      example: { blok_id: 1, unit_id: 1, divisi_id: 1, erp_oid: 1012, kode: A12, luas_ha: 28.5, tahun_tanam: 2012, sph: 133, aktif: true }
+    MasterUser:
+      type: object
+      properties:
+        user_id: { type: integer, format: int64 }
+        unit_id: { type: integer, format: int64 }
+        username: { type: string }
+        nama: { type: string }
+        aktif: { type: boolean }
+        erp_user_oid: { type: integer, format: int64, nullable: true }
+        role:
+          type: array
+          items: { type: string }
+          example: [KRANI]
+        dihapus_pada: { type: string, format: date-time, nullable: true }
+    Master:
+      type: object
+      properties:
+        versi: { type: string, example: m-3f9a1c0d22b7e4aa }
+        berubah:
+          type: boolean
+          description: false bila `versi` yang dikirim HP sama dengan versi server; selain `versi`, isinya kosong.
+        unit: { $ref: '#/components/schemas/BarisMaster' }
+        divisi:
+          type: array
+          items: { $ref: '#/components/schemas/BarisMaster' }
+        blok:
+          type: array
+          items: { $ref: '#/components/schemas/BarisMaster' }
+        tph:
+          type: array
+          items: { $ref: '#/components/schemas/BarisMaster' }
+        pemanen:
+          type: array
+          items: { $ref: '#/components/schemas/BarisMaster' }
+        user:
+          type: array
+          items: { $ref: '#/components/schemas/MasterUser' }
+        role_permission:
+          type: array
+          description: |
+            Hak SEMUA role (bukan per unit): kode role dan kode permission yang dipegangnya. HP mengganti seluruh hak
+            role-nya dengan isi ini (role yang tidak tercantum berarti tanpa hak). Bila kunci ini tidak ada, HP tidak
+            mengubah hak role-nya. Role, permission, atau pasangan yang dihapus lunak tidak dikirim.
+          items: { $ref: '#/components/schemas/RoleIzin' }
+    RoleIzin:
+      type: object
+      properties:
+        role: { type: string, example: KRANI }
+        permission:
+          type: array
+          items: { type: string }
+          example: [panen.lihat, panen.buat, panen.kirim]
+    DivisiInput:
+      type: object
+      required: [kode, nama]
+      properties:
+        kode: { type: string, maxLength: 20, description: Unik per unit, tanpa karakter `|`. }
+        nama: { type: string, maxLength: 100 }
+        erp_oid: { type: integer, nullable: true }
+        aktif: { type: boolean, description: Kosong berarti tidak diubah. }
+    BlokInput:
+      type: object
+      required: [kode, erp_oid]
+      properties:
+        kode: { type: string, maxLength: 20 }
+        erp_oid: { type: integer, format: int64, minimum: 1 }
+        divisi_id: { type: integer, nullable: true }
+        nama: { type: string, nullable: true }
+        luas_ha: { type: number, minimum: 0, nullable: true }
+        tahun_tanam: { type: integer, minimum: 1900, maximum: 2100, nullable: true }
+        sph: { type: number, minimum: 0, nullable: true }
+        aktif: { type: boolean }
+    TphInput:
+      type: object
+      required: [blok_id, no_tph]
+      properties:
+        blok_id: { type: integer, format: int64 }
+        no_tph: { type: string, maxLength: 10, example: '01' }
+        lat: { type: number, minimum: -90, maximum: 90, nullable: true }
+        lon: { type: number, minimum: -180, maximum: 180, nullable: true }
+        aktif: { type: boolean }
+    TphMassalInput:
+      type: object
+      required: [blok_id, dari, sampai, lebar]
+      properties:
+        blok_id: { type: integer, format: int64 }
+        dari: { type: integer, minimum: 1 }
+        sampai: { type: integer }
+        lebar: { type: integer, minimum: 1, maximum: 4 }
+    PemanenAdminInput:
+      type: object
+      required: [erp_hrmb_code, nama]
+      properties:
+        erp_hrmb_code: { type: integer, format: int64, minimum: 1 }
+        mandor_hrmb_code: { type: integer, format: int64, minimum: 1, nullable: true, description: Kode HRMB mandor kelompok pemanen (untuk header HVDM). }
+        kode: { type: string, maxLength: 20, nullable: true }
+        nama: { type: string, maxLength: 100 }
+        aktif: { type: boolean }
+    PenggunaInput:
+      type: object
+      required: [nama, role]
+      properties:
+        username: { type: string, description: 'Hanya saat membuat. Huruf kecil, angka, titik, garis bawah, strip (3-50).' }
+        nama: { type: string }
+        password: { type: string, minLength: 8, maxLength: 72, description: Hanya saat membuat. }
+        role:
+          type: array
+          minItems: 1
+          maxItems: 5
+          items: { type: string, example: KRANI }
+        aktif: { type: boolean }
+        mandor_hrmb_code: { type: integer, format: int64, minimum: 1, nullable: true, description: Kode HRMB mandor (akun mandor). }
+        afdeling_kode: { type: string, maxLength: 20, nullable: true, description: Kode afdeling mandor (divisi.kode). }
+    ResetPasswordInput:
+      type: object
+      required: [password]
+      properties:
+        password: { type: string, minLength: 8, maxLength: 72 }
+    PerangkatUbahInput:
+      type: object
+      required: [aktif]
+      properties:
+        aktif: { type: boolean }
+    IdDibuat:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+    Ok:
+      type: object
+      properties:
+        status: { type: string, example: OK }
+    OkQr:
+      type: object
+      properties:
+        status: { type: string, example: OK }
+        qr_berubah: { type: integer, description: Jumlah QR TPH yang berubah (QR lama tidak berlaku). }
+    OkQrBool:
+      type: object
+      properties:
+        status: { type: string, example: OK }
+        qr_berubah: { type: boolean }
+    Massal:
+      type: object
+      properties:
+        dibuat: { type: integer }
+        id:
+          type: array
+          items: { type: integer, format: int64 }
+    Ringkasan:
+      type: object
+      properties:
+        catatan_hari_ini: { type: integer }
+        janjang_hari_ini: { type: integer }
+        catatan_per_status: { type: object, additionalProperties: { type: integer } }
+        perlu_perhatian: { type: integer }
+        perangkat_aktif: { type: integer }
+        pengguna_aktif: { type: integer }
+        tph_tanpa_koordinat: { type: integer }
+        tph_aktif: { type: integer }
+        tren_7_hari:
+          type: array
+          items:
+            type: object
+            properties:
+              tanggal: { type: string, format: date }
+              catatan: { type: integer }
+              janjang: { type: integer }
+    ProduktivitasHarian:
+      type: object
+      properties:
+        tanggal: { type: string, format: date }
+        jumlah_pemanen: { type: integer }
+        total_janjang: { type: integer }
+        rata_janjang: { type: number, description: Rata-rata janjang per pemanen (satu desimal). }
+        pemanen:
+          type: array
+          items:
+            type: object
+            properties:
+              peringkat: { type: integer }
+              hrmb_code: { type: integer, description: Kode ERP pemanen (HRMBCODE). }
+              nama: { type: string, description: Kosong bila kode tidak ada di master pemanen. }
+              catatan: { type: integer }
+              janjang: { type: integer }
+              janjang_matang: { type: integer }
+              persen_matang: { type: number }
+              brondolan_kg: { type: number }
+              menunggu_persetujuan: { type: integer, description: Jumlah catatan yang masih menunggu persetujuan krani. }
+    HalamanPanen:
+      type: object
+      properties:
+        item:
+          type: array
+          items: { type: object, additionalProperties: true }
+        total: { type: integer }
+        halaman: { type: integer }
+        per_halaman: { type: integer }
+    PanenDetail:
+      type: object
+      additionalProperties: true
+      description: Satu catatan lengkap beserta `grading`, `pemanen`, `foto`, dan `impor_log`.
+    HalamanAudit:
+      type: object
+      properties:
+        item:
+          type: array
+          items: { type: object, additionalProperties: true }
+        total: { type: integer }
+        halaman: { type: integer }
+        per_halaman: { type: integer }
+    AuditHasil:
+      type: object
+      properties:
+        diterima: { type: integer, example: 2 }
+        dilewati: { type: integer, example: 0, description: Baris yang `audit_id`-nya sudah ada }
+  responses:
+    TerlaluBanyak:
+      description: Terlalu banyak permintaan dari alamat ini (batas laju). Tunggu sesuai header Retry-After (detik).
+      headers:
+        Retry-After:
+          description: Detik sampai permintaan berikutnya boleh.
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    TidakLogin:
+      description: Token tidak ada, rusak, atau kedaluwarsa.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Terlarang:
+      description: Akun atau perangkat tidak aktif, atau tidak memegang permission yang dibutuhkan.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    TidakValid:
+      description: Isi permintaan tidak lolos validasi. Pesan menyebut bagian yang salah.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    SalahServer:
+      description: Kesalahan di server. Pesan bersifat umum, rincian hanya ada di log server.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+paths:
+  /api/health:
+    get:
+      tags: [Sistem]
+      summary: Cek server hidup dan database terjangkau
+      responses:
+        '200':
+          description: Server dan database sehat.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+        '503':
+          description: Database tidak terjangkau.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login dan daftarkan perangkat
+      description: |
+        Akun terkunci 15 menit setelah 5 kali password salah. Perangkat yang dinonaktifkan admin ditolak.
+        Perangkat baru otomatis didaftarkan.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401':
+          description: Username atau password salah (pesan sengaja sama untuk keduanya).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '423':
+          description: Akun terkunci sementara karena terlalu banyak percobaan gagal.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/TerlaluBanyak' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Tukar refresh token dengan token akses baru
+      description: Refresh token diganti setiap dipakai. Memakai token lama yang sudah diganti menjawab 401.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RefreshRequest' }
+      responses:
+        '200':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RefreshResponse' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401':
+          description: Sesi tidak berlaku (dicabut, kedaluwarsa, akun atau perangkat nonaktif). Login ulang.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/TerlaluBanyak' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Cabut sesi perangkat ini
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Sesi dicabut.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: keluar }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: Profil, role, dan permission terbaru
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Profil pengguna.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Profil' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/auth/password:
+    post:
+      tags: [Auth]
+      summary: Ganti password sendiri
+      description: |
+        Perlu login (tanpa permission khusus). Password lama wajib benar; salah berulang mengunci akun seperti login
+        (423). Password baru 8 sampai 72 karakter dan harus berbeda dari yang lama. Berhasil: `wajib_ganti_password`
+        dihapus, hitungan gagal direset, dan sesi di SEMUA perangkat lain dicabut (perangkat yang dipakai tetap masuk).
+
+        Password lama yang salah dijawab 422, bukan 401, supaya klien tidak menyangka token-nya habis.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GantiPasswordRequest' }
+      responses:
+        '200':
+          description: Password diganti.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StatusOk' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '423':
+          description: Akun terkunci sementara.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/TerlaluBanyak' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/panen:
+    post:
+      tags: [Panen]
+      summary: Kirim satu catatan panen
+      description: |
+        Permission `panen.kirim`. Aman diulang: `panen_id` yang sudah pernah diterima dijawab 200 `SUDAH_ADA`
+        tanpa menggandakan data.
+
+        Persetujuan: `disetujui_username` boleh kosong; pengirim yang memegang `panen.setujui` (mandor) dianggap menyetujui sendiri.
+        Mandor dan afdeling catatan diambil dari akun pencatat, bukan dari isi kiriman. Blok, TPH, dan pemanen harus ada di master;
+        untuk akun mandor pemanen harus miliknya. Satu catatan per tanggal + unit + blok + TPH + pemanen (409 bila ganda).
+
+        Aturan yang ditolak dengan 422: belum disetujui mandor (pengirim tanpa hak setuju), penyetuju tidak dikenal atau tidak memegang
+        `panen.setujui` di server, `unit_kode` tidak dikenal, status lokasi atau kelas tidak dikenal, jumlah
+        negatif, total janjang nol, kelas ganda, tanggal atau waktu salah format, `pemanen` tidak tepat satu
+        atau `jjg_alokasi` tidak sama dengan total janjang.
+        Server menyalin afdeling dan mandor dari master ke catatan untuk header HVDM.
+        Unit catatan harus sama dengan unit akun (403).
+        Identitas pencatat dan perangkat selalu diambil dari token.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PanenInput' }
+            example:
+              panen_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
+              unit_kode: KP_STL
+              tanggal_panen: '2026-11-10'
+              asm3_oid: 101
+              blok_kode: A12
+              tph_kode: '01'
+              brondolan_kg: 12.5
+              gps_lat: -2.000123
+              gps_lon: 113.000456
+              gps_akurasi_m: 8
+              gps_waktu: '2026-11-10T01:00:00Z'
+              gps_mock: false
+              jarak_ke_tph_m: 22
+              status_lokasi: DI_TPH
+              model_versi: best 1
+              catatan: tumpukan dekat parit
+              dibuat_pada: '2026-11-10T01:00:00Z'
+              disetujui_username: mandor1
+              disetujui_pada: '2026-11-10T03:00:00Z'
+              grading:
+                - { kelas_kode: ripe, erp_kolom: JJG_RIPE, jml_ai: 7, jml_final: 9, diubah_manual: true }
+                - { kelas_kode: unripe, jml_ai: 1, jml_final: 1, diubah_manual: false }
+              pemanen:
+                - { hrmb_code: 5001, jjg_alokasi: 10 }
+      responses:
+        '201':
+          description: Catatan baru diterima.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PanenDiterima' }
+              example: { status: DITERIMA, id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa }
+        '200':
+          description: Catatan ini sudah pernah diterima (kirim ulang). Tidak ada yang berubah.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PanenDiterima' }
+              example: { status: SUDAH_ADA, id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '409': { description: Kombinasi tanggal + unit + blok + TPH + pemanen sudah dicatat dengan panen_id lain; jangan diulang otomatis., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '423': { description: Catatan sudah disetujui krani sehingga tidak bisa diubah lagi (kirim_ulang pada catatan BARU, DIBACA, atau DIIMPOR). Jangan diulang., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+    get:
+      tags: [Panen]
+      summary: Status catatan sejak waktu tertentu
+      description: |
+        Permission `panen.lihat`. Mengembalikan catatan milik pengguna; pemegang `panen.koreksi` (mandor, asisten)
+        melihat semua catatan di unitnya. Dipakai HP untuk memperbarui status TERKIRIM menjadi DITERIMA atau DITOLAK.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: sejak
+          in: query
+          required: false
+          description: Hanya yang berubah setelah waktu ini (ISO 8601). Kosong berarti semua.
+          schema: { type: string, format: date-time }
+          example: '2026-11-10T00:00:00Z'
+      responses:
+        '200':
+          description: Daftar status, urut dari yang paling lama berubah.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/StatusPanen' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/panen/ringkasan:
+    get:
+      tags: [Panen]
+      summary: Ringkasan produksi panen dari server untuk dashboard HP
+      description: |
+        Permission `panen.lihat`. Mengembalikan produksi harian, rincian per kelas, rekap 5 blok teratas,
+        tren 7 hari terakhir, dan jumlah catatan per status. Pengguna biasa melihat catatannya sendiri (`SENDIRI`);
+        pemegang `panen.koreksi` atau `panen.setujui` (krani) melihat seluruh catatan di unitnya (`UNIT`).
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: tanggal
+          in: query
+          required: false
+          description: Tanggal sasaran YYYY-MM-DD (kosong berarti hari ini menurut WIB).
+          schema: { type: string, format: date }
+          example: '2026-11-17'
+      responses:
+        '200':
+          description: Ringkasan panen dari database server.
+          content:
+            application/json:
+              schema:
+                type: object
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/panen/menunggu:
+    get:
+      tags: [Panen]
+      summary: Catatan di unit yang menunggu persetujuan krani
+      description: |
+        Permission `panen.setujui`. Catatan berstatus `MENUNGGU` di unit pengguna, terlama dulu, lengkap dengan rincian per kelas (hanya yang bernilai di atas nol). Memuat `foto_id` (foto hasil deteksi bila ada, kalau tidak foto asli; `null` bila foto belum terkirim) yang diunduh lewat `GET /api/admin/foto/{id}`.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Daftar catatan menunggu.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: object, additionalProperties: true }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/panen/{id}/setujui:
+    post:
+      tags: [Panen]
+      summary: Setujui satu catatan yang menunggu
+      description: |
+        Permission `panen.setujui`. MENUNGGU menjadi BARU (siap ditarik HVDM), atas nama penyetuju. Galat: 404, 409 (sudah diproses), 422 id bukan UUID.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Disetujui.
+          content:
+            application/json:
+              schema: { type: object, properties: { status: { type: string, example: DISETUJUI } } }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Catatan tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Catatan sudah diproses., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/panen/{id}/tolak:
+    post:
+      tags: [Panen]
+      summary: Tolak satu catatan yang menunggu, dengan alasan
+      description: |
+        Permission `panen.setujui`. MENUNGGU menjadi DITOLAK; alasan tampil di HP pencatat sebagai "Ditolak krani: ...".
+        Pencatat bisa memperbaiki lalu mengirim ulang dengan kirim_ulang=true. Galat: 404, 409 (bukan lagi MENUNGGU), 422 alasan kosong atau lebih dari 300 karakter.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [alasan]
+              properties:
+                alasan: { type: string, maxLength: 300, example: Blok salah }
+      responses:
+        '200':
+          description: Ditolak.
+          content:
+            application/json:
+              schema: { type: object, properties: { status: { type: string, example: DITOLAK } } }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Catatan tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Catatan sudah diproses., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/panen/{id}/media:
+    post:
+      tags: [Panen]
+      summary: Unggah satu foto bukti (JPEG) untuk sebuah catatan
+      description: |
+        Permission `panen.kirim`. Catatan harus sudah dikirim lebih dulu (404 bila belum). Isi badan adalah byte JPEG
+        mentah, maksimal 8 MB. Server memeriksa checksum SHA-256 dan tanda JPEG. Aman diulang menurut `X-Foto-Id`.
+        Foto catatan orang lain hanya boleh oleh pemegang `panen.koreksi`.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: panen_id catatan.
+          schema: { type: string, format: uuid }
+        - name: jenis
+          in: query
+          required: false
+          description: Jenis foto. Bawaan DETEKSI.
+          schema: { type: string, enum: [ASLI, DETEKSI], default: DETEKSI }
+        - name: X-Foto-Id
+          in: header
+          required: true
+          description: UUID foto, dibuat HP.
+          schema: { type: string, format: uuid }
+        - name: X-Sha256
+          in: header
+          required: true
+          description: SHA-256 isi foto, 64 karakter heksadesimal.
+          schema: { type: string, minLength: 64, maxLength: 64 }
+      requestBody:
+        required: true
+        content:
+          image/jpeg:
+            schema: { type: string, format: binary }
+      responses:
+        '201':
+          description: Foto baru diterima.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PanenDiterima' }
+        '200':
+          description: Foto ini sudah pernah diterima.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PanenDiterima' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404':
+          description: Catatan panen belum ada. Kirim catatan dulu.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '413':
+          description: Foto lebih dari 8 MB.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '415':
+          description: Isi bukan JPEG.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422':
+          description: Checksum tidak cocok dengan isi.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/master:
+    get:
+      tags: [Master]
+      summary: Unduh master unit pengguna (unit, divisi, blok, TPH, pemanen, akun)
+      description: |
+        Permission `master.lihat`. Mengembalikan master unit milik akun. Kirim `versi` yang tersimpan di HP; bila sama
+        dengan versi server, jawabannya hanya `{versi, berubah: false}`. Hash password dan data kunci akun tidak
+        pernah dikirim. Role akun dikirim sebagai kode (KRANI, MANDOR, dan seterusnya).
+
+        Versi dihitung dari isi tabel (jumlah baris dan waktu ubah terbaru), jadi setiap perubahan master wajib
+        mengisi `diubah_pada`.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: versi
+          in: query
+          required: false
+          description: Versi master yang sedang disimpan HP. Kosong berarti HP belum punya master.
+          schema: { type: string }
+          example: m-3f9a1c0d22b7e4aa
+      responses:
+        '200':
+          description: Master (atau hanya versi bila tidak berubah).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Master' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/tph/{id}/koordinat:
+    put:
+      tags: [Master]
+      summary: Rekam koordinat TPH dari titik GPS di lokasi (HP)
+      description: |
+        Permission `panen.kirim`. Mengisi koordinat TPH **hanya bila TPH belum punya koordinat**, supaya titik yang
+        sudah benar tidak tertimpa titik asal-asalan (mengubah titik yang sudah ada lewat web admin,
+        `PUT /api/admin/tph/{id}`). Bila TPH sudah punya koordinat, titik milik server dikembalikan dengan
+        `diterapkan: false` dan HP wajib memakainya. Aman diulang (idempoten): mengirim titik yang sama lagi
+        menghasilkan `diterapkan: false` dengan titik yang sama.
+
+        Berhasil mengisi mengubah `diubah_pada` TPH sehingga versi master berubah dan HP lain ikut mengunduh titiknya,
+        dan tercatat di audit log. TPH harus milik unit pengguna.
+
+        Titik ditolak dengan 422 bila `lat`/`lon` di luar jangkauan, tepat (0, 0), atau `akurasi_m` di atas 50 meter.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: tph_id (sama dengan `tph_id` di jawaban `GET /api/master`).
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/KoordinatInput' }
+      responses:
+        '200':
+          description: 'Titik tersimpan (diterapkan bernilai true) atau TPH sudah punya titik (diterapkan bernilai false, lat dan lon berisi titik server).'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KoordinatHasil' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404':
+          description: TPH tidak ada, sudah dihapus, atau bukan milik unit pengguna.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/audit/batch:
+    post:
+      tags: [Audit]
+      summary: Kirim audit_log dari HP secara massal
+      description: |
+        Maksimal 500 baris per kiriman (413 bila lebih). Baris yang `audit_id`-nya sudah ada dilewati. `user_id` dan
+        `device_id` selalu diambil dari token, bukan dari isi kiriman.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              maxItems: 500
+              items: { $ref: '#/components/schemas/AuditInput' }
+      responses:
+        '200':
+          description: Ringkasan.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditHasil' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '413':
+          description: Lebih dari 500 baris.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/divisi:
+    get:
+      tags: [Admin]
+      summary: Daftar divisi
+      description: |
+        Permission `master.lihat`. Divisi unit pengguna yang belum dihapus, beserta `jumlah_blok`.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Daftar.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: object, additionalProperties: true }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+    post:
+      tags: [Admin]
+      summary: Buat divisi
+      description: |
+        Permission `master.kelola`. Kode unik per unit. Galat: 409 kode sudah dipakai · 422 kode kosong atau berisi `|`.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DivisiInput' }
+      responses:
+        '201':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IdDibuat' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/divisi/{id}:
+    put:
+      tags: [Admin]
+      summary: Ubah divisi
+      description: |
+        Permission `master.kelola`. Menggantikan semua kolom yang bisa diubah (`aktif` kosong berarti tidak diubah). Galat: 404 tidak ada · 409 kode sudah dipakai · 422.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DivisiInput' }
+      responses:
+        '200':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+    delete:
+      tags: [Admin]
+      summary: Hapus divisi (lunak)
+      description: |
+        Permission `master.kelola`. Ditolak bila masih ada blok di dalamnya. Galat: 404 · 409 masih dipakai blok.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/blok:
+    get:
+      tags: [Admin]
+      summary: Daftar blok
+      description: |
+        Permission `master.lihat`. Blok beserta `divisi_kode` dan `jumlah_tph`.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Daftar.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: object, additionalProperties: true }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+    post:
+      tags: [Admin]
+      summary: Buat blok
+      description: |
+        Permission `master.kelola`. `erp_oid` (OID blok di ERP) wajib. Kode unik per unit dan tanpa karakter `|`. Galat: 409 kode sudah dipakai · 422 divisi tidak ada atau masukan tidak sah.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BlokInput' }
+      responses:
+        '201':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IdDibuat' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/blok/{id}:
+    put:
+      tags: [Admin]
+      summary: Ubah blok
+      description: |
+        Permission `master.kelola`. Bila `kode` berubah, `qr_kode` semua TPH di blok ini ikut dibuat ulang (isi QR memuat kode blok) dan **QR lama tidak berlaku lagi**. Jawaban memberi `qr_berubah`, jumlah QR yang berubah. Galat: 404 · 409 · 422.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BlokInput' }
+      responses:
+        '200':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OkQr' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+    delete:
+      tags: [Admin]
+      summary: Hapus blok (lunak)
+      description: |
+        Permission `master.kelola`. Ditolak bila masih ada TPH di dalamnya. Galat: 404 · 409 masih ada TPH.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/tph:
+    get:
+      tags: [Admin]
+      summary: Daftar TPH
+      description: |
+        Permission `master.lihat`. Query `blok_id` (opsional) menyaring satu blok. Berisi `qr_kode`, `lat`, `lon`.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: blok_id
+          in: query
+          required: false
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Daftar.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: object, additionalProperties: true }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+    post:
+      tags: [Admin]
+      summary: Buat TPH
+      description: |
+        Permission `master.kelola`. `qr_kode` dibuat server: `FAI26|TPH|1|<unit>|<blok>|<no>` (lihat `progres/SPEK_QR_TPH.md`). `lat` dan `lon` harus diisi bersamaan atau dikosongkan bersamaan. Galat: 409 QR yang sama sudah ada · 422 blok tidak ada, nomor berisi `|`, atau koordinat di luar rentang.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TphInput' }
+      responses:
+        '201':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IdDibuat' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/tph/massal:
+    post:
+      tags: [Admin]
+      summary: Buat TPH berurutan
+      description: |
+        Permission `master.kelola`. Membuat nomor `dari` sampai `sampai` (maksimal 500) dengan lebar nol di depan, contoh 1 sampai 20 lebar 2 menjadi `01` sampai `20`. **Semua atau tidak sama sekali**: satu bentrok membatalkan semuanya. Galat: 409 ada nomor yang sudah ada (tidak ada yang dibuat) · 422 rentang atau lebar tidak sah.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TphMassalInput' }
+      responses:
+        '201':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Massal' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/tph/{id}:
+    put:
+      tags: [Admin]
+      summary: Ubah TPH
+      description: |
+        Permission `master.kelola`. Mengganti blok atau nomor membuat `qr_kode` baru dan QR lama tidak berlaku (`qr_berubah` true). Mengubah koordinat atau `aktif` saja tidak mengubah QR. Koordinat yang tidak dikirim menjadi kosong. Galat: 404 · 409 · 422.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TphInput' }
+      responses:
+        '200':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OkQrBool' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+    delete:
+      tags: [Admin]
+      summary: Hapus TPH (lunak)
+      description: |
+        Permission `master.kelola`. Baris tetap ada untuk catatan lama dan HP menandainya terhapus. Galat: 404.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/pemanen:
+    get:
+      tags: [Admin]
+      summary: Daftar pemanen
+      description: |
+        Permission `master.lihat`. Pemanen unit pengguna yang belum dihapus.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Daftar.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: object, additionalProperties: true }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+    post:
+      tags: [Admin]
+      summary: Buat pemanen
+      description: |
+        Permission `master.kelola`. `erp_hrmb_code` (kode di ERP) wajib dan unik per unit. Galat: 409 kode ERP sudah dipakai · 422.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PemanenAdminInput' }
+      responses:
+        '201':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IdDibuat' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/pemanen/{id}:
+    put:
+      tags: [Admin]
+      summary: Ubah pemanen
+      description: |
+        Permission `master.kelola`.  Galat: 404 · 409 · 422.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PemanenAdminInput' }
+      responses:
+        '200':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+    delete:
+      tags: [Admin]
+      summary: Hapus pemanen (lunak)
+      description: |
+        Permission `master.kelola`.  Galat: 404.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/peran:
+    get:
+      tags: [Admin]
+      summary: Daftar role
+      description: |
+        Permission `user.kelola`. Role yang bisa diberikan ke pengguna.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Daftar.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: object, additionalProperties: true }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/hak-akses:
+    get:
+      tags: [Admin]
+      summary: Daftar role beserta hak (permission) dan katalog permission
+      description: Permission `role.kelola`. Untuk layar pengelolaan hak akses di web admin.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Seluruh role dengan hak masing-masing, dan katalog permission.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HakAkses' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/hak-akses/{id}:
+    put:
+      tags: [Admin]
+      summary: Ganti seluruh hak satu role
+      description: |
+        Permission `role.kelola`. Mengganti SELURUH hak role dengan daftar `permission` yang dikirim (daftar kosong
+        berarti role tanpa hak). Hak yang tidak dicantumkan dihapus lunak, yang baru ditambahkan atau dihidupkan lagi.
+        Berlaku langsung di server (hak dibaca ulang tiap panggilan), mengubah versi master supaya HP mengikuti, dan
+        tercatat di audit log. Tanpa perubahan nyata: 200 tanpa mengubah versi master atau menulis audit.
+
+        Pengaman: role `ADMIN` tidak boleh kehilangan `role.kelola` (409), supaya tidak ada yang terkunci dari
+        pengelolaan hak akses.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HakAksesInput' }
+      responses:
+        '200':
+          description: Hak role diperbarui.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StatusOk' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404':
+          description: Role tidak ada.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: Perubahan dilindungi (mencabut `role.kelola` dari ADMIN).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/pengguna:
+    get:
+      tags: [Admin]
+      summary: Daftar pengguna
+      description: |
+        Permission `user.kelola`. Pengguna unit beserta role, login terakhir, dan status kunci.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Daftar.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: object, additionalProperties: true }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+    post:
+      tags: [Admin]
+      summary: Buat pengguna
+      description: |
+        Permission `user.kelola`. Username 3 sampai 50 karakter (huruf kecil, angka, titik, garis bawah, strip). Password minimal 8 karakter dan disimpan sebagai hash bcrypt. Pengguna baru **wajib ganti password**. Galat: 409 username sudah dipakai · 422 masukan tidak sah atau role tidak ada.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PenggunaInput' }
+      responses:
+        '201':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IdDibuat' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/pengguna/{id}:
+    put:
+      tags: [Admin]
+      summary: Ubah pengguna
+      description: |
+        Permission `user.kelola`. Mengubah nama, status aktif, dan role (diganti sesuai daftar). Menonaktifkan mencabut semua sesinya. Tidak bisa menonaktifkan akun sendiri. Password tidak diubah di sini. Galat: 404 · 422.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PenggunaInput' }
+      responses:
+        '200':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/pengguna/{id}/reset-password:
+    post:
+      tags: [Admin]
+      summary: Reset password pengguna
+      description: |
+        Permission `user.kelola`. Mengganti password, mewajibkan ganti pada login berikutnya, membuka kunci akun, dan **mencabut semua sesi** pengguna. Galat: 404 · 422 password kurang dari 8 atau lebih dari 72 karakter.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ResetPasswordInput' }
+      responses:
+        '200':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/perangkat:
+    get:
+      tags: [Admin]
+      summary: Daftar perangkat
+      description: |
+        Permission `device.kelola`. Semua HP (dan browser web admin) yang pernah login, terbaru dulu.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Daftar.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: object, additionalProperties: true }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/perangkat/{id}:
+    put:
+      tags: [Admin]
+      summary: Aktifkan atau nonaktifkan perangkat
+      description: |
+        Permission `device.kelola`. Menonaktifkan juga mencabut semua sesi perangkat itu dan menolak login berikutnya. Perangkat yang sedang dipakai sendiri tidak bisa dinonaktifkan. Galat: 404 · 422 id bukan UUID atau perangkat sendiri.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PerangkatUbahInput' }
+      responses:
+        '200':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/ringkasan:
+    get:
+      tags: [Admin]
+      summary: Ringkasan dasbor
+      description: |
+        Permission `laporan.lihat`. Query `tanggal` (opsional, `YYYY-MM-DD`; bawaan hari ini menurut WIB). Berisi hitungan hari itu, catatan per status ERP, catatan yang perlu perhatian (lokasi di luar TPH, GPS lemah atau mati, lokasi palsu, dan belum diimpor), jumlah perangkat dan pengguna aktif, TPH tanpa koordinat, dan tren 7 hari. Galat: 422 tanggal salah format.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: tanggal
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ringkasan' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/produktivitas:
+    get:
+      tags: [Admin]
+      summary: Ranking produktivitas pemanen satu hari
+      description: |
+        Permission `laporan.lihat`. Query `tanggal` (opsional, `YYYY-MM-DD`; bawaan hari ini menurut WIB). Mengelompokkan catatan satu hari per pemanen (kode ERP `HRMBCODE`): jumlah catatan, janjang, janjang matang beserta persentasenya, brondolan (kg), dan jumlah catatan yang masih menunggu persetujuan krani. Urut janjang terbanyak; janjang yang sama berarti peringkat yang sama. Catatan berstatus ditolak tidak dihitung. Hanya membaca: premi (rupiah) tidak dihitung karena tarif dan basis premi dimiliki ERP. Galat: 422 tanggal salah format.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: tanggal
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProduktivitasHarian' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/panen:
+    get:
+      tags: [Admin]
+      summary: Daftar catatan panen
+      description: |
+        Permission `panen.lihat`. Query: `dari`, `sampai` (`YYYY-MM-DD`), `status_erp` (`BARU`, `DIBACA`, `DIIMPOR`, `DITOLAK`), `cari` (kode blok atau TPH), `halaman` (mulai 1), `per_halaman` (bawaan 25, maksimal 100). Terbaru dulu. Galat: 422 filter salah format.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: dari
+          in: query
+          required: false
+          schema: { type: string }
+        - name: sampai
+          in: query
+          required: false
+          schema: { type: string }
+        - name: status_erp
+          in: query
+          required: false
+          schema: { type: string }
+        - name: cari
+          in: query
+          required: false
+          schema: { type: string }
+        - name: halaman
+          in: query
+          required: false
+          schema: { type: integer }
+        - name: per_halaman
+          in: query
+          required: false
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HalamanPanen' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/panen/{id}:
+    get:
+      tags: [Admin]
+      summary: Detail catatan panen
+      description: |
+        Permission `panen.lihat`. Satu catatan lengkap: GPS, grading per kelas (hitungan AI dan akhir), pemanen (nama dicocokkan dari master), daftar foto (`id` dipakai di `GET /api/admin/foto/{id}`), dan log impor ERP. Galat: 404 · 422 id bukan UUID.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PanenDetail' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/foto/{id}:
+    get:
+      tags: [Admin]
+      summary: Unduh foto catatan
+      description: |
+        Permission `panen.lihat`. Mengembalikan byte JPEG (`Content-Type: image/jpeg`) dengan token di header `Authorization`. Karena itu browser memuatnya dengan `fetch` lalu membuat blob, bukan tag gambar biasa. Hanya foto catatan di unit pengguna. Galat: 404 foto atau berkasnya tidak ada · 422 id bukan UUID.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Byte JPEG.
+          content:
+            image/jpeg:
+              schema: { type: string, format: binary }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
+  /api/admin/audit:
+    get:
+      tags: [Admin]
+      summary: Cari audit log
+      description: |
+        Permission `audit.lihat`. Query: `tabel`, `aksi`, `dari`, `sampai` (`YYYY-MM-DD`), `cari` (username, id baris, atau keterangan), `halaman`, `per_halaman`. Terbaru dulu. Catatan: role ADMIN tidak punya `audit.lihat` (hanya AUDITOR); beri admin kedua role bila perlu. Galat: 422 filter salah format.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: tabel
+          in: query
+          required: false
+          schema: { type: string }
+        - name: aksi
+          in: query
+          required: false
+          schema: { type: string }
+        - name: dari
+          in: query
+          required: false
+          schema: { type: string }
+        - name: sampai
+          in: query
+          required: false
+          schema: { type: string }
+        - name: cari
+          in: query
+          required: false
+          schema: { type: string }
+        - name: halaman
+          in: query
+          required: false
+          schema: { type: integer }
+        - name: per_halaman
+          in: query
+          required: false
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Berhasil.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HalamanAudit' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Data tidak ditemukan., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Bentrok (kode ganda atau masih dipakai)., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }

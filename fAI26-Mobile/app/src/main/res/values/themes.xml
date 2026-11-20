@@ -1,0 +1,88 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Tema aplikasi: Material 3, hijau kebun, font Outfit. Nilai warna terang/gelap ada di colors.xml. -->
+    <style name="Base.Theme.FAI26" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/brand_primary</item>
+        <item name="colorOnPrimary">@color/brand_on_primary</item>
+        <item name="colorPrimaryContainer">@color/brand_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/brand_on_primary_container</item>
+        <item name="colorSecondary">@color/brand_secondary</item>
+        <item name="colorOnSecondary">@color/brand_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/brand_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/brand_on_secondary_container</item>
+        <item name="android:colorBackground">@color/brand_background</item>
+        <item name="colorSurface">@color/brand_surface</item>
+        <item name="colorOnSurface">@color/brand_on_surface</item>
+        <item name="colorOnSurfaceVariant">@color/brand_on_surface_variant</item>
+        <item name="colorOutline">@color/brand_outline</item>
+        <item name="colorError">@color/brand_error</item>
+        <item name="colorErrorContainer">@color/brand_error_container</item>
+        <item name="colorOnErrorContainer">@color/brand_on_error_container</item>
+
+        <!-- Font Outfit di seluruh aplikasi (termasuk tampilan yang dibuat dari kode). -->
+        <!-- Hanya android:fontFamily: versi app:fontFamily di tema akan menimpa ketebalan yang ditulis di tiap teks. -->
+        <item name="android:fontFamily">@font/outfit</item>
+
+        <!-- Tombol: pil, huruf biasa (bukan kapital semua), semibold. -->
+        <item name="materialButtonStyle">@style/Widget.Fai26.Button</item>
+        <item name="materialButtonOutlinedStyle">@style/Widget.Fai26.Button.Outlined</item>
+        <item name="materialCardViewStyle">@style/Widget.Fai26.Card</item>
+        <!-- Permukaan berelevasi tetap putih (tanpa rona hijau Material 3). -->
+        <item name="elevationOverlayEnabled">false</item>
+    </style>
+
+    <style name="Theme.FAI26" parent="Base.Theme.FAI26" />
+
+    <!-- Tombol -->
+    <style name="Widget.Fai26.Button" parent="Widget.Material3.Button">
+        <item name="android:fontFamily">@font/outfit_semibold</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+    <style name="Widget.Fai26.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:fontFamily">@font/outfit_semibold</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="strokeColor">@color/brand_outline</item>
+    </style>
+    <style name="Widget.Fai26.Button.Tonal" parent="Widget.Material3.Button.TonalButton">
+        <item name="backgroundTint">?attr/colorPrimaryContainer</item>
+        <item name="android:textColor">?attr/colorOnPrimaryContainer</item>
+        <item name="android:fontFamily">@font/outfit_semibold</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+    <style name="Widget.Fai26.Button.Text" parent="Widget.Material3.Button.TextButton">
+        <item name="android:fontFamily">@font/outfit_medium</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <!-- Kartu putih datar, sudut 20dp, tanpa garis: berdiri di atas latar abu terang. -->
+    <style name="Widget.Fai26.Card" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardBackgroundColor">?attr/colorSurface</item>
+        <item name="cardCornerRadius">20dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeWidth">0dp</item>
+    </style>
+    <!-- Kartu utama yang menimpa kepala hijau: bayangan lembut. -->
+    <style name="Widget.Fai26.Card.Hero">
+        <item name="cardElevation">10dp</item>
+        <item name="android:outlineSpotShadowColor" tools:targetApi="p">@color/kartu_bayang</item>
+        <item name="android:outlineAmbientShadowColor" tools:targetApi="p">@color/kartu_bayang</item>
+    </style>
+    <!-- Kartu hijau (ringkasan, seperti kartu cuaca di referensi). -->
+    <style name="Widget.Fai26.Card.Hijau">
+        <item name="cardBackgroundColor">@color/header_start</item>
+    </style>
+
+    <!-- Teks -->
+    <style name="TextAppearance.Fai26.Judul" parent="">
+        <item name="android:fontFamily">@font/outfit_semibold</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+</resources>

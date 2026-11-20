@@ -1,0 +1,182 @@
+erDiagram
+    unit ||--o{ fai_panen : "unit asal"
+    unit ||--o{ divisi : "punya"
+    unit ||--o{ blok : "punya"
+    unit ||--o{ pemanen : "punya"
+    divisi ||--o{ blok : "berisi"
+    blok ||--o{ tph : "berisi"
+    device ||--o{ fai_panen : "HP pengirim"
+    fai_panen ||--o{ fai_panen_grading : "punya hasil"
+    fai_panen ||--o{ fai_panen_pemanen : "dikreditkan ke"
+    fai_panen ||--o{ fai_foto : "punya foto"
+    fai_panen ||--o{ fai_impor_log : "dicatat impornya"
+    fai_impor_log }o..o| hvd1m : "membuat header"
+    fai_impor_log }o..o| hvd1da : "membuat baris"
+    hvd1m ||--o{ hvd1da : "berisi baris"
+    asm3 ||--o{ hvd1da : "blok ASM3CODE"
+    fai_panen }o..|| asm3 : "blok asm3_oid"
+
+    fai_panen {
+        UNIQUEIDENTIFIER id PK "sama dengan panen_id di HP"
+        INT unit_id FK
+        UNIQUEIDENTIFIER device_id FK
+        DATE tanggal_panen
+        BIGINT asm3_oid "OID blok di ERP"
+        NVARCHAR blok_kode
+        NVARCHAR tph_kode
+        INT rotasi
+        INT kondisi_cuaca
+        FLOAT brondolan_kg
+        DECIMAL gps_lat
+        DECIMAL gps_lon
+        FLOAT gps_akurasi_m
+        DATETIME2 gps_waktu
+        BIT gps_mock
+        FLOAT jarak_ke_tph_m
+        NVARCHAR status_lokasi
+        NVARCHAR model_versi
+        NVARCHAR catatan
+        DATETIME2 diterima_server "waktu server, pembanding waktu HP"
+        NVARCHAR status_erp
+        INT disetujui_oleh "user_id mandor yang menyetujui"
+        DATETIME2 disetujui_pada "waktu persetujuan mandor"
+        DATETIME2 dibuat_pada "waktu UTC saat baris dibuat"
+        INT dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        DATETIME2 diubah_pada "waktu UTC perubahan terakhir"
+        INT diubah_oleh "user_id pengubah terakhir"
+        DATETIME2 dihapus_pada "terisi bila dihapus lunak"
+        INT dihapus_oleh "user_id penghapus"
+    }
+    fai_panen_grading {
+        BIGINT id PK
+        UNIQUEIDENTIFIER panen_id FK
+        NVARCHAR kelas_kode "ripe, overripe, dst"
+        NVARCHAR erp_kolom "contoh JJG_RIPE"
+        INT jml_ai
+        INT jml_final
+        BIT diubah_manual
+        DATETIME2 dibuat_pada "waktu UTC saat baris dibuat"
+        INT dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        DATETIME2 diubah_pada "waktu UTC perubahan terakhir"
+        INT diubah_oleh "user_id pengubah terakhir"
+        DATETIME2 dihapus_pada "terisi bila dihapus lunak"
+        INT dihapus_oleh "user_id penghapus"
+    }
+    fai_panen_pemanen {
+        BIGINT id PK
+        UNIQUEIDENTIFIER panen_id FK
+        INT hrmb_code "nilai untuk HRMBCODE, boleh kosong"
+        INT jjg_alokasi
+        DATETIME2 dibuat_pada "waktu UTC saat baris dibuat"
+        INT dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        DATETIME2 diubah_pada "waktu UTC perubahan terakhir"
+        INT diubah_oleh "user_id pengubah terakhir"
+        DATETIME2 dihapus_pada "terisi bila dihapus lunak"
+        INT dihapus_oleh "user_id penghapus"
+    }
+    fai_foto {
+        UNIQUEIDENTIFIER id PK
+        UNIQUEIDENTIFIER panen_id FK
+        NVARCHAR jenis
+        NVARCHAR nama_file
+        NVARCHAR sha256
+        DATETIME2 dibuat_pada "waktu UTC saat baris dibuat"
+        INT dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        DATETIME2 diubah_pada "waktu UTC perubahan terakhir"
+        INT diubah_oleh "user_id pengubah terakhir"
+        DATETIME2 dihapus_pada "terisi bila dihapus lunak"
+        INT dihapus_oleh "user_id penghapus"
+    }
+    fai_impor_log {
+        BIGINT id PK
+        UNIQUEIDENTIFIER panen_id FK
+        DATETIME2 waktu_impor
+        BIGINT hvd1m_oid "OID header hasil impor"
+        BIGINT hvd1da_oid "OID baris hasil impor"
+        NVARCHAR hasil
+        NVARCHAR pesan_error
+        INT diimpor_oleh "user ERP yang menjalankan impor"
+        DATETIME2 dibuat_pada "waktu UTC saat baris dibuat"
+        INT dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        DATETIME2 diubah_pada "waktu UTC perubahan terakhir"
+        INT diubah_oleh "user_id pengubah terakhir"
+    }
+    divisi {
+        INT divisi_id PK
+        INT unit_id FK
+        INT erp_oid
+        NVARCHAR kode
+        NVARCHAR nama
+    }
+    blok {
+        INT blok_id PK
+        INT unit_id FK
+        INT divisi_id FK
+        BIGINT erp_oid "OID blok di ERP (ASM3)"
+        NVARCHAR kode
+        FLOAT luas_ha
+        INT tahun_tanam
+        FLOAT sph
+    }
+    tph {
+        INT tph_id PK
+        INT blok_id FK
+        NVARCHAR no_tph
+        NVARCHAR qr_kode UK "FAI26|TPH|1|unit|blok|no"
+        FLOAT lat
+        FLOAT lon
+    }
+    pemanen {
+        INT pemanen_id PK
+        INT unit_id FK
+        INT erp_hrmb_code "HRMBCODE di ERP"
+        NVARCHAR kode
+        NVARCHAR nama
+    }
+    unit {
+        INT unit_id PK
+        NVARCHAR kode UK "contoh KP_STL"
+        NVARCHAR erp_db "contoh kp_stl2025"
+    }
+    device {
+        UNIQUEIDENTIFIER device_id PK "dibuat saat aplikasi pertama dipasang"
+        NVARCHAR nama
+    }
+    hvd1m {
+        BIGINT OID PK
+        VARCHAR NOBUKTI "dibuat ERP"
+        DATE TGLBUKTI
+        VARCHAR KETMASTER
+        TINYINT PERIODEM
+        SMALLINT PERIODEY
+        DATETIME REC_CREATDATE
+        INT REC_CREATBY
+    }
+    hvd1da {
+        BIGINT OID PK
+        BIGINT hvd1m FK "OID header"
+        INT NOURUT
+        INT HRMBCODE "pemanen"
+        INT ASM3CODE "blok"
+        TINYINT ROTASI
+        FLOAT HASILHI1
+        FLOAT JJG_RIPE
+        FLOAT JJG_OVERRIPE
+        FLOAT JJG_EMPTY
+        FLOAT JJG_BUSUK
+        FLOAT JJG_SAKIT
+        FLOAT JJG_UNKNOWN
+        FLOAT JJG_LANDAK
+        FLOAT BJR
+        TINYINT KONDISI_CUACA
+        DATETIME TGLBUKTI
+        VARCHAR KETDETAIL
+    }
+    asm3 {
+        BIGINT OID PK
+        VARCHAR CODE "kode blok"
+        VARCHAR NAME_ID
+        FLOAT LUASBLOK
+        VARCHAR BLNTANAM
+        FLOAT SPH
+    }

@@ -1,0 +1,360 @@
+erDiagram
+    unit ||--o{ divisi : "punya"
+    unit ||--o{ blok : "punya"
+    divisi |o--o{ blok : "berisi"
+    blok ||--o{ tph : "berisi"
+    unit ||--o{ pemanen : "mempekerjakan"
+    unit ||--o{ app_user : "memiliki"
+    unit ||--o{ periode_rotasi : "menjadwalkan"
+    unit ||--o{ master_sync : "dilacak"
+    app_user ||--o{ user_role : "diberi"
+    role ||--o{ user_role : "dipegang"
+    role ||--o{ role_permission : "punya"
+    permission ||--o{ role_permission : "diberikan lewat"
+    unit ||--o{ panen_header : "mencatat"
+    blok ||--o{ panen_header : "dipanen di"
+    tph ||--o{ panen_header : "dicatat di"
+    app_user ||--o{ panen_header : "mencatat"
+    device ||--o{ panen_header : "asal HP"
+    model_versi |o--o{ panen_header : "dinilai oleh"
+    periode_rotasi |o--o{ panen_header : "masuk rotasi"
+    panen_header ||--o{ panen_pemanen : "dikreditkan ke"
+    pemanen |o--o{ panen_pemanen : "dipanen oleh"
+    panen_header ||--o{ panen_grading : "punya hasil"
+    kelas_grading ||--o{ panen_grading : "jenis kelas"
+    panen_header ||--o{ foto : "punya foto"
+    foto ||--o{ deteksi : "berisi kotak"
+    kelas_grading ||--o{ deteksi : "jenis kelas"
+    panen_header |o--o{ sync_queue : "antre kirim"
+    app_user |o--o{ audit_log : "pelaku"
+    device |o--o{ audit_log : "asal HP"
+
+    unit {
+        INTEGER unit_id PK
+        TEXT kode UK "contoh KP_STL"
+        TEXT nama
+        TEXT erp_db "contoh kp_stl2025"
+        INTEGER tahun_cluster
+        INTEGER aktif
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        TEXT diubah_pada "waktu UTC perubahan terakhir"
+        INTEGER diubah_oleh "user_id pengubah terakhir"
+        TEXT dihapus_pada "terisi bila dihapus lunak"
+        INTEGER dihapus_oleh "user_id penghapus"
+    }
+    divisi {
+        INTEGER divisi_id PK
+        INTEGER unit_id FK
+        INTEGER erp_oid
+        TEXT kode
+        TEXT nama
+        INTEGER aktif
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        TEXT diubah_pada "waktu UTC perubahan terakhir"
+        INTEGER diubah_oleh "user_id pengubah terakhir"
+        TEXT dihapus_pada "terisi bila dihapus lunak"
+        INTEGER dihapus_oleh "user_id penghapus"
+    }
+    blok {
+        INTEGER blok_id PK
+        INTEGER unit_id FK
+        INTEGER divisi_id FK
+        INTEGER erp_oid "OID asm3, nilai untuk ASM3CODE"
+        TEXT kode
+        TEXT nama
+        REAL luas_ha
+        INTEGER tahun_tanam
+        REAL sph
+        INTEGER aktif
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        TEXT diubah_pada "waktu UTC perubahan terakhir"
+        INTEGER diubah_oleh "user_id pengubah terakhir"
+        TEXT dihapus_pada "terisi bila dihapus lunak"
+        INTEGER dihapus_oleh "user_id penghapus"
+    }
+    tph {
+        INTEGER tph_id PK
+        INTEGER blok_id FK
+        TEXT no_tph
+        TEXT qr_kode UK "isi QR"
+        REAL lat
+        REAL lon
+        INTEGER aktif
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        TEXT diubah_pada "waktu UTC perubahan terakhir"
+        INTEGER diubah_oleh "user_id pengubah terakhir"
+        TEXT dihapus_pada "terisi bila dihapus lunak"
+        INTEGER dihapus_oleh "user_id penghapus"
+    }
+    pemanen {
+        INTEGER pemanen_id PK
+        INTEGER unit_id FK
+        INTEGER erp_hrmb_code "nilai untuk HRMBCODE"
+        TEXT kode
+        TEXT nama
+        INTEGER aktif
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        TEXT diubah_pada "waktu UTC perubahan terakhir"
+        INTEGER diubah_oleh "user_id pengubah terakhir"
+        TEXT dihapus_pada "terisi bila dihapus lunak"
+        INTEGER dihapus_oleh "user_id penghapus"
+    }
+    periode_rotasi {
+        INTEGER periode_id PK
+        INTEGER unit_id FK
+        INTEGER rotasi_no "nilai untuk ROTASI"
+        TEXT tgl_mulai
+        TEXT tgl_selesai
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        TEXT diubah_pada "waktu UTC perubahan terakhir"
+        INTEGER diubah_oleh "user_id pengubah terakhir"
+        TEXT dihapus_pada "terisi bila dihapus lunak"
+        INTEGER dihapus_oleh "user_id penghapus"
+    }
+    kelas_grading {
+        INTEGER kelas_id PK
+        TEXT kode UK "unripe, underripe, ripe, overripe, empty, abnormal"
+        TEXT nama
+        INTEGER label_model "nomor kelas di YOLO"
+        TEXT erp_kolom "contoh JJG_RIPE, boleh kosong"
+        INTEGER boleh_dipanen
+        INTEGER urutan
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        TEXT diubah_pada "waktu UTC perubahan terakhir"
+        INTEGER diubah_oleh "user_id pengubah terakhir"
+        TEXT dihapus_pada "terisi bila dihapus lunak"
+        INTEGER dihapus_oleh "user_id penghapus"
+    }
+    model_versi {
+        INTEGER model_id PK
+        TEXT nama
+        TEXT versi
+        TEXT file_hash
+        TEXT tgl_rilis
+        INTEGER aktif
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        TEXT diubah_pada "waktu UTC perubahan terakhir"
+        INTEGER diubah_oleh "user_id pengubah terakhir"
+        TEXT dihapus_pada "terisi bila dihapus lunak"
+        INTEGER dihapus_oleh "user_id penghapus"
+    }
+    device {
+        TEXT device_id PK "dibuat saat aplikasi pertama dipasang"
+        TEXT nama
+        TEXT os_versi
+        TEXT app_versi
+        INTEGER aktif "admin menonaktifkan HP yang hilang"
+        TEXT terakhir_sinkron
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        TEXT diubah_pada "waktu UTC perubahan terakhir"
+        INTEGER diubah_oleh "user_id pengubah terakhir"
+        TEXT dihapus_pada "terisi bila dihapus lunak"
+        INTEGER dihapus_oleh "user_id penghapus"
+    }
+    app_user {
+        INTEGER user_id PK
+        INTEGER unit_id FK
+        INTEGER erp_user_oid "kaitan ke user ERP, boleh kosong"
+        TEXT username UK
+        TEXT nama
+        INTEGER aktif
+        INTEGER gagal_login "hitung gagal berturut-turut"
+        TEXT terkunci_sampai
+        TEXT login_terakhir
+        TEXT offline_hash "verifier lokal untuk login tanpa sinyal"
+        TEXT offline_salt
+        TEXT offline_berlaku_sampai "batas login offline"
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        TEXT diubah_pada "waktu UTC perubahan terakhir"
+        INTEGER diubah_oleh "user_id pengubah terakhir"
+        TEXT dihapus_pada "terisi bila dihapus lunak"
+        INTEGER dihapus_oleh "user_id penghapus"
+    }
+    role {
+        INTEGER role_id PK
+        TEXT kode UK "KRANI, MANDOR, ASISTEN, ADMIN, AUDITOR"
+        TEXT nama
+        TEXT deskripsi
+        INTEGER bawaan "role bawaan sistem tidak boleh dihapus"
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        TEXT diubah_pada "waktu UTC perubahan terakhir"
+        INTEGER diubah_oleh "user_id pengubah terakhir"
+        TEXT dihapus_pada "terisi bila dihapus lunak"
+        INTEGER dihapus_oleh "user_id penghapus"
+    }
+    permission {
+        INTEGER permission_id PK
+        TEXT kode UK "contoh panen.buat"
+        TEXT modul
+        TEXT nama
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        TEXT diubah_pada "waktu UTC perubahan terakhir"
+        INTEGER diubah_oleh "user_id pengubah terakhir"
+        TEXT dihapus_pada "terisi bila dihapus lunak"
+        INTEGER dihapus_oleh "user_id penghapus"
+    }
+    user_role {
+        INTEGER ur_id PK
+        INTEGER user_id FK
+        INTEGER role_id FK
+        TEXT berlaku_mulai
+        TEXT berlaku_sampai
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        TEXT diubah_pada "waktu UTC perubahan terakhir"
+        INTEGER diubah_oleh "user_id pengubah terakhir"
+        TEXT dihapus_pada "terisi bila dihapus lunak"
+        INTEGER dihapus_oleh "user_id penghapus"
+    }
+    role_permission {
+        INTEGER rp_id PK
+        INTEGER role_id FK
+        INTEGER permission_id FK
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        TEXT diubah_pada "waktu UTC perubahan terakhir"
+        INTEGER diubah_oleh "user_id pengubah terakhir"
+        TEXT dihapus_pada "terisi bila dihapus lunak"
+        INTEGER dihapus_oleh "user_id penghapus"
+    }
+    panen_header {
+        TEXT panen_id PK "dibuat di HP"
+        INTEGER unit_id FK
+        INTEGER blok_id FK
+        INTEGER tph_id FK
+        INTEGER user_id FK "krani pencatat"
+        TEXT device_id FK
+        INTEGER model_id FK
+        INTEGER periode_id FK
+        TEXT tanggal_panen "YYYY-MM-DD"
+        INTEGER rotasi_no
+        INTEGER kondisi_cuaca
+        REAL brondolan_kg
+        REAL gps_lat
+        REAL gps_lon
+        REAL gps_akurasi_m
+        TEXT gps_waktu
+        INTEGER gps_mock
+        REAL jarak_ke_tph_m
+        TEXT status_lokasi
+        TEXT catatan
+        TEXT status
+        TEXT dikirim_pada
+        TEXT pesan_server "alasan bila ditolak"
+        INTEGER disetujui_oleh "user_id mandor yang menyetujui"
+        TEXT disetujui_pada "waktu UTC persetujuan mandor"
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        TEXT diubah_pada "waktu UTC perubahan terakhir"
+        INTEGER diubah_oleh "user_id pengubah terakhir"
+        TEXT dihapus_pada "terisi bila dihapus lunak"
+        INTEGER dihapus_oleh "user_id penghapus"
+    }
+    panen_pemanen {
+        INTEGER pp_id PK
+        TEXT panen_id FK
+        INTEGER pemanen_id FK "boleh kosong"
+        INTEGER jjg_alokasi
+        TEXT catatan
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        TEXT diubah_pada "waktu UTC perubahan terakhir"
+        INTEGER diubah_oleh "user_id pengubah terakhir"
+        TEXT dihapus_pada "terisi bila dihapus lunak"
+        INTEGER dihapus_oleh "user_id penghapus"
+    }
+    panen_grading {
+        INTEGER grading_id PK
+        TEXT panen_id FK
+        INTEGER kelas_id FK
+        INTEGER jml_ai "hasil hitung kamera"
+        INTEGER jml_final "setelah koreksi krani"
+        INTEGER diubah_manual
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        TEXT diubah_pada "waktu UTC perubahan terakhir"
+        INTEGER diubah_oleh "user_id pengubah terakhir"
+        TEXT dihapus_pada "terisi bila dihapus lunak"
+        INTEGER dihapus_oleh "user_id penghapus"
+    }
+    foto {
+        TEXT foto_id PK
+        TEXT panen_id FK
+        TEXT jenis
+        TEXT path_lokal
+        TEXT sha256
+        INTEGER lebar
+        INTEGER tinggi
+        TEXT status_unggah
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        TEXT diubah_pada "waktu UTC perubahan terakhir"
+        INTEGER diubah_oleh "user_id pengubah terakhir"
+        TEXT dihapus_pada "terisi bila dihapus lunak"
+        INTEGER dihapus_oleh "user_id penghapus"
+    }
+    deteksi {
+        INTEGER deteksi_id PK
+        TEXT foto_id FK
+        INTEGER kelas_id FK
+        REAL confidence
+        REAL x
+        REAL y
+        REAL w
+        REAL h
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        TEXT diubah_pada "waktu UTC perubahan terakhir"
+        INTEGER diubah_oleh "user_id pengubah terakhir"
+    }
+    audit_log {
+        TEXT audit_id PK
+        TEXT tabel
+        TEXT baris_id
+        TEXT aksi "BUAT, UBAH, HAPUS, LOGIN, LOGIN_GAGAL, LOGOUT, KIRIM, TERIMA, TOLAK, IMPOR"
+        TEXT nilai_lama "hanya kolom yang berubah"
+        TEXT nilai_baru
+        INTEGER user_id
+        TEXT username "nama yang dicoba, berguna untuk LOGIN_GAGAL"
+        TEXT device_id
+        TEXT waktu "waktu UTC kejadian di HP atau server"
+        INTEGER disinkron
+        TEXT keterangan
+    }
+    sync_queue {
+        INTEGER queue_id PK
+        TEXT panen_id FK
+        TEXT entitas
+        TEXT aksi
+        TEXT payload_json
+        INTEGER percobaan
+        TEXT status
+        TEXT error_terakhir
+        TEXT coba_terakhir
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        TEXT diubah_pada "waktu UTC perubahan terakhir"
+        INTEGER diubah_oleh "user_id pengubah terakhir"
+    }
+    master_sync {
+        TEXT nama_master PK "blok, tph, pemanen, role, dst"
+        INTEGER unit_id PK, FK
+        TEXT versi_server
+        TEXT sinkron_terakhir
+        TEXT dibuat_pada "waktu UTC saat baris dibuat"
+        INTEGER dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        TEXT diubah_pada "waktu UTC perubahan terakhir"
+        INTEGER diubah_oleh "user_id pengubah terakhir"
+    }

@@ -1,0 +1,87 @@
+.app {
+  min-height: 100vh;
+}
+
+.app__sider {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.app__merek {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px 14px;
+  color: #fff;
+}
+
+.app__merek strong {
+  display: block;
+  font-size: 18px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.app__merek small {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+}
+
+.app__sider .ant-menu-item-group-title {
+  padding-left: 24px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.app__header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--garis);
+}
+
+.app__akun {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+}
+
+.app__akun-nama {
+  font-weight: 500;
+}
+
+.app__isi {
+  padding: 24px;
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+@media (max-width: 992px) {
+  .app__isi {
+    padding: 16px;
+  }
+  .app__akun-nama {
+    display: none;
+  }
+}
+
+@media print {
+  .app__sider,
+  .app__header {
+    display: none !important;
+  }
+  .app__isi {
+    padding: 0;
+    max-width: none;
+  }
+}

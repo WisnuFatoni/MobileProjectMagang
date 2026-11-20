@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="brand_primary">#4ADE80</color>
+    <color name="brand_on_primary">#052E16</color>
+    <color name="brand_primary_container">#14532D</color>
+    <color name="brand_on_primary_container">#DCFCE7</color>
+    <color name="brand_secondary">#FBBF24</color>
+    <color name="brand_on_secondary">#3B2300</color>
+    <color name="brand_secondary_container">#5B3A00</color>
+    <color name="brand_on_secondary_container">#FEF3C7</color>
+
+    <color name="brand_background">#101211</color>
+    <color name="brand_surface">#1B1E1C</color>
+    <color name="brand_on_surface">#E4EEE6</color>
+    <color name="brand_on_surface_variant">#A9B8AD</color>
+    <color name="brand_outline">#80908A</color>
+
+    <color name="brand_error">#F2B8B5</color>
+    <color name="brand_error_container">#5C1A16</color>
+    <color name="brand_on_error_container">#FFDAD6</color>
+
+    <color name="header_start">#0F3D22</color>
+    <color name="header_end">#0F3D22</color>
+
+    <color name="glass_tint">#4D101A14</color>
+    <color name="glass_sheen">#33FFFFFF</color>
+    <color name="glass_indicator">#40FFFFFF</color>
+    <color name="glass_indicator_top">#66FFFFFF</color>
+    <color name="glass_indicator_bottom">#26FFFFFF</color>
+    <color name="glass_glare">#2EFFFFFF</color>
+    <color name="glass_rim_dim">#0DFFFFFF</color>
+    <color name="glass_bottom_glow">#1FFFFFFF</color>
+    <color name="glass_indicator_stroke">#59FFFFFF</color>
+    <color name="glass_hairline">#33000000</color>
+    <color name="glass_shadow">#99000000</color>
+    <color name="glass_stroke_start">#66FFFFFF</color>
+    <color name="glass_stroke_end">#14FFFFFF</color>
+    <color name="brand_card_stroke">#2A2F2B</color>
+    <color name="avatar_bg">#FF2A322C</color>
+    <color name="kartu_bayang">#66000000</color>
+    <color name="login_atas">#1E6B40</color>
+    <color name="login_bawah">#0A3A1E</color>
+    <color name="login_gelombang_1">#25302A</color>
+    <color name="login_gelombang_2">#202824</color>
+    <color name="login_tombol">#2E8B57</color>
+    <color name="login_judul">#E4EEE6</color>
+</resources>

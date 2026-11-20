@@ -1,0 +1,66 @@
+flowchart LR
+    subgraph A["A. PERSIAPAN"]
+        direction TB
+        A1(["Krani buka aplikasi<br/>dan login"]) --> A2["Scan QR TPH<br/>blok dan TPH terisi otomatis"]
+        A2 --> A3{"Kondisi siap?<br/>cahaya cukup, baterai,<br/>ruang simpan"}
+        A3 -->|"belum"| A3x["Peringatan di layar:<br/>pindah posisi atau isi daya"]
+        A3x --> A3
+        A3 -->|"siap"| A4["Tekan MULAI<br/>sesi pindai dibuat (UUID)"]
+    end
+
+    subgraph B["B. PEMINDAIAN: detect, track, count (berulang tiap frame, di HP)"]
+        direction TB
+        B1["1. Kamera video<br/>sekitar 15 frame per detik<br/>krani menyisir tumpukan pelan"] --> B2["2. Praproses frame<br/>ubah ukuran ke 640 px"]
+        B2 --> B3["3. Deteksi YOLOv8 TFLite<br/>kotak, kelas, confidence"]
+        B3 --> B4{"4. Confidence<br/>di atas ambang?"}
+        B4 -->|"ya"| B5["5. Tracker ByteTrack<br/>beri ID unik per janjang"]
+        B5 --> B6["6. Perbarui kelas per ID<br/>voting berbobot confidence"]
+        B6 --> B7{"7. Lolos gerbang kualitas?<br/>terlihat cukup frame,<br/>ukuran cukup, tidak buram"}
+        B7 -->|"lolos"| B8["8. Hitung satu janjang unik<br/>jumlah kelas bertambah 1<br/>simpan keyframe terbaik"]
+        B4 -->|"tidak: dibuang"| B9
+        B7 -->|"belum: masih kandidat"| B9
+        B8 --> B9["9. Layar menampilkan kotak,<br/>hitungan per kelas, dan peringatan<br/>terlalu cepat, gelap, atau buram"]
+    end
+
+    subgraph C["C. TINJAU DAN SIMPAN"]
+        direction TB
+        C1(["Krani tekan SELESAI"]) --> C2["Ringkasan hitungan per kelas<br/>dan galeri keyframe"]
+        C2 --> C3{"Hitungan wajar?"}
+        C3 -->|"ya"| C6
+        C3 -->|"perlu koreksi kecil"| C5["Koreksi manual jml_final<br/>diubah_manual = 1"]
+        C5 --> C6["Simpan di SQLite<br/>panen_header, panen_grading,<br/>media, audit_log"]
+        C3 -->|"salah besar"| C4["Pindai ulang<br/>sesi lama ditandai batal,<br/>krani kembali ke tahap A"]
+        C6 --> C7["Masuk antrean sync_queue<br/>status MENUNGGU"]
+    end
+
+    D(["D. Kirim ke API saat sinyal ada<br/>lihat diagram komunikasi"])
+
+    A4 --> B1
+    B9 -.->|"frame berikutnya"| B1
+    B9 ==>|"krani tekan SELESAI"| C1
+    C7 --> D
+    D ~~~ N1
+    N1 ~~~ N2
+    N2 ~~~ N3
+
+    subgraph KET["CATATAN DESAIN"]
+        direction TB
+        N1["Mengapa video dengan tracker, bukan panorama yang dijahit?<br/>Gambar panorama yang dijahit bisa membuat janjang terhitung dobel<br/>atau hilang di sambungan. Tracker memberi ID unik, jadi satu janjang<br/>hanya dihitung sekali walau terlihat di banyak frame."]
+        N2["Parameter awal (contoh, disetel saat uji lapangan):<br/>confidence minimal 0,40, terlihat minimal 5 frame,<br/>ukuran kotak minimal 3 persen frame, sekitar 15 fps"]
+        N3["Batas yang perlu diuji: buah tertutup tumpukan tidak terlihat kamera,<br/>jadi hasil adalah estimasi. Bandingkan dengan hitungan manual<br/>di beberapa TPH sebelum dipakai resmi"]
+    end
+
+    classDef start fill:#e8f4ea,stroke:#2e7d32,color:#111
+    classDef step fill:#e3f0fb,stroke:#1565c0,color:#111
+    classDef dec fill:#fff4dc,stroke:#b26a00,color:#111
+    classDef save fill:#f3e8fb,stroke:#7b1fa2,color:#111
+    classDef note fill:#ffffff,stroke:#9e9e9e,color:#111
+    class A1,A2,A4,C1 start
+    class A3x,B1,B2,B3,B5,B6,B8,B9,C2,C5,C4 step
+    class A3,B4,B7,C3 dec
+    class C6,C7,D save
+    class N1,N2,N3 note
+    style A fill:#f6fbf6,stroke:#2e7d32
+    style B fill:#f4f9fe,stroke:#1565c0
+    style C fill:#faf5fd,stroke:#7b1fa2
+    style KET fill:#fafafa,stroke:#bdbdbd

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Aturan cadangan dan transfer perangkat untuk Android 12 ke atas.
+   Token sinkron (fai26_sync) mewakili sesi login perangkat ini, jadi tidak ikut dicadangkan ke cloud maupun
+   dipindahkan ke HP baru. Pengguna cukup login online ulang di HP baru.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="fai26_sync.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="fai26_sync.xml" />
+    </device-transfer>
+</data-extraction-rules>

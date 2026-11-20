@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Warna merek fAI26: hijau kebun dan emas panen. Versi gelap ada di values-night. -->
+    <color name="brand_primary">#12612F</color>
+    <color name="brand_on_primary">#FFFFFFFF</color>
+    <color name="brand_primary_container">#E3F1E7</color>
+    <color name="brand_on_primary_container">#0B3D1E</color>
+    <color name="brand_secondary">#A16207</color>
+    <color name="brand_on_secondary">#FFFFFFFF</color>
+    <color name="brand_secondary_container">#FEF3C7</color>
+    <color name="brand_on_secondary_container">#451A03</color>
+
+    <color name="brand_background">#F2F3F1</color>
+    <color name="brand_surface">#FFFFFFFF</color>
+    <color name="brand_on_surface">#1B1D1B</color>
+    <color name="brand_on_surface_variant">#646A66</color>
+    <color name="brand_outline">#C6CBC7</color>
+
+    <color name="brand_error">#B3261E</color>
+    <color name="brand_error_container">#FCE8E6</color>
+    <color name="brand_on_error_container">#7A1410</color>
+
+    <!-- Kepala layar: satu warna hijau tua (tanpa gradien dan hiasan). -->
+    <color name="header_start">#12612F</color>
+    <color name="header_end">#12612F</color>
+    <color name="header_pill">#1B6039</color>
+    <color name="logo_tile">#FFF7E6</color>
+    <!-- Garis tipis kartu (pengganti bayangan). -->
+    <color name="brand_card_stroke">#E6E8E5</color>
+
+    <!-- Bahan kaca untuk menu bawah -->
+    <color name="glass_tint">#1FFFFFFF</color>
+    <color name="glass_sheen">#8CFFFFFF</color>
+    <color name="glass_indicator">#D9FFFFFF</color>
+    <color name="glass_indicator_top">#F7FFFFFF</color>
+    <color name="glass_indicator_bottom">#9EFFFFFF</color>
+    <color name="glass_glare">#59FFFFFF</color>
+    <color name="glass_rim_dim">#1FFFFFFF</color>
+    <color name="glass_bottom_glow">#4DFFFFFF</color>
+    <color name="glass_indicator_stroke">#1F000000</color>
+    <color name="glass_hairline">#1A000000</color>
+    <color name="glass_shadow">#33000000</color>
+    <color name="glass_stroke_start">#F2FFFFFF</color>
+    <color name="glass_stroke_end">#33FFFFFF</color>
+    <!-- Gaya referensi: pil pencarian transparan di kepala hijau, avatar, tombol bulat terang. -->
+    <color name="header_on">#FFFFFFFF</color>
+    <color name="header_on_muted">#D0FFFFFF</color>
+    <color name="header_field">#1FFFFFFF</color>
+    <color name="header_field_stroke">#4DFFFFFF</color>
+    <color name="avatar_bg">#FFFFFFFF</color>
+    <color name="kartu_bayang">#1F0B2914</color>
+    <!-- Layar login (gaya kepala bergradien + gelombang). -->
+    <color name="login_atas">#2F9A5C</color>
+    <color name="login_bawah">#0E552B</color>
+    <color name="login_gelombang_1">#DCE6DF</color>
+    <color name="login_gelombang_2">#EBF1EC</color>
+    <color name="login_tombol">#0B3D1E</color>
+    <color name="login_judul">#0B3D1E</color>
+    <color name="ic_launcher_latar">#FFFFFFFF</color>
+</resources>

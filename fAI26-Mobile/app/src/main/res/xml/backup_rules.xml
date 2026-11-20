@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Aturan cadangan otomatis untuk Android 11 ke bawah (dipakai juga bila perangkat lebih lama).
+   Token sinkron tidak boleh ikut dicadangkan atau dipulihkan di HP lain: token mewakili sesi login perangkat ini.
+   (Kunci enkripsinya ada di Android Keystore dan memang tidak ikut dicadangkan.)
+-->
+<full-backup-content>
+    <exclude domain="sharedpref" path="fai26_sync.xml" />
+</full-backup-content>

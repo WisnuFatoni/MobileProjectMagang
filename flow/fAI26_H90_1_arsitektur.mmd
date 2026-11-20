@@ -1,0 +1,54 @@
+flowchart LR
+    subgraph HP["HP ANDROID (fAI26, Flutter)"]
+        direction TB
+        UI["Layar<br/>login, scan QR TPH,<br/>ringkasan, koreksi"]
+        CAM["Kamera video<br/>krani menyisir tumpukan TBS<br/>seperti panorama"]
+        AI["YOLOv8 TFLite<br/>deteksi tiap frame"]
+        TRK["Tracker ByteTrack<br/>beri ID unik per janjang,<br/>hitung tanpa dobel"]
+        LDB[("SQLite lokal<br/>master, panen, keyframe,<br/>audit_log, sync_queue")]
+        SYNC["Sinkronisasi<br/>antrean kirim"]
+        UI --> CAM --> AI --> TRK --> LDB --> SYNC
+    end
+
+    subgraph SRV["SERVER BACKEND"]
+        direction TB
+        API["API fAI26<br/>Golang, REST JSON, JWT"]
+        MEDIA["Penyimpanan media<br/>keyframe, klip video opsional"]
+        API --- MEDIA
+    end
+
+    subgraph SQL["SQL SERVER (instance SQL_CWE)"]
+        direction TB
+        FDB[("DATABASE fai26<br/>milik fAI26<br/>fai_panen, fai_panen_grading,<br/>fai_panen_pemanen, fai_media,<br/>fai_impor_log, app_user, role,<br/>permission, user_role, audit_log")]
+        ERPDB[("DATABASE ERP<br/>per unit dan tahun, contoh kp_stl2025<br/>master (asm3 dan lain-lain)<br/>dan tabel milik HVDM")]
+    end
+
+    subgraph ERP["mySAP365 (ERP)"]
+        TC["TCode HVDM<br/>(Copy dari HVD1)<br/>membaca data mobile dan<br/>menyimpan dokumen panen"]
+    end
+
+    SYNC <-->|"① HP kirim hasil hitung<br/>dan keyframe<br/>⑥ HP terima status<br/>HTTPS + JWT"| API
+    API <-->|"② simpan data<br/>dan baca status"| FDB
+    API -.->|"baca master<br/>hanya baca"| ERPDB
+    FDB <-->|"③ HVDM baca data baru<br/>⑤ HVDM tulis status"| TC
+    ERPDB <-->|"④ HVDM simpan<br/>dokumen panen"| TC
+
+    subgraph KET["ALUR SINGKAT"]
+        K["① Krani pindai TPH dengan video, AI mendeteksi dan menghitung, HP kirim ke API<br/>② API simpan ke database fai26<br/>③ Pengguna ERP buka HVDM, HVDM baca data baru<br/>④ HVDM simpan dokumen panen di database ERP<br/>⑤ HVDM tulis hasil (diterima atau ditolak) ke fai26<br/>⑥ HP ambil status lewat API"]
+    end
+
+    classDef hp fill:#e8f4ea,stroke:#2e7d32,color:#111
+    classDef srv fill:#e3f0fb,stroke:#1565c0,color:#111
+    classDef db fill:#fff4dc,stroke:#b26a00,color:#111
+    classDef erp fill:#f3e8fb,stroke:#7b1fa2,color:#111,stroke-width:2px
+    classDef ket fill:#ffffff,stroke:#9e9e9e,color:#111
+    class UI,CAM,AI,TRK,LDB,SYNC hp
+    class API,MEDIA srv
+    class FDB,ERPDB db
+    class TC erp
+    class K ket
+    style HP fill:#f6fbf6,stroke:#2e7d32
+    style SRV fill:#f4f9fe,stroke:#1565c0
+    style SQL fill:#fffaf0,stroke:#b26a00
+    style ERP fill:#faf5fd,stroke:#7b1fa2
+    style KET fill:#fafafa,stroke:#bdbdbd

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground">
+
+    <!-- Layar aktif (Beranda, Riwayat, Akun) -->
+    <FrameLayout
+        android:id="@+id/kontainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Menu bawah bergaya kaca: bayangan di belakang, kapsul kaca di depan -->
+    <FrameLayout
+        android:id="@+id/navPembungkus"
+        android:layout_width="match_parent"
+        android:layout_height="104dp"
+        android:layout_gravity="bottom"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <com.example.fai26.ui.GlassShadowView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <com.example.fai26.ui.GlassNavBar
+            android:id="@+id/nav"
+            android:layout_width="match_parent"
+            android:layout_height="68dp"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="24dp"
+            android:layout_marginEnd="24dp" />
+    </FrameLayout>
+</FrameLayout>

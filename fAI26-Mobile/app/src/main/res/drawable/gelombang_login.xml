@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tiga lengkung bertumpuk di bawah kepala login: abu hijau, lebih muda, lalu warna permukaan form. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="360dp"
+    android:height="100dp"
+    android:viewportWidth="360"
+    android:viewportHeight="100">
+    <path
+        android:fillColor="@color/login_gelombang_1"
+        android:pathData="M0,42Q180,-8 360,42L360,100L0,100Z" />
+    <path
+        android:fillColor="@color/login_gelombang_2"
+        android:pathData="M0,64Q180,16 360,64L360,100L0,100Z" />
+    <path
+        android:fillColor="@color/brand_surface"
+        android:pathData="M0,86Q180,40 360,86L360,100L0,100Z" />
+</vector>

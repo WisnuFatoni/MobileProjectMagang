@@ -1,0 +1,54 @@
+:root {
+  --bg-layout: #f4f7f1;
+  --bg-kartu: #ffffff;
+  --garis: #e5e7eb;
+  --bayangan: rgba(15, 42, 26, 0.1);
+}
+
+:root[data-tema='gelap'] {
+  --bg-layout: #0d1a12;
+  --bg-kartu: #14231a;
+  --garis: #264033;
+  --bayangan: rgba(0, 0, 0, 0.5);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-layout);
+  -webkit-font-smoothing: antialiased;
+}
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin-bottom: 20px;
+}
+
+.page-header__aksi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tabel-sel-kode {
+  font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
+  font-size: 12.5px;
+}
+
+.kartu-statistik .ant-statistic-title {
+  font-size: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

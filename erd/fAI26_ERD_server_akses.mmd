@@ -1,0 +1,135 @@
+erDiagram
+    unit ||--o{ app_user : "memiliki"
+    app_user ||--o{ user_role : "diberi"
+    role ||--o{ user_role : "dipegang"
+    role ||--o{ role_permission : "punya"
+    permission ||--o{ role_permission : "diberikan lewat"
+    app_user ||--o{ auth_sesi : "punya sesi"
+    device ||--o{ auth_sesi : "dipakai di"
+    app_user |o--o{ audit_log : "pelaku"
+    device |o--o{ audit_log : "asal HP"
+
+    unit {
+        INT unit_id PK
+        NVARCHAR kode UK "contoh KP_STL"
+        NVARCHAR nama
+        NVARCHAR erp_db "contoh kp_stl2025"
+        INT tahun_cluster
+        BIT aktif
+        DATETIME2 dibuat_pada "waktu UTC saat baris dibuat"
+        INT dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        DATETIME2 diubah_pada "waktu UTC perubahan terakhir"
+        INT diubah_oleh "user_id pengubah terakhir"
+        DATETIME2 dihapus_pada "terisi bila dihapus lunak"
+        INT dihapus_oleh "user_id penghapus"
+    }
+    app_user {
+        INT user_id PK
+        INT unit_id FK
+        INT erp_user_oid "kaitan ke user ERP, boleh kosong"
+        NVARCHAR username UK
+        NVARCHAR nama
+        BIT aktif
+        INT gagal_login "hitung gagal berturut-turut"
+        DATETIME2 terkunci_sampai
+        DATETIME2 login_terakhir
+        NVARCHAR password_hash "argon2id atau bcrypt, tidak pernah ke HP"
+        BIT wajib_ganti_password
+        DATETIME2 dibuat_pada "waktu UTC saat baris dibuat"
+        INT dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        DATETIME2 diubah_pada "waktu UTC perubahan terakhir"
+        INT diubah_oleh "user_id pengubah terakhir"
+        DATETIME2 dihapus_pada "terisi bila dihapus lunak"
+        INT dihapus_oleh "user_id penghapus"
+    }
+    role {
+        INT role_id PK
+        NVARCHAR kode UK "KRANI, MANDOR, ASISTEN, ADMIN, AUDITOR"
+        NVARCHAR nama
+        NVARCHAR deskripsi
+        BIT bawaan "role bawaan sistem tidak boleh dihapus"
+        DATETIME2 dibuat_pada "waktu UTC saat baris dibuat"
+        INT dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        DATETIME2 diubah_pada "waktu UTC perubahan terakhir"
+        INT diubah_oleh "user_id pengubah terakhir"
+        DATETIME2 dihapus_pada "terisi bila dihapus lunak"
+        INT dihapus_oleh "user_id penghapus"
+    }
+    permission {
+        INT permission_id PK
+        NVARCHAR kode UK "contoh panen.buat"
+        NVARCHAR modul
+        NVARCHAR nama
+        DATETIME2 dibuat_pada "waktu UTC saat baris dibuat"
+        INT dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        DATETIME2 diubah_pada "waktu UTC perubahan terakhir"
+        INT diubah_oleh "user_id pengubah terakhir"
+        DATETIME2 dihapus_pada "terisi bila dihapus lunak"
+        INT dihapus_oleh "user_id penghapus"
+    }
+    user_role {
+        INT ur_id PK
+        INT user_id FK
+        INT role_id FK
+        DATE berlaku_mulai
+        DATE berlaku_sampai
+        DATETIME2 dibuat_pada "waktu UTC saat baris dibuat"
+        INT dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        DATETIME2 diubah_pada "waktu UTC perubahan terakhir"
+        INT diubah_oleh "user_id pengubah terakhir"
+        DATETIME2 dihapus_pada "terisi bila dihapus lunak"
+        INT dihapus_oleh "user_id penghapus"
+    }
+    role_permission {
+        INT rp_id PK
+        INT role_id FK
+        INT permission_id FK
+        DATETIME2 dibuat_pada "waktu UTC saat baris dibuat"
+        INT dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        DATETIME2 diubah_pada "waktu UTC perubahan terakhir"
+        INT diubah_oleh "user_id pengubah terakhir"
+        DATETIME2 dihapus_pada "terisi bila dihapus lunak"
+        INT dihapus_oleh "user_id penghapus"
+    }
+    device {
+        UNIQUEIDENTIFIER device_id PK "dibuat saat aplikasi pertama dipasang"
+        NVARCHAR nama
+        NVARCHAR os_versi
+        NVARCHAR app_versi
+        BIT aktif "admin menonaktifkan HP yang hilang"
+        DATETIME2 terakhir_sinkron
+        DATETIME2 dibuat_pada "waktu UTC saat baris dibuat"
+        INT dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        DATETIME2 diubah_pada "waktu UTC perubahan terakhir"
+        INT diubah_oleh "user_id pengubah terakhir"
+        DATETIME2 dihapus_pada "terisi bila dihapus lunak"
+        INT dihapus_oleh "user_id penghapus"
+    }
+    auth_sesi {
+        UNIQUEIDENTIFIER sesi_id PK
+        INT user_id FK
+        UNIQUEIDENTIFIER device_id FK
+        NVARCHAR refresh_token_hash "hash, token asli tidak disimpan"
+        DATETIME2 kedaluwarsa_pada
+        DATETIME2 dicabut_pada "terisi bila sesi dicabut"
+        NVARCHAR ip
+        DATETIME2 dibuat_pada "waktu UTC saat baris dibuat"
+        INT dibuat_oleh "user_id pembuat, NULL untuk data awal sistem"
+        DATETIME2 diubah_pada "waktu UTC perubahan terakhir"
+        INT diubah_oleh "user_id pengubah terakhir"
+    }
+    audit_log {
+        UNIQUEIDENTIFIER audit_id PK
+        NVARCHAR tabel
+        NVARCHAR baris_id
+        NVARCHAR aksi "BUAT, UBAH, HAPUS, LOGIN, LOGIN_GAGAL, LOGOUT, KIRIM, TERIMA, TOLAK, IMPOR"
+        NVARCHAR(MAX) nilai_lama "hanya kolom yang berubah"
+        NVARCHAR(MAX) nilai_baru
+        INT user_id
+        NVARCHAR username "nama yang dicoba, berguna untuk LOGIN_GAGAL"
+        UNIQUEIDENTIFIER device_id
+        DATETIME2 waktu "waktu UTC kejadian di HP atau server"
+        DATETIME2 waktu_server "waktu server menerima"
+        NVARCHAR ip
+        NVARCHAR keterangan
+    }

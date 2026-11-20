@@ -1,0 +1,113 @@
+.cetak__kontrol {
+  max-width: 760px;
+  margin-bottom: 24px;
+}
+
+.cetak__lembar {
+  display: grid;
+  gap: 24px;
+  justify-items: center;
+}
+
+/* Satu halaman A4 di layar (pratinjau) dan di kertas. */
+.cetak__halaman {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 12mm;
+  display: grid;
+  gap: 10mm;
+  align-content: center;
+  justify-items: center;
+  background: #fff;
+  color: #000;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.12);
+  break-after: page;
+}
+
+.cetak__lembar--sedang .cetak__halaman {
+  grid-template-columns: repeat(2, 1fr);
+  align-content: space-evenly;
+}
+
+.cetak__lembar--kecil .cetak__halaman {
+  grid-template-columns: repeat(3, 1fr);
+  align-content: space-evenly;
+  gap: 6mm;
+}
+
+.cetak__kartu {
+  margin: 0;
+  display: grid;
+  justify-items: center;
+  gap: 4mm;
+  break-inside: avoid;
+}
+
+.cetak__qr {
+  width: var(--qr-cm);
+  height: var(--qr-cm);
+  display: block;
+}
+
+.cetak__kartu figcaption {
+  display: grid;
+  justify-items: center;
+  gap: 1mm;
+  text-align: center;
+}
+
+.cetak__kartu strong {
+  font-size: 22pt;
+  line-height: 1.1;
+}
+
+.cetak__lembar--sedang .cetak__kartu strong {
+  font-size: 16pt;
+}
+
+.cetak__lembar--kecil .cetak__kartu strong {
+  font-size: 11pt;
+}
+
+.cetak__kartu small {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 9pt;
+  color: #333;
+}
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  body {
+    background: #fff !important;
+  }
+  .cetak__kontrol {
+    display: none !important;
+  }
+  .cetak__lembar {
+    gap: 0;
+  }
+  .cetak__halaman {
+    box-shadow: none;
+    margin: 0;
+    width: 210mm;
+    height: 297mm;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 900px) {
+  .cetak__halaman {
+    width: 100%;
+    min-height: 0;
+    padding: 16px;
+  }
+  .cetak__qr {
+    width: min(var(--qr-cm), 80vw);
+    height: min(var(--qr-cm), 80vw);
+  }
+}
