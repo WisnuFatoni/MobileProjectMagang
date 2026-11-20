@@ -27,8 +27,7 @@ public final class IpdDraf {
     public long blokId;
     public long pemanenId;
     public String ancakNo;
-    public Long mandorBlokUserId;
-    public Long mandorAncakUserId;
+    public Long mandorUserId; // kemandoran
     public String catatan;
     /** Status tersimpan (null bila inspeksi baru). */
     public String statusLama;

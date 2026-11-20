@@ -48,7 +48,7 @@ Cara membuatnya: `MainActivity` sekarang memuat satu set tab tetap. Diubah menja
 Rinci di `erd/fAI26_ERD_Database_Mobile.md` bab 13. Tabel (HP / server):
 
 - `kode_temuan` / `ipd_kode_temuan`: master 11 kode temuan.
-- `ipd_header` / `fai_ipd`: satu inspeksi = satu pemanen; kepala: tanggal, **divisi**, **asisten (otomatis dari divisi)**, blok, pemanen, inspektur, nomor ancak (opsional), **mandor blok dan mandor ancak (dipilih dari akun berperan MANDOR)**; status, validasi (inspektur), persetujuan (asisten).
+- `ipd_header` / `fai_ipd`: satu inspeksi = satu pemanen; kepala: tanggal, **divisi**, **asisten (otomatis dari divisi)**, blok, pemanen, inspektur, nomor ancak (opsional), **kemandoran: satu mandor (dipilih dari akun berperan MANDOR; sebelumnya dua, disatukan 20 Nov malam)**; status, validasi (inspektur), persetujuan (asisten).
 - Daftar mandor dan asisten: memakai `app_user` + `user_role` yang sudah diunduh HP lewat master (tidak ada tabel baru).
 - `divisi.asisten_user_id` (kolom baru di HP dan server): asisten tiap divisi, **diatur admin lewat web** (halaman Divisi), bisa diganti bila asisten berhenti; inspeksi yang masih MENUNGGU ikut pindah ke asisten baru.
 - `ipd_pokok` / `fai_ipd_pokok`: pokok yang diperiksa (nomor baris, nomor pokok), semuanya dicatat termasuk yang bersih.
@@ -115,6 +115,7 @@ Pertanyaan terbuka tentang form ini ada di balasan Claude kepada Ptoni (arti tan
 | 4 | Web: Daftar Inspeksi, Laporan Loses, halaman Hak Akses untuk kotak, tampilan role ASKEP dan KTU | **Selesai 21 Nov** (tes lolos; belum dilihat di browser) |
 | 5 | Dokumentasi akhir, `PROGRES.md`, memori, daftar tes manual | **Selesai 21 Nov** (menunggu uji Ptoni) |
 | 6 | Putaran 3 (20 Nov malam): loses dipisah dari temuan lain (API 0.17.0), Beranda IPD, periksa 2 baris sekaligus, Home bergaya baru | **Selesai** (API, HP, web; diuji di HP sampai ringkasan; belum kamera dan kirim end-to-end) |
+| 7 | Putaran 4 (20 Nov malam): satu kemandoran, blok diketik, foto saat jalan, ekspor PDF/Excel, role buatan admin, akun ASKEP/KTU (API 0.18.0) | **Selesai** (foto langkah 2 belum dicoba di HP) |
 
 Tiap tahap diakhiri pembaruan `PROGRES.md`. Fitur Panen yang sudah ada tidak diubah perilakunya; hanya pintu masuknya yang pindah ke kotak Panen.
 

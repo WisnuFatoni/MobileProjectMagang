@@ -161,7 +161,7 @@ public class IpdPersetujuanFragment extends Fragment {
         meta.append(IpdUi.tanggal(m.tanggalInspeksi)).append(" • ").append(m.divisiKode);
         if (m.ancakNo != null) meta.append(" • ancak ").append(m.ancakNo);
         meta.append("\nDiinspeksi ").append(m.inspekturNama);
-        meta.append("\nMandor blok: ").append(nilai(m.mandorBlokNama)).append(" • mandor ancak: ").append(nilai(m.mandorAncakNama));
+        meta.append("\nKemandoran: ").append(nilai(m.mandorNama));
         if (m.catatan != null) meta.append("\nCatatan: ").append(m.catatan);
         TextView txtMeta = IpdUi.redup(c, meta, 13);
         txtMeta.setPadding(0, IpdUi.dp(c, 4), 0, IpdUi.dp(c, 8));

@@ -93,7 +93,9 @@ func tabel(c Controller, login middleware.Middleware, izin func(string) []middle
 		// Web admin: pengguna, perangkat, laporan, audit
 		{"GET /api/admin/peran", c.Admin.DaftarRole, izin("user.kelola")},
 		{"GET /api/admin/hak-akses", c.HakAkses.Daftar, izin("role.kelola")},
+		{"POST /api/admin/hak-akses", c.HakAkses.Buat, izin("role.kelola")},
 		{"PUT /api/admin/hak-akses/{id}", c.HakAkses.Ubah, izin("role.kelola")},
+		{"DELETE /api/admin/hak-akses/{id}", c.HakAkses.Hapus, izin("role.kelola")},
 		{"GET /api/admin/pengguna", c.Admin.DaftarPengguna, izin("user.kelola")},
 		{"POST /api/admin/pengguna", c.Admin.BuatPengguna, izin("user.kelola")},
 		{"PUT /api/admin/pengguna/{id}", c.Admin.UbahPengguna, izin("user.kelola")},

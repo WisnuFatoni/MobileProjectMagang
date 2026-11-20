@@ -32,18 +32,17 @@ type IpdPokokInput struct {
 // IpdInput adalah satu catatan inspeksi panen detail dari HP: satu pemanen (satu ancak). Pengguna, unit, dan penyetuju
 // ditentukan server (dari token dan divisi), bukan dari isi ini.
 type IpdInput struct {
-	IpdID               string `json:"ipd_id"`
-	UnitKode            string `json:"unit_kode"`
-	TanggalInspeksi     string `json:"tanggal_inspeksi"`
-	DivisiKode          string `json:"divisi_kode"`
-	Asm3Oid             int64  `json:"asm3_oid"`
-	BlokKode            string `json:"blok_kode"`
-	PemanenHrmbCode     int    `json:"pemanen_hrmb_code"`
-	AncakNo             string `json:"ancak_no"`
-	MandorBlokUsername  string `json:"mandor_blok_username"`
-	MandorAncakUsername string `json:"mandor_ancak_username"`
-	Catatan             string `json:"catatan"`
-	DibuatPada          string `json:"dibuat_pada"`
+	IpdID           string `json:"ipd_id"`
+	UnitKode        string `json:"unit_kode"`
+	TanggalInspeksi string `json:"tanggal_inspeksi"`
+	DivisiKode      string `json:"divisi_kode"`
+	Asm3Oid         int64  `json:"asm3_oid"`
+	BlokKode        string `json:"blok_kode"`
+	PemanenHrmbCode int    `json:"pemanen_hrmb_code"`
+	AncakNo         string `json:"ancak_no"`
+	MandorUsername  string `json:"mandor_username"` // kemandoran: satu akun berperan MANDOR
+	Catatan         string `json:"catatan"`
+	DibuatPada      string `json:"dibuat_pada"`
 	// KirimUlang true: HP mengubah catatan yang sudah terkirim (masih MENUNGGU asisten) atau memperbaiki yang DITOLAK.
 	// Tanpa ini catatan yang sudah ada dijawab SUDAH_ADA tanpa diubah (aman untuk percobaan ulang jaringan).
 	KirimUlang bool            `json:"kirim_ulang"`
@@ -70,8 +69,8 @@ func (p *IpdInput) Validasi() error {
 	if p.PemanenHrmbCode <= 0 {
 		return errors.New("pemanen_hrmb_code wajib diisi (satu catatan = satu pemanen)")
 	}
-	if strings.TrimSpace(p.MandorBlokUsername) == "" || strings.TrimSpace(p.MandorAncakUsername) == "" {
-		return errors.New("mandor_blok_username dan mandor_ancak_username wajib diisi")
+	if strings.TrimSpace(p.MandorUsername) == "" {
+		return errors.New("mandor_username (kemandoran) wajib diisi")
 	}
 	if len([]rune(p.AncakNo)) > 30 {
 		return errors.New("ancak_no maksimal 30 karakter")
@@ -150,15 +149,14 @@ type IpdOrang struct {
 
 // IpdSimpan adalah catatan yang sudah divalidasi dan dilengkapi identitas dari server, siap ditulis.
 type IpdSimpan struct {
-	Input       IpdInput
-	UnitID      int64
-	DeviceID    string
-	UserID      int64 // inspektur (pengirim, dari token)
-	DivisiID    int64
-	AsistenID   *int64
-	MandorBlok  IpdOrang
-	MandorAncak IpdOrang
-	KodeID      map[string]int64 // kode temuan -> kode_id
+	Input     IpdInput
+	UnitID    int64
+	DeviceID  string
+	UserID    int64 // inspektur (pengirim, dari token)
+	DivisiID  int64
+	AsistenID *int64
+	Mandor    IpdOrang
+	KodeID    map[string]int64 // kode temuan -> kode_id
 	// Menunggu true: asisten yang akan menyetujui (status MENUNGGU). False: pengirim memegang ipd.setujui, langsung DISETUJUI.
 	Menunggu   bool
 	Ganti      bool // memperbarui catatan yang sudah ada (MENUNGGU atau DITOLAK)
@@ -241,8 +239,7 @@ type IpdBaris struct {
 	AncakNo         *string      `json:"ancak_no"`
 	Inspektur       string       `json:"inspektur"`
 	InspekturNama   string       `json:"inspektur_nama"`
-	MandorBlokNama  *string      `json:"mandor_blok_nama"`
-	MandorAncakNama *string      `json:"mandor_ancak_nama"`
+	MandorNama      *string      `json:"mandor_nama"`
 	AsistenNama     *string      `json:"asisten_nama"`
 	Status          string       `json:"status"`
 	PesanTolak      *string      `json:"pesan_tolak"`

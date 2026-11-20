@@ -107,8 +107,7 @@ public final class IpdHasil {
         public String blokKode;
         public long pemanenHrmb;
         public String ancakNo;
-        public String mandorBlokUsername;
-        public String mandorAncakUsername;
+        public String mandorUsername;
         public String catatan;
         public String dibuatPada;
         public long kirimUlang;

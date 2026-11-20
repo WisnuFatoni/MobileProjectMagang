@@ -424,10 +424,8 @@ CREATE TABLE ipd_header (
     ancak_no              TEXT,                          -- nomor/nama ancak, boleh kosong
     divisi_id             INTEGER NOT NULL REFERENCES divisi(divisi_id),   -- dipilih di awal inspeksi (Divisi 1 atau 2)
     asisten_user_id       INTEGER REFERENCES app_user(user_id),             -- terisi otomatis dari divisi, penyetuju catatan ini
-    mandor_blok_user_id   INTEGER REFERENCES app_user(user_id),             -- dipilih dari daftar akun berperan MANDOR
-    mandor_blok_hrmb      INTEGER,                       -- salinan kode HRMB mandor saat dipilih (untuk ERP nanti)
-    mandor_ancak_user_id  INTEGER REFERENCES app_user(user_id),
-    mandor_ancak_hrmb     INTEGER,
+    mandor_user_id        INTEGER REFERENCES app_user(user_id),             -- kemandoran: dipilih dari daftar akun berperan MANDOR
+    mandor_hrmb           INTEGER,                       -- salinan kode HRMB mandor saat dipilih (untuk ERP nanti)
     catatan               TEXT,
     status                TEXT NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT','MENUNGGU_SETUJU','DISETUJUI','DITOLAK')),
     dikirim_pada          TEXT,

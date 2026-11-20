@@ -10,6 +10,7 @@ type bacaanHak struct {
 	Role []struct {
 		RoleID     int64    `json:"role_id"`
 		Kode       string   `json:"kode"`
+		Bawaan     bool     `json:"bawaan"`
 		Permission []string `json:"permission"`
 	} `json:"role"`
 	Permission []struct {
@@ -154,4 +155,88 @@ func TestHakAksesPengelolaan(t *testing.T) {
 	if _, k := idRole(baca(), "KRANI"); len(k) != len(asli) {
 		t.Fatalf("permintaan yang ditolak tidak boleh mengubah hak: %v", k)
 	}
+}
+
+// Admin membuat role sendiri, memberinya hak, mengganti nama, lalu menghapusnya. Role bawaan dan role yang masih dipegang akun
+// aktif tidak bisa dihapus.
+func TestHakAksesBuatDanHapusRole(t *testing.T) {
+	e := siapkanUji(t)
+	_, ad := e.login("admin1", "admin12345", devAdmin)
+	_, kr := e.login("krani1", "krani123", devKrani)
+
+	baca := func() bacaanHak {
+		_, b := e.kirim("GET", "/api/admin/hak-akses", ad.AccessToken, nil, nil)
+		var h bacaanHak
+		if err := json.Unmarshal(b, &h); err != nil {
+			t.Fatal(err)
+		}
+		return h
+	}
+	idRole := func(kode string) int64 {
+		for _, r := range baca().Role {
+			if r.Kode == kode {
+				return r.RoleID
+			}
+		}
+		return 0
+	}
+	// Bersihkan sisa uji sebelumnya (role uji terakhir bisa tertinggal bila tes terhenti).
+	_, _ = e.db.Exec(`DELETE FROM dbo.role_permission WHERE role_id IN (SELECT role_id FROM dbo.role WHERE kode LIKE 'UJI_%')`)
+	_, _ = e.db.Exec(`DELETE FROM dbo.user_role WHERE role_id IN (SELECT role_id FROM dbo.role WHERE kode LIKE 'UJI_%')`)
+	_, _ = e.db.Exec(`DELETE FROM dbo.role WHERE kode LIKE 'UJI_%'`)
+
+	e.json("POST", "/api/admin/hak-akses", kr.AccessToken, berkas{"kode": "UJI_A", "nama": "Uji A", "permission": []string{}}, 403)
+	e.json("POST", "/api/admin/hak-akses", ad.AccessToken, berkas{"kode": "uji a", "nama": "Uji A"}, 422)
+	e.json("POST", "/api/admin/hak-akses", ad.AccessToken, berkas{"kode": "UJI_A", "nama": "Uji A", "permission": []string{"tidak.ada"}}, 422)
+	if idRole("UJI_A") != 0 {
+		t.Fatal("permintaan yang ditolak tidak boleh meninggalkan role setengah jadi")
+	}
+
+	kode, b := e.kirim("POST", "/api/admin/hak-akses", ad.AccessToken, berkas{"kode": "uji_a", "nama": "Uji A", "deskripsi": "role percobaan",
+		"permission": []string{"panen.lihat", "ipd.lihat"}}, nil)
+	if kode != 201 {
+		t.Fatalf("buat role: %d %s", kode, b)
+	}
+	id := idRole("UJI_A")
+	if id == 0 {
+		t.Fatal("role baru tidak muncul di daftar (kode harus jadi huruf besar)")
+	}
+	for _, r := range baca().Role {
+		if r.Kode == "UJI_A" && (len(r.Permission) != 2 || r.Bawaan) {
+			t.Fatalf("role baru: %+v", r)
+		}
+	}
+	e.json("POST", "/api/admin/hak-akses", ad.AccessToken, berkas{"kode": "UJI_A", "nama": "Lagi"}, 409)
+
+	// Ganti nama lewat PUT, hak ikut.
+	e.json("PUT", "/api/admin/hak-akses/"+itoa(id), ad.AccessToken, berkas{"permission": []string{"panen.lihat"}, "nama": "Uji A baru"}, 200)
+	for _, r := range baca().Role {
+		if r.Kode == "UJI_A" && len(r.Permission) != 1 {
+			t.Fatalf("hak setelah ubah: %+v", r)
+		}
+	}
+
+	// Masih dipegang akun aktif: tidak bisa dihapus.
+	var userID int64
+	if err := e.db.QueryRow(`SELECT user_id FROM dbo.app_user WHERE username='krani1'`).Scan(&userID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := e.db.Exec(`INSERT INTO dbo.user_role (user_id, role_id) VALUES (@p1,@p2)`, userID, id); err != nil {
+		t.Fatal(err)
+	}
+	e.json("DELETE", "/api/admin/hak-akses/"+itoa(id), ad.AccessToken, nil, 409)
+	if _, err := e.db.Exec(`DELETE FROM dbo.user_role WHERE user_id=@p1 AND role_id=@p2`, userID, id); err != nil {
+		t.Fatal(err)
+	}
+
+	// Role bawaan dilindungi.
+	e.json("DELETE", "/api/admin/hak-akses/"+itoa(idRole("KRANI")), ad.AccessToken, nil, 409)
+	e.json("DELETE", "/api/admin/hak-akses/"+itoa(id), kr.AccessToken, nil, 403)
+	e.json("DELETE", "/api/admin/hak-akses/"+itoa(id), ad.AccessToken, nil, 200)
+	if idRole("UJI_A") != 0 {
+		t.Fatal("role terhapus tidak boleh muncul di daftar")
+	}
+	e.json("DELETE", "/api/admin/hak-akses/"+itoa(id), ad.AccessToken, nil, 404)
+	// Kode role yang pernah dipakai tidak dipakai ulang.
+	e.json("POST", "/api/admin/hak-akses", ad.AccessToken, berkas{"kode": "UJI_A", "nama": "Uji A"}, 409)
 }

@@ -1,6 +1,6 @@
 # Dokumentasi API fai26-api
 
-Versi 0.17.0 · terakhir diperbarui 21 Nov 2026 · spesifikasi mesin: [`openapi.yaml`](openapi.yaml)
+Versi 0.18.0 · terakhir diperbarui 20 Nov 2026 · spesifikasi mesin: [`openapi.yaml`](openapi.yaml)
 (bisa dibuka di Swagger Editor, Postman, atau Insomnia).
 
 > **Aturan tim:** setiap endpoint baru atau perubahan bentuk data **wajib** memperbarui `openapi.yaml`, dokumen ini,
@@ -54,7 +54,9 @@ Versi 0.17.0 · terakhir diperbarui 21 Nov 2026 · spesifikasi mesin: [`openapi.
 | DELETE | `/api/admin/pemanen/{id}` | ya | `master.kelola` | Hapus pemanen (lunak) |
 | GET | `/api/admin/peran` | ya | `user.kelola` | Daftar role |
 | GET | `/api/admin/hak-akses` | ya | `role.kelola` | Daftar role beserta hak dan katalog permission |
-| PUT | `/api/admin/hak-akses/{id}` | ya | `role.kelola` | Ganti seluruh hak satu role |
+| POST | `/api/admin/hak-akses` | ya | `role.kelola` | Buat role baru beserta hak awalnya |
+| PUT | `/api/admin/hak-akses/{id}` | ya | `role.kelola` | Ganti seluruh hak satu role (dan, bila dikirim, nama atau keterangannya) |
+| DELETE | `/api/admin/hak-akses/{id}` | ya | `role.kelola` | Hapus role buatan admin yang tidak dipegang akun aktif |
 | GET | `/api/admin/pengguna` | ya | `user.kelola` | Daftar pengguna |
 | POST | `/api/admin/pengguna` | ya | `user.kelola` | Buat pengguna |
 | PUT | `/api/admin/pengguna/{id}` | ya | `user.kelola` | Ubah pengguna |
@@ -477,8 +479,7 @@ dan tanpa `kirim_ulang` dijawab 200 `SUDAH_ADA` tanpa perubahan.
 | `blok_kode` | string | tidak | Salinan untuk tampilan |
 | `pemanen_hrmb_code` | integer | ya | Satu catatan = satu pemanen; harus ada di master |
 | `ancak_no` | string | tidak | Maksimal 30 karakter |
-| `mandor_blok_username` | string | ya | Akun aktif berperan MANDOR (mandor di blok) |
-| `mandor_ancak_username` | string | ya | Akun aktif berperan MANDOR (mandor di ancak) |
+| `mandor_username` | string | ya | Kemandoran: satu akun aktif berperan MANDOR |
 | `catatan` | string | tidak | Maksimal 500 karakter |
 | `dibuat_pada` | ISO 8601 UTC | tidak | |
 | `kirim_ulang` | boolean | tidak | `true` mengubah catatan `MENUNGGU` (isi diganti, tetap `MENUNGGU`) atau memperbaiki `DITOLAK` (kembali `MENUNGGU`). Catatan `DISETUJUI` dijawab 423 |
@@ -491,7 +492,7 @@ kode tidak boleh ganda dalam satu pokok.
 {
   "ipd_id": "bbbb0001-0000-4000-8000-000000000001", "unit_kode": "KP_STL", "tanggal_inspeksi": "2026-11-20", "divisi_kode": "DIV2",
   "asm3_oid": 1012, "blok_kode": "A12", "pemanen_hrmb_code": 90001, "ancak_no": "7",
-  "mandor_blok_username": "mandor1", "mandor_ancak_username": "mandor2",
+  "mandor_username": "mandor1",
   "pokok": [ { "no_baris": 11, "no_pokok": 1, "temuan": [] },
              { "no_baris": 11, "no_pokok": 2, "temuan": [{ "kode": "B1", "jumlah": 6 }, { "kode": "S" }] } ]
 }
@@ -502,7 +503,7 @@ kode tidak boleh ganda dalam satu pokok.
 **Galat:** 400 JSON rusak · 403 unit berbeda dengan unit akun, tanpa permission, atau `kirim_ulang` oleh orang lain (tanpa `ipd.kelola`) · 409 nomor baris dan pokok ganda ·
 **423** `Inspeksi sudah disetujui asisten, tidak bisa diubah lagi` (`kirim_ulang` pada catatan `DISETUJUI`; HP menandainya terkunci dan tidak mengirim ulang) · 422 (pesan menyebut penyebabnya):
 `Divisi tidak ada di master` · `Blok tidak ada di master` · `Blok bukan milik divisi ...` · `Pemanen ... tidak ada di master` · `Kode temuan tidak dikenal: ...` ·
-`mandor_blok_username bukan akun aktif berperan MANDOR ...` (juga `mandor_ancak_username`) · pokok kosong, ganda, atau di luar batas · jumlah temuan di luar batas · tanggal atau waktu salah format.
+`mandor_username bukan akun aktif berperan MANDOR ...` · pokok kosong, ganda, atau di luar batas · jumlah temuan di luar batas · tanggal atau waktu salah format.
 
 ## GET /api/ipd
 
@@ -543,7 +544,7 @@ Perlu login, permission `ipd.setujui` (asisten). Inspeksi `MENUNGGU` yang **ditu
 [{
   "id": "bbbb0001-0000-4000-8000-000000000001", "tanggal_inspeksi": "2026-11-20", "divisi_kode": "DIV2", "blok_kode": "A12",
   "pemanen_hrmb_code": 90001, "pemanen_nama": "Pemanen Contoh 1", "ancak_no": "7", "inspektur": "mandor1", "inspektur_nama": "Mandor Contoh",
-  "mandor_blok_nama": "Mandor Contoh", "mandor_ancak_nama": "Mandor Dua", "asisten_nama": "Asisten Satu", "status": "MENUNGGU",
+  "mandor_nama": "Mandor Contoh", "asisten_nama": "Asisten Satu", "status": "MENUNGGU",
   "pesan_tolak": null, "catatan": null, "dibuat_pada": "2026-11-20T03:00:00Z", "disetujui_pada": null,
   "ringkasan": { "pokok_diperiksa": 5, "pokok_bertemuan": 3, "persen_pokok_bertemuan": 60, "total_temuan": 13,
                  "per_kode": [{ "kode": "A", "nama": "Potong buah mentah", "kelompok": "BUAH", "pokok": 1, "jumlah": 1, "persen_pokok": 20 }] },
@@ -856,17 +857,43 @@ pengelolaan hak akses).
 
 ```json
 {
-  "role": [ { "role_id": 1, "kode": "KRANI", "nama": "Krani", "bawaan": true, "permission": ["panen.buat", "panen.kirim", "panen.lihat"] } ],
+  "role": [ { "role_id": 1, "kode": "KRANI", "nama": "Krani", "deskripsi": "Mencatat dan memotret di TPH", "bawaan": true, "pengguna": 3,
+              "permission": ["panen.buat", "panen.kirim", "panen.lihat"] } ],
   "permission": [ { "kode": "panen.setujui", "modul": "Panen", "nama": "Menyetujui catatan panen krani" } ]
 }
 ```
 
-## PUT /api/admin/hak-akses/{id}
+## POST /api/admin/hak-akses
 
-Permission `role.kelola`. Mengganti **seluruh** hak role dengan daftar yang dikirim (daftar kosong berarti tanpa hak).
+**Membuat role baru.** Permission `role.kelola`. Admin bisa membuat role sendiri (mis. `KEPALA_KEBUN`) lalu menentukan hak-nya; role itu bisa
+dipasang ke akun lewat halaman Pengguna dan ikut terunduh ke HP lewat `GET /api/master` (hak `akses.panen`/`akses.ipd` menentukan kotak di layar awal HP).
 
 ```json
-{ "permission": ["panen.lihat", "panen.buat", "panen.kirim", "laporan.lihat"] }
+{ "kode": "kepala_kebun", "nama": "Kepala Kebun", "deskripsi": "Melihat laporan", "permission": ["laporan.lihat", "ipd.lihat", "laporan.ipd"] }
+```
+
+| Field | Aturan |
+|---|---|
+| `kode` | wajib; 2 sampai 30 karakter, huruf besar, angka, garis bawah, diawali huruf (huruf kecil dijadikan besar); tidak bisa diubah dan tidak bisa dipakai ulang |
+| `nama` | wajib; 2 sampai 60 karakter |
+| `deskripsi` | opsional; maksimal 200 karakter |
+| `permission` | opsional; hak awal (kode dari katalog) |
+
+**201** `{"id": 8}`. Dibuat dalam satu transaksi (gagal berarti tidak ada role setengah jadi) dan tercatat di audit log.
+**Galat:** 403 tanpa `role.kelola` · 409 kode sudah dipakai · 422 bentuk salah atau kode permission tidak dikenal.
+
+## DELETE /api/admin/hak-akses/{id}
+
+**Menghapus role buatan admin.** Permission `role.kelola`. Hapus lunak role dan pasangan haknya; tercatat di audit log. **200** `{"status": "OK"}`.
+**Galat:** 404 role tidak ada · 409 role bawaan sistem, atau masih dipegang akun aktif (pindahkan akun itu ke role lain dulu).
+
+## PUT /api/admin/hak-akses/{id}
+
+Permission `role.kelola`. Mengganti **seluruh** hak role dengan daftar yang dikirim (daftar kosong berarti tanpa hak). `nama` dan `deskripsi`
+boleh ikut dikirim untuk mengganti nama dan keterangan role (kode tetap).
+
+```json
+{ "permission": ["panen.lihat", "panen.buat", "panen.kirim", "laporan.lihat"], "nama": "Krani Panen" }
 ```
 
 **200** `{"status": "OK"}`. Hak yang tidak dicantumkan dihapus lunak; yang baru ditambahkan atau dihidupkan lagi.
@@ -1104,6 +1131,7 @@ Semua persen dibulatkan 1 desimal. `per_kelompok` selalu BUAH, BRONDOLAN, PELEPA
 
 | Tanggal | Versi | Perubahan |
 |---|---|---|
+| 20 Nov 2026 | 0.18.0 | **IPD: satu kemandoran. Role buatan admin.** (1) `POST /api/ipd`: `mandor_blok_username` dan `mandor_ancak_username` diganti satu field `mandor_username` (kemandoran); respons IPD memuat `mandor_nama` (menggantikan `mandor_blok_nama` dan `mandor_ancak_nama`). **Tidak kompatibel dengan HP versi lama**; perlu migrasi `010_satu_kemandoran.sql` dan HP terbaru (Room v6). (2) Endpoint baru `POST /api/admin/hak-akses` (buat role) dan `DELETE /api/admin/hak-akses/{id}` (hapus role buatan admin yang tidak dipegang akun aktif); `PUT /api/admin/hak-akses/{id}` menerima `nama` dan `deskripsi`; `GET /api/admin/hak-akses` menambah `deskripsi` dan `pengguna` per role. |
 | 21 Nov 2026 | 0.17.0 | **IPD: loses dipisah dari temuan lain.** Temuan buah dan brondolan = loses; pelepah (C, R) = temuan lain yang tidak memengaruhi produksi. `IpdKodeAgg` menambah `jenis`; `ringkasan` menambah `pokok_loses`, `persen_pokok_loses`, `total_loses`, `pokok_temuan_lain`, `persen_pokok_temuan_lain`, `total_temuan_lain`; baris laporan (`per_pemanen`, `per_blok`, `per_divisi`, `per_tanggal`) menambah kolom yang sama dan `per_pemanen`/`per_blok` kini diurutkan menurut persen loses. Penambahan saja: field lama tidak berubah. |
 | 21 Nov 2026 | 0.16.0 | **Modul IPD (Inspeksi Panen Detail).** Endpoint baru: `POST /api/ipd`, `GET /api/ipd`, `GET /api/ipd/inspeksi-terakhir`, `GET /api/ipd/menunggu`, `POST /api/ipd/{id}/setujui`, `POST /api/ipd/{id}/tolak`, `POST /api/ipd/{id}/media`, `GET /api/ipd/foto/{id}`, `GET /api/admin/ipd`, `GET /api/admin/ipd/laporan`, `GET /api/admin/ipd/{id}`. `GET /api/master` menambah `kode_temuan` dan `divisi[].asisten_user_id`. `GET/POST/PUT /api/admin/divisi` menambah `asisten_user_id` (asisten divisi; `GET` juga `asisten_nama`). Permission baru: `akses.panen`, `akses.ipd`, `ipd.buat`, `ipd.kirim`, `ipd.setujui`, `ipd.lihat`, `laporan.ipd`, `ipd.kelola`; role baru ASKEP dan KTU (hanya melihat). Perlu migrasi `009_ipd.sql`. Penambahan saja: endpoint dan kolom lama tidak berubah. |
 | 20 Nov 2026 | 0.15.0 | `POST /api/panen` dengan `kirim_ulang=true`: pencatat kini boleh mengubah catatan yang masih `MENUNGGU` persetujuan krani (isi diganti, status tetap `MENUNGGU`), tidak hanya yang `DITOLAK`. Setelah krani menyetujui catatan terkunci dan `kirim_ulang` dijawab **423** (sebelumnya 200 `SUDAH_ADA` tanpa perubahan). Tanpa `kirim_ulang` perilaku tidak berubah. Respons baru 423 saja. |

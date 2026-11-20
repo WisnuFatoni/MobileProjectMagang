@@ -24,16 +24,25 @@ func NewHakAksesRepository(db *sql.DB) *HakAksesRepository { return &HakAksesRep
 func (r *HakAksesRepository) Daftar(ctx context.Context) (*model.HakAkses, error) {
 	out := &model.HakAkses{Role: []model.HakAksesRole{}, Permission: []model.IzinKatalog{}}
 
-	rows, err := r.db.QueryContext(ctx, `SELECT role_id, kode, nama, bawaan FROM dbo.role WHERE dihapus_pada IS NULL ORDER BY role_id`)
+	rows, err := r.db.QueryContext(ctx, `
+SELECT r.role_id, r.kode, r.nama, r.deskripsi, r.bawaan,
+  (SELECT COUNT(*) FROM dbo.user_role ur JOIN dbo.app_user u ON u.user_id = ur.user_id AND u.dihapus_pada IS NULL AND u.aktif = 1
+    WHERE ur.role_id = r.role_id AND ur.dihapus_pada IS NULL)
+FROM dbo.role r WHERE r.dihapus_pada IS NULL ORDER BY r.role_id`)
 	if err != nil {
 		return nil, err
 	}
 	idx := map[int64]int{}
 	for rows.Next() {
 		var x model.HakAksesRole
-		if err := rows.Scan(&x.RoleID, &x.Kode, &x.Nama, &x.Bawaan); err != nil {
+		var desk sql.NullString
+		if err := rows.Scan(&x.RoleID, &x.Kode, &x.Nama, &desk, &x.Bawaan, &x.Pengguna); err != nil {
 			rows.Close()
 			return nil, err
+		}
+		if desk.Valid {
+			d := desk.String
+			x.Deskripsi = &d
 		}
 		x.Permission = []string{}
 		idx[x.RoleID] = len(out.Role)
@@ -95,7 +104,14 @@ func (r *HakAksesRepository) Ubah(ctx context.Context, aktorID, roleID int64, ko
 		return err
 	}
 	defer tx.Rollback()
+	if err := r.ubahTx(ctx, tx, aktorID, roleID, kode); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
 
+// ubahTx mengganti hak satu role di dalam transaksi yang sudah dibuka pemanggil (tanpa commit).
+func (r *HakAksesRepository) ubahTx(ctx context.Context, tx *sql.Tx, aktorID, roleID int64, kode []string) error {
 	var roleKode string
 	if err := tx.QueryRowContext(ctx, `SELECT kode FROM dbo.role WHERE role_id=@p1 AND dihapus_pada IS NULL`, roleID).Scan(&roleKode); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -192,7 +208,7 @@ func (r *HakAksesRepository) Ubah(ctx context.Context, aktorID, roleID int64, ko
 		cabut = append(cabut, nama[id])
 	}
 	if len(tambah) == 0 && len(cabut) == 0 {
-		return tx.Commit() // tidak ada yang berubah: tidak menulis audit dan tidak mengubah versi master
+		return nil // tidak ada yang berubah: tidak menulis audit dan tidak mengubah versi master
 	}
 	sort.Strings(tambah)
 	sort.Strings(cabut)
@@ -200,7 +216,104 @@ func (r *HakAksesRepository) Ubah(ctx context.Context, aktorID, roleID int64, ko
 	if len(ket) > 300 {
 		ket = ket[:297] + "..."
 	}
-	if err := catat(ctx, tx, "role_permission", roleID, "UBAH", aktorID, ket); err != nil {
+	return catat(ctx, tx, "role_permission", roleID, "UBAH", aktorID, ket)
+}
+
+// Buat membuat role baru (bukan bawaan) beserta hak awalnya dalam satu transaksi.
+//   - ErrDuplikat bila kode role sudah dipakai (termasuk role yang pernah dihapus: kodenya tetap tercatat).
+//   - ErrReferensi bila ada kode permission yang tidak dikenal.
+func (r *HakAksesRepository) Buat(ctx context.Context, aktorID int64, in model.RoleInput) (int64, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+
+	var n int
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM dbo.role WHERE kode=@p1`, in.Kode).Scan(&n); err != nil {
+		return 0, err
+	}
+	if n > 0 {
+		return 0, ErrDuplikat
+	}
+	var id int64
+	if err := tx.QueryRowContext(ctx, `
+INSERT INTO dbo.role (kode, nama, deskripsi, bawaan, dibuat_oleh) OUTPUT INSERTED.role_id VALUES (@p1, @p2, @p3, 0, @p4)`,
+		in.Kode, in.Nama, nullStr(in.Deskripsi), aktorID).Scan(&id); err != nil {
+		return 0, err
+	}
+	if err := catat(ctx, tx, "role", id, "TAMBAH", aktorID, in.Kode); err != nil {
+		return 0, err
+	}
+	if err := r.ubahTx(ctx, tx, aktorID, id, in.Permission); err != nil {
+		return 0, err
+	}
+	return id, tx.Commit()
+}
+
+// UbahProfil mengganti nama dan/atau deskripsi role (kode tetap). Mengubah diubah_pada supaya HP mengunduh master baru.
+func (r *HakAksesRepository) UbahProfil(ctx context.Context, aktorID, roleID int64, nama, deskripsi *string) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	res, err := tx.ExecContext(ctx, `
+UPDATE dbo.role SET nama = COALESCE(@p2, nama), deskripsi = CASE WHEN @p3 IS NULL THEN deskripsi ELSE NULLIF(@p3, N'') END,
+  diubah_pada = SYSUTCDATETIME(), diubah_oleh = @p4
+WHERE role_id=@p1 AND dihapus_pada IS NULL`, roleID, ptrAny(nama), ptrAny(deskripsi), aktorID)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n != 1 {
+		return ErrNotFound
+	}
+	if err := catat(ctx, tx, "role", roleID, "UBAH", aktorID, "nama/deskripsi"); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// Hapus menghapus lunak role buatan admin beserta pasangan hak-nya.
+//   - ErrNotFound bila role tidak ada.
+//   - ErrDilindungi bila role bawaan sistem.
+//   - ErrMasihDipakai bila masih ada akun aktif yang memegang role itu.
+func (r *HakAksesRepository) Hapus(ctx context.Context, aktorID, roleID int64) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var kode string
+	var bawaan bool
+	if err := tx.QueryRowContext(ctx, `SELECT kode, bawaan FROM dbo.role WHERE role_id=@p1 AND dihapus_pada IS NULL`, roleID).Scan(&kode, &bawaan); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+		return err
+	}
+	if bawaan {
+		return ErrDilindungi
+	}
+	var pakai int
+	if err := tx.QueryRowContext(ctx, `
+SELECT COUNT(*) FROM dbo.user_role ur JOIN dbo.app_user u ON u.user_id = ur.user_id AND u.dihapus_pada IS NULL
+WHERE ur.role_id=@p1 AND ur.dihapus_pada IS NULL`, roleID).Scan(&pakai); err != nil {
+		return err
+	}
+	if pakai > 0 {
+		return ErrMasihDipakai
+	}
+	if _, err := tx.ExecContext(ctx, `
+UPDATE dbo.role_permission SET dihapus_pada=SYSUTCDATETIME(), dihapus_oleh=@p2, diubah_pada=SYSUTCDATETIME(), diubah_oleh=@p2
+WHERE role_id=@p1 AND dihapus_pada IS NULL`, roleID, aktorID); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `
+UPDATE dbo.role SET dihapus_pada=SYSUTCDATETIME(), dihapus_oleh=@p2, diubah_pada=SYSUTCDATETIME(), diubah_oleh=@p2 WHERE role_id=@p1`, roleID, aktorID); err != nil {
+		return err
+	}
+	if err := catat(ctx, tx, "role", roleID, "HAPUS", aktorID, kode); err != nil {
 		return err
 	}
 	return tx.Commit()

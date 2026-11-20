@@ -83,8 +83,7 @@ public class IpdTest {
         h.blokKode = "A12";
         h.pemanenHrmb = 90001;
         h.ancakNo = "7";
-        h.mandorBlokUsername = "mandor1";
-        h.mandorAncakUsername = "mandor2";
+        h.mandorUsername = "mandor2";
         h.dibuatPada = "2026-11-20T03:00:00Z";
         IpdHasil.PokokKirim p1 = new IpdHasil.PokokKirim();
         p1.pokokId = 1;
@@ -101,7 +100,7 @@ public class IpdTest {
         JSONObject o = PayloadBuilder.ipd(h, Arrays.asList(p1, p2), Arrays.asList(t));
         assertEquals("DIV2", o.getString("divisi_kode"));
         assertEquals(1012, o.getLong("asm3_oid"));
-        assertEquals("mandor2", o.getString("mandor_ancak_username"));
+        assertEquals("mandor2", o.getString("mandor_username"));
         assertTrue("tanpa kirim_ulang bila bukan perubahan", !o.has("kirim_ulang"));
         JSONArray pk = o.getJSONArray("pokok");
         assertEquals(2, pk.length());
@@ -124,7 +123,7 @@ public class IpdTest {
     @Test
     public void kelengkapanDiperiksaSebelumKirim() {
         IpdDraf d = new IpdDraf();
-        String[] urutan = {"divisi", "blok", "pemanen", "mandor di blok", "mandor di ancak", "pokok"};
+        String[] urutan = {"divisi", "blok", "pemanen", "mandor", "pokok"};
         int i = 0;
         for (; i < urutan.length; i++) {
             try {
@@ -144,10 +143,7 @@ public class IpdTest {
                     d.pemanenId = 1;
                     break;
                 case 3:
-                    d.mandorBlokUserId = 2L;
-                    break;
-                case 4:
-                    d.mandorAncakUserId = 3L;
+                    d.mandorUserId = 2L;
                     break;
                 default:
                     d.pokok.add(new IpdDraf.Pokok(1, 1));

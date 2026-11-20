@@ -68,8 +68,7 @@ func NewIpdService(repo IpdRepo, units UnitRepo, akses *AksesService, store File
 // Catatan yang sudah DISETUJUI terkunci (423). Pengirim yang memegang ipd.setujui (asisten) langsung DISETUJUI.
 func (s *IpdService) Terima(ctx context.Context, k *auth.Klaim, in model.IpdInput, ip string) (string, error) {
 	in.IpdID = strings.ToLower(in.IpdID)
-	in.MandorBlokUsername = strings.TrimSpace(in.MandorBlokUsername)
-	in.MandorAncakUsername = strings.TrimSpace(in.MandorAncakUsername)
+	in.MandorUsername = strings.TrimSpace(in.MandorUsername)
 	if err := in.Validasi(); err != nil {
 		return "", apperror.Unprocessable(err.Error())
 	}
@@ -135,16 +134,9 @@ func (s *IpdService) Terima(ctx context.Context, k *auth.Klaim, in model.IpdInpu
 		}
 	}
 
-	mandorBlok, err := s.repo.Mandor(ctx, unitID, in.MandorBlokUsername)
+	mandor, err := s.repo.Mandor(ctx, unitID, in.MandorUsername)
 	if errors.Is(err, repository.ErrNotFound) {
-		return "", apperror.Unprocessable("mandor_blok_username bukan akun aktif berperan MANDOR di unit ini: " + in.MandorBlokUsername)
-	}
-	if err != nil {
-		return "", apperror.Internal("Gagal membaca mandor", err)
-	}
-	mandorAncak, err := s.repo.Mandor(ctx, unitID, in.MandorAncakUsername)
-	if errors.Is(err, repository.ErrNotFound) {
-		return "", apperror.Unprocessable("mandor_ancak_username bukan akun aktif berperan MANDOR di unit ini: " + in.MandorAncakUsername)
+		return "", apperror.Unprocessable("mandor_username bukan akun aktif berperan MANDOR di unit ini: " + in.MandorUsername)
 	}
 	if err != nil {
 		return "", apperror.Internal("Gagal membaca mandor", err)
@@ -156,7 +148,7 @@ func (s *IpdService) Terima(ctx context.Context, k *auth.Klaim, in model.IpdInpu
 	}
 
 	rec := model.IpdSimpan{Input: in, UnitID: unitID, DeviceID: k.DeviceID, UserID: k.UserID, DivisiID: m.DivisiID, AsistenID: m.AsistenID,
-		MandorBlok: mandorBlok, MandorAncak: mandorAncak, KodeID: kode, Menunggu: !setujuSendiri, Ganti: ganti, IP: ip,
+		Mandor: mandor, KodeID: kode, Menunggu: !setujuSendiri, Ganti: ganti, IP: ip,
 		DibuatPada: s.sekarang().UTC()}
 	if in.DibuatPada != "" {
 		rec.DibuatPada, _ = model.ParseWaktu(in.DibuatPada) // sudah divalidasi

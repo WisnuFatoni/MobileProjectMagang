@@ -161,7 +161,7 @@ func rakitIpd() rakitanIpd {
 func ipdSah() model.IpdInput {
 	return model.IpdInput{
 		IpdID: idIpd, UnitKode: "KP_STL", TanggalInspeksi: "2026-11-20", DivisiKode: "DIV1", Asm3Oid: 101, BlokKode: "A12",
-		PemanenHrmbCode: 5001, AncakNo: "7", MandorBlokUsername: "mandor1", MandorAncakUsername: "mandor2",
+		PemanenHrmbCode: 5001, AncakNo: "7", MandorUsername: "mandor1",
 		Pokok: []model.IpdPokokInput{
 			{NoBaris: 11, NoPokok: 1},
 			{NoBaris: 11, NoPokok: 2, Temuan: []model.IpdTemuanInput{{Kode: "b1", Jumlah: 5}, {Kode: "S"}}},
@@ -182,8 +182,8 @@ func TestIpdTerimaMandorMenungguAsistenDivisi(t *testing.T) {
 	if p.UserID != 20 || p.AsistenID == nil || *p.AsistenID != 30 || p.DivisiID != 1 {
 		t.Fatalf("inspektur dari token dan asisten dari divisi: %+v", p)
 	}
-	if p.MandorBlok.UserID != 20 || p.MandorAncak.UserID != 21 {
-		t.Fatalf("mandor blok/ancak salah: %+v %+v", p.MandorBlok, p.MandorAncak)
+	if p.Mandor.UserID != 20 {
+		t.Fatalf("kemandoran salah: %+v", p.Mandor)
 	}
 	// Kode huruf kecil dinormalkan, jumlah kosong menjadi 1.
 	tm := p.Input.Pokok[1].Temuan
@@ -262,8 +262,7 @@ func TestIpdMasterDitolak422(t *testing.T) {
 		"kode temuan": func(_ rakitanIpd, in *model.IpdInput) {
 			in.Pokok[1].Temuan = []model.IpdTemuanInput{{Kode: "Z9"}}
 		},
-		"mandor_blok":  func(_ rakitanIpd, in *model.IpdInput) { in.MandorBlokUsername = "bukanmandor" },
-		"mandor_ancak": func(_ rakitanIpd, in *model.IpdInput) { in.MandorAncakUsername = "bukanmandor" },
+		"mandor": func(_ rakitanIpd, in *model.IpdInput) { in.MandorUsername = "bukanmandor" },
 	}
 	for nama, ubah := range kasus {
 		r := rakitIpd()
@@ -290,7 +289,7 @@ func TestIpdValidasiBentuk(t *testing.T) {
 		"tanggal":       func(in *model.IpdInput) { in.TanggalInspeksi = "20-11-2026" },
 		"divisi_kode":   func(in *model.IpdInput) { in.DivisiKode = " " },
 		"pemanen":       func(in *model.IpdInput) { in.PemanenHrmbCode = 0 },
-		"mandor":        func(in *model.IpdInput) { in.MandorAncakUsername = "" },
+		"mandor":        func(in *model.IpdInput) { in.MandorUsername = "" },
 		"pokok":         func(in *model.IpdInput) { in.Pokok = nil },
 		"pokok ganda":   func(in *model.IpdInput) { in.Pokok[1].NoPokok = 1 },
 		"no_baris":      func(in *model.IpdInput) { in.Pokok[0].NoBaris = 0 },

@@ -100,8 +100,7 @@ public class IpdInspeksiActivity extends AppCompatActivity {
     private IpdHasil.DivisiPilihan selDivisi;
     private IpdHasil.BlokPilihan selBlok;
     private IpdHasil.PemanenPilihan selPemanen;
-    private IpdHasil.OrangPilihan selMandorBlok;
-    private IpdHasil.OrangPilihan selMandorAncak;
+    private IpdHasil.OrangPilihan selMandor;
     /** Blok milik divisi terpilih (dimuat di thread latar: Room tidak boleh dibaca di thread utama). */
     private List<IpdHasil.BlokPilihan> daftarBlok = new ArrayList<>();
 
@@ -141,6 +140,9 @@ public class IpdInspeksiActivity extends AppCompatActivity {
     private LinearLayout kotakFoto;
     private EditText edCatatan;
     private File fotoMentah;
+    /** Bila tidak null, foto yang baru diambil disimpan langsung dengan keterangan ini (tanpa dialog). */
+    private String keteranganFotoOtomatis;
+    private MaterialButton btnFotoPokok;
     private ActivityResultLauncher<Uri> ambilFoto;
     private ActivityResultLauncher<String> mintaIzinKamera;
 
@@ -167,8 +169,11 @@ public class IpdInspeksiActivity extends AppCompatActivity {
 
         ambilFoto = registerForActivityResult(new ActivityResultContracts.TakePicture(), ok -> {
             if (ok && fotoMentah != null) prosesFoto(fotoMentah);
-            else if (fotoMentah != null) //noinspection ResultOfMethodCallIgnored
-                fotoMentah.delete();
+            else {
+                keteranganFotoOtomatis = null;
+                if (fotoMentah != null) //noinspection ResultOfMethodCallIgnored
+                    fotoMentah.delete();
+            }
         });
         mintaIzinKamera = registerForActivityResult(new ActivityResultContracts.RequestPermission(), ok -> {
             if (ok) mulaiAmbilFoto();
@@ -216,8 +221,7 @@ public class IpdInspeksiActivity extends AppCompatActivity {
         }
         for (IpdHasil.PemanenPilihan x : daftarPemanen) if (x.pemanenId == draf.pemanenId) selPemanen = x;
         for (IpdHasil.OrangPilihan x : daftarMandor) {
-            if (draf.mandorBlokUserId != null && x.userId == draf.mandorBlokUserId) selMandorBlok = x;
-            if (draf.mandorAncakUserId != null && x.userId == draf.mandorAncakUserId) selMandorAncak = x;
+            if (draf.mandorUserId != null && x.userId == draf.mandorUserId) selMandor = x;
         }
         bangunLayar();
         kepalaLengkap(false); // mengisi teks info pemanen bila inspeksi dimuat dari draf
@@ -295,6 +299,7 @@ public class IpdInspeksiActivity extends AppCompatActivity {
             langkahChip[i].setTextColor(aktif ? 0xFFFFFFFF : ContextCompat.getColor(this, R.color.brand_on_primary_container));
         }
         if (n == 2) segarkanRingkasan();
+        if (n == 1) segarkanFoto();
     }
 
     private void pindahLangkah(int n) {
@@ -336,8 +341,24 @@ public class IpdInspeksiActivity extends AppCompatActivity {
         ac.setAdapter(new PencarianAdapter<>(this, data));
         if (terpilih != null) ac.setText(String.valueOf(terpilih), false);
         ac.setOnClickListener(v -> ac.showDropDown());
+        // Daftar yang bisa diketik: bila teks diubah tanpa memilih item, pilihan lama dianggap batal (tidak boleh tertinggal diam-diam).
+        final Object[] saatIni = {terpilih};
+        if (bisaKetik) {
+            ac.addTextChangedListener(new android.text.TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) { }
+                @Override public void onTextChanged(CharSequence s, int a, int b, int c) { }
+                @Override public void afterTextChanged(android.text.Editable s) {
+                    if (saatIni[0] != null && !s.toString().equals(String.valueOf(saatIni[0]))) {
+                        saatIni[0] = null;
+                        saatPilih.accept(null);
+                        kotor = true;
+                    }
+                }
+            });
+        }
         ac.setOnItemClickListener((p, v, pos, id) -> {
             @SuppressWarnings("unchecked") T item = (T) p.getItemAtPosition(pos);
+            saatIni[0] = item;
             saatPilih.accept(item);
             kotor = true;
             ac.clearFocus();
@@ -387,7 +408,7 @@ public class IpdInspeksiActivity extends AppCompatActivity {
         k.addView(txtAsisten);
         tampilkanAsisten();
 
-        ddBlok = dropdown(k, "Blok", daftarBlok, selBlok, b -> selBlok = b);
+        ddBlok = dropdown(k, "Blok (ketik untuk mencari)", daftarBlok, selBlok, b -> selBlok = b, true);
         dropdown(k, "Pemanen (ketik untuk mencari)", daftarPemanen, selPemanen, p -> selPemanen = p, true);
 
         TextInputLayout tilAncak = new TextInputLayout(this, null, com.google.android.material.R.attr.textInputOutlinedStyle);
@@ -399,8 +420,7 @@ public class IpdInspeksiActivity extends AppCompatActivity {
         tilAncak.addView(edAncak);
         k.addView(tilAncak, IpdUi.lebarPenuh(c, 4, 8));
 
-        dropdown(k, "Mandor di blok", daftarMandor, selMandorBlok, m -> selMandorBlok = m);
-        dropdown(k, "Mandor di ancak", daftarMandor, selMandorAncak, m -> selMandorAncak = m);
+        dropdown(k, "Kemandoran (ketik untuk mencari)", daftarMandor, selMandor, m -> selMandor = m, true);
         if (daftarMandor.isEmpty()) {
             k.addView(IpdUi.teks(c, "Daftar mandor belum ada di HP. Sinkronkan dulu saat ada sinyal.", 13, true, androidx.appcompat.R.attr.colorError));
         }
@@ -437,8 +457,7 @@ public class IpdInspeksiActivity extends AppCompatActivity {
         if (selDivisi == null) kurang = "Pilih divisi dulu";
         else if (selBlok == null) kurang = "Pilih blok dulu";
         else if (selPemanen == null) kurang = "Pilih pemanen dulu";
-        else if (selMandorBlok == null) kurang = "Pilih mandor di blok";
-        else if (selMandorAncak == null) kurang = "Pilih mandor di ancak";
+        else if (selMandor == null) kurang = "Pilih kemandoran (mandor) dulu";
         if (kurang != null) {
             if (pesan) Toast.makeText(this, kurang, Toast.LENGTH_SHORT).show();
             return false;
@@ -446,8 +465,7 @@ public class IpdInspeksiActivity extends AppCompatActivity {
         draf.divisiId = selDivisi.divisiId;
         draf.blokId = selBlok.blokId;
         draf.pemanenId = selPemanen.pemanenId;
-        draf.mandorBlokUserId = selMandorBlok.userId;
-        draf.mandorAncakUserId = selMandorAncak.userId;
+        draf.mandorUserId = selMandor.userId;
         draf.ancakNo = edAncak.getText().toString().trim();
         txtInfo.setText(selPemanen.nama + " • Blok " + selBlok.kode + " • " + selDivisi.nama);
         return true;
@@ -625,6 +643,10 @@ public class IpdInspeksiActivity extends AppCompatActivity {
         txtPosisi = IpdUi.redup(c, "", 13);
         txtPosisi.setPadding(0, IpdUi.dp(c, 8), 0, 0);
         kl.addView(txtPosisi);
+        // Foto diambil langsung saat jalan memeriksa; keterangannya otomatis menyebut baris dan pokok yang sedang dicatat.
+        btnFotoPokok = IpdUi.tombol(c, "Ambil foto pokok ini", false);
+        btnFotoPokok.setOnClickListener(v -> tambahFotoPokok());
+        kl.addView(btnFotoPokok, IpdUi.lebarPenuh(c, 8, 0));
         k.addView(kartu);
 
         // Pilihan sisi: temuan dicatat per baris; baris yang tidak diberi pilihan dianggap bersih.
@@ -983,8 +1005,7 @@ public class IpdInspeksiActivity extends AppCompatActivity {
         x.blokId = d.blokId;
         x.pemanenId = d.pemanenId;
         x.ancakNo = d.ancakNo;
-        x.mandorBlokUserId = d.mandorBlokUserId;
-        x.mandorAncakUserId = d.mandorAncakUserId;
+        x.mandorUserId = d.mandorUserId;
         x.catatan = d.catatan;
         x.statusLama = d.statusLama;
         for (IpdDraf.Pokok p : d.pokok) {
@@ -1025,7 +1046,7 @@ public class IpdInspeksiActivity extends AppCompatActivity {
         til.addView(edCatatan);
         k.addView(til, IpdUi.lebarPenuh(c, 0, 12));
 
-        MaterialButton kirim = IpdUi.tombol(c, "Kirim ke asisten", true);
+        MaterialButton kirim = IpdUi.tombol(c, "Kirim", true);
         kirim.setMinimumHeight(IpdUi.dp(c, 64));
         kirim.setTextSize(18);
         kirim.setOnClickListener(v -> kirim(kirim));
@@ -1082,7 +1103,8 @@ public class IpdInspeksiActivity extends AppCompatActivity {
 
     private void segarkanFoto() {
         if (draf.ipdId == null) {
-            kotakFoto.removeAllViews();
+            if (kotakFoto != null) kotakFoto.removeAllViews();
+            if (btnFotoPokok != null) btnFotoPokok.setText("Ambil foto pokok ini");
             return;
         }
         final String id = draf.ipdId;
@@ -1090,8 +1112,11 @@ public class IpdInspeksiActivity extends AppCompatActivity {
             List<IpdFoto> foto = dao.foto(id);
             main.post(() -> {
                 if (isFinishing()) return;
-                kotakFoto.removeAllViews();
-                for (IpdFoto f : foto) kotakFoto.addView(barisFoto(f));
+                if (kotakFoto != null) {
+                    kotakFoto.removeAllViews();
+                    for (IpdFoto f : foto) kotakFoto.addView(barisFoto(f));
+                }
+                if (btnFotoPokok != null) btnFotoPokok.setText("Ambil foto pokok ini  •  " + foto.size() + " foto tersimpan");
             });
         });
     }
@@ -1150,8 +1175,19 @@ public class IpdInspeksiActivity extends AppCompatActivity {
 
     // ---- Foto ------------------------------------------------------------------------------------
 
+    /** Foto saat memeriksa: keterangan otomatis memuat nomor baris dan pokok yang sedang dicatat. */
+    private void tambahFotoPokok() {
+        int a = angka(edBaris, 1);
+        int p = angka(edPokok, 1);
+        keteranganFotoOtomatis = dua() ? "Baris " + a + " dan " + angka(edBaris2, a + 1) + ", pokok " + p : "Baris " + a + ", pokok " + p;
+        tambahFoto();
+    }
+
     private void tambahFoto() {
-        if (!kepalaLengkap(true)) return;
+        if (!kepalaLengkap(true)) {
+            keteranganFotoOtomatis = null;
+            return;
+        }
         // Inspeksi harus sudah tersimpan (draf) sebelum foto bisa ditautkan.
         if (draf.ipdId == null) draf.ipdId = UUID.randomUUID().toString();
         final IpdDraf salinan = salin(draf);
@@ -1185,13 +1221,24 @@ public class IpdInspeksiActivity extends AppCompatActivity {
     /** Foto dari kamera dikecilkan dan dimampatkan, lalu diberi keterangan. */
     private void prosesFoto(File mentah) {
         final String ipdId = draf.ipdId;
+        final String ketOtomatis = keteranganFotoOtomatis;
+        keteranganFotoOtomatis = null;
         final File tujuan = new File(new File(getFilesDir(), "foto_ipd"), UUID.randomUUID() + ".jpg");
         io.execute(() -> {
             try {
                 FotoKompres.Hasil h = FotoKompres.kompres(mentah, tujuan);
                 //noinspection ResultOfMethodCallIgnored
                 mentah.delete();
-                main.post(() -> mintaKeteranganFoto(ipdId, tujuan, h));
+                if (ketOtomatis != null) {
+                    repo.tambahFoto(ipdId, tujuan, h, ketOtomatis);
+                    kotor = true;
+                    main.post(() -> {
+                        Toast.makeText(this, "Foto tersimpan: " + ketOtomatis, Toast.LENGTH_SHORT).show();
+                        segarkanFoto();
+                    });
+                } else {
+                    main.post(() -> mintaKeteranganFoto(ipdId, tujuan, h));
+                }
             } catch (Exception e) {
                 //noinspection ResultOfMethodCallIgnored
                 mentah.delete();

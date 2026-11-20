@@ -4,6 +4,9 @@ import android.content.Context;
 
 import androidx.annotation.NonNull;
 import androidx.room.AutoMigration;
+import androidx.room.DeleteColumn;
+import androidx.room.RenameColumn;
+import androidx.room.migration.AutoMigrationSpec;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
@@ -56,10 +59,25 @@ import com.example.fai26.db.entity.UserRole;
                 AuditLog.class, SyncQueue.class, MasterSync.class,
                 KodeTemuan.class, IpdHeader.class, IpdPokok.class, IpdTemuan.class, IpdFoto.class
         },
-        version = 5,
-        autoMigrations = {@AutoMigration(from = 4, to = 5)},
+        version = 6,
+        autoMigrations = {
+                @AutoMigration(from = 4, to = 5),
+                @AutoMigration(from = 5, to = 6, spec = AppDatabase.SatuKemandoran.class)},
         exportSchema = true)
 public abstract class AppDatabase extends RoomDatabase {
+
+    /**
+     * Versi 6: IPD memakai satu kemandoran. mandor_blok_* diganti namanya menjadi mandor_*, mandor_ancak_* dibuang
+     * (inspeksi lama tetap utuh; yang dipakai adalah mandor di blok).
+     */
+    @RenameColumn.Entries({
+            @RenameColumn(tableName = "ipd_header", fromColumnName = "mandor_blok_user_id", toColumnName = "mandor_user_id"),
+            @RenameColumn(tableName = "ipd_header", fromColumnName = "mandor_blok_hrmb", toColumnName = "mandor_hrmb")})
+    @DeleteColumn.Entries({
+            @DeleteColumn(tableName = "ipd_header", columnName = "mandor_ancak_user_id"),
+            @DeleteColumn(tableName = "ipd_header", columnName = "mandor_ancak_hrmb")})
+    public static class SatuKemandoran implements AutoMigrationSpec {
+    }
 
     public static final String NAMA = "fai26.db";
 

@@ -300,7 +300,17 @@ export interface HakAksesRole {
   role_id: number
   kode: string
   nama: string
+  deskripsi: string | null
   bawaan: boolean
+  /** Jumlah akun aktif yang memegang role ini. */
+  pengguna: number
+  permission: string[]
+}
+
+export interface RoleInput {
+  kode: string
+  nama: string
+  deskripsi?: string
   permission: string[]
 }
 
@@ -361,8 +371,7 @@ export interface IpdBaris {
   ancak_no: string | null
   inspektur: string
   inspektur_nama: string
-  mandor_blok_nama: string | null
-  mandor_ancak_nama: string | null
+  mandor_nama: string | null
   asisten_nama: string | null
   status: StatusIpd
   pesan_tolak: string | null

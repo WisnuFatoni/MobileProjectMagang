@@ -17,6 +17,9 @@ type fakeHakAkses struct {
 	aktor    int64
 	kode     []string
 	dipanggi int
+	dibuat   *model.RoleInput
+	profil   [2]*string
+	dihapus  int64
 }
 
 func (f *fakeHakAkses) Daftar(context.Context) (*model.HakAkses, error) {
@@ -30,6 +33,84 @@ func (f *fakeHakAkses) Ubah(_ context.Context, aktorID, roleID int64, kode []str
 	f.dipanggi++
 	f.aktor, f.roleID, f.kode = aktorID, roleID, kode
 	return f.err
+}
+
+func (f *fakeHakAkses) Buat(_ context.Context, aktorID int64, in model.RoleInput) (int64, error) {
+	f.dipanggi++
+	f.aktor, f.dibuat = aktorID, &in
+	return 9, f.err
+}
+
+func (f *fakeHakAkses) UbahProfil(_ context.Context, _, _ int64, nama, deskripsi *string) error {
+	f.dipanggi++
+	f.profil = [2]*string{nama, deskripsi}
+	return f.err
+}
+
+func (f *fakeHakAkses) Hapus(_ context.Context, _, roleID int64) error {
+	f.dipanggi++
+	f.dihapus = roleID
+	return f.err
+}
+
+func TestHakAksesBuatRoleBaruMerapikanKodeDanMemeriksaBentuk(t *testing.T) {
+	f := &fakeHakAkses{}
+	id, err := NewHakAksesService(f).Buat(context.Background(), klaimKrani, model.RoleInput{
+		Kode: " kepala_kebun ", Nama: " Kepala Kebun ", Permission: []string{"panen.lihat", " panen.lihat"}})
+	if err != nil || id != 9 {
+		t.Fatalf("buat: %d %v", id, err)
+	}
+	if f.dibuat.Kode != "KEPALA_KEBUN" || f.dibuat.Nama != "Kepala Kebun" || !reflect.DeepEqual(f.dibuat.Permission, []string{"panen.lihat"}) {
+		t.Fatalf("isi dikirim ke repository: %+v", f.dibuat)
+	}
+	// Tanpa daftar hak: dianggap kosong, bukan galat.
+	if _, err := NewHakAksesService(&fakeHakAkses{}).Buat(context.Background(), klaimKrani, model.RoleInput{Kode: "TAMU", Nama: "Tamu"}); err != nil {
+		t.Fatalf("role tanpa hak boleh: %v", err)
+	}
+	salah := map[string]model.RoleInput{
+		"kode berspasi":       {Kode: "KEPALA KEBUN", Nama: "Kepala"},
+		"kode diawali angka":  {Kode: "1ABC", Nama: "Kepala"},
+		"kode terlalu pendek": {Kode: "A", Nama: "Kepala"},
+		"nama kosong":         {Kode: "TAMU", Nama: " "},
+		"deskripsi panjang":   {Kode: "TAMU", Nama: "Tamu", Deskripsi: string(make([]rune, 201))},
+	}
+	for nama, in := range salah {
+		g := &fakeHakAkses{}
+		if _, err := NewHakAksesService(g).Buat(context.Background(), klaimKrani, in); statusGalat(t, err) != http.StatusUnprocessableEntity || g.dipanggi != 0 {
+			t.Errorf("%s: harus 422 tanpa menyentuh database: %v", nama, err)
+		}
+	}
+}
+
+func TestHakAksesBuatDanHapusGalatDipetakan(t *testing.T) {
+	kasus := map[error]int{repository.ErrDuplikat: http.StatusConflict, repository.ErrMasihDipakai: http.StatusConflict,
+		repository.ErrDilindungi: http.StatusConflict, repository.ErrNotFound: http.StatusNotFound}
+	for e, want := range kasus {
+		if _, err := NewHakAksesService(&fakeHakAkses{err: e}).Buat(context.Background(), klaimKrani, model.RoleInput{Kode: "TAMU", Nama: "Tamu"}); e != repository.ErrMasihDipakai && e != repository.ErrNotFound && statusGalat(t, err) != want {
+			t.Errorf("buat %v: harus %d", e, want)
+		}
+		if err := NewHakAksesService(&fakeHakAkses{err: e}).Hapus(context.Background(), klaimKrani, 4); statusGalat(t, err) != want {
+			t.Errorf("hapus %v: harus %d, dapat %v", e, want, err)
+		}
+	}
+	if err := NewHakAksesService(&fakeHakAkses{}).Hapus(context.Background(), klaimKrani, 0); statusGalat(t, err) != http.StatusBadRequest {
+		t.Errorf("id nol harus 400: %v", err)
+	}
+}
+
+func TestHakAksesUbahJugaMengubahNamaBilaDiberikan(t *testing.T) {
+	f := &fakeHakAkses{}
+	n := " Kepala Kebun "
+	if err := NewHakAksesService(f).Ubah(context.Background(), klaimKrani, 3, model.HakAksesInput{Permission: []string{}, Nama: &n}); err != nil {
+		t.Fatal(err)
+	}
+	if f.profil[0] == nil || *f.profil[0] != "Kepala Kebun" || f.profil[1] != nil {
+		t.Fatalf("profil: %+v", f.profil)
+	}
+	kosong := " "
+	if err := NewHakAksesService(&fakeHakAkses{}).Ubah(context.Background(), klaimKrani, 3, model.HakAksesInput{Permission: []string{}, Nama: &kosong}); statusGalat(t, err) != http.StatusUnprocessableEntity {
+		t.Fatalf("nama kosong harus 422: %v", err)
+	}
 }
 
 func TestHakAksesUbahMembersihkanDanMeneruskanDenganIdentitasDariToken(t *testing.T) {

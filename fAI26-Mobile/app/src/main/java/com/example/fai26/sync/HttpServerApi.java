@@ -307,8 +307,7 @@ public class HttpServerApi implements ServerApi {
                 m.pemanenNama = o.isNull("pemanen_nama") ? null : o.optString("pemanen_nama", null);
                 m.ancakNo = o.isNull("ancak_no") ? null : o.optString("ancak_no", null);
                 m.inspekturNama = o.optString("inspektur_nama", o.optString("inspektur", ""));
-                m.mandorBlokNama = o.isNull("mandor_blok_nama") ? null : o.optString("mandor_blok_nama", null);
-                m.mandorAncakNama = o.isNull("mandor_ancak_nama") ? null : o.optString("mandor_ancak_nama", null);
+                m.mandorNama = o.isNull("mandor_nama") ? null : o.optString("mandor_nama", null);
                 m.catatan = o.isNull("catatan") ? null : o.optString("catatan", null);
                 m.dibuatMillis = parseIso(o.getString("dibuat_pada"));
                 JSONObject rg = o.optJSONObject("ringkasan");

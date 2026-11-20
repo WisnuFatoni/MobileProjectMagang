@@ -1,0 +1,2979 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 6,
+    "identityHash": "080ece9d07b65bd6f315e3f8031aea0d",
+    "entities": [
+      {
+        "tableName": "unit",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`unit_id` INTEGER NOT NULL, `kode` TEXT NOT NULL, `nama` TEXT NOT NULL, `erp_db` TEXT NOT NULL, `tahun_cluster` INTEGER NOT NULL, `aktif` INTEGER NOT NULL, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, PRIMARY KEY(`unit_id`))",
+        "fields": [
+          {
+            "fieldPath": "unitId",
+            "columnName": "unit_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kode",
+            "columnName": "kode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nama",
+            "columnName": "nama",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "erpDb",
+            "columnName": "erp_db",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tahunCluster",
+            "columnName": "tahun_cluster",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "aktif",
+            "columnName": "aktif",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "unit_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "ux_unit_kode",
+            "unique": true,
+            "columnNames": [
+              "kode"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `ux_unit_kode` ON `${TABLE_NAME}` (`kode`)"
+          }
+        ]
+      },
+      {
+        "tableName": "divisi",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`divisi_id` INTEGER NOT NULL, `unit_id` INTEGER NOT NULL, `erp_oid` INTEGER, `kode` TEXT NOT NULL, `nama` TEXT NOT NULL, `asisten_user_id` INTEGER, `aktif` INTEGER NOT NULL, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, PRIMARY KEY(`divisi_id`), FOREIGN KEY(`unit_id`) REFERENCES `unit`(`unit_id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "divisiId",
+            "columnName": "divisi_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitId",
+            "columnName": "unit_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "erpOid",
+            "columnName": "erp_oid",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "kode",
+            "columnName": "kode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nama",
+            "columnName": "nama",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "asistenUserId",
+            "columnName": "asisten_user_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "aktif",
+            "columnName": "aktif",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "divisi_id"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "unit",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "unit_id"
+            ],
+            "referencedColumns": [
+              "unit_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "blok",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`blok_id` INTEGER NOT NULL, `unit_id` INTEGER NOT NULL, `divisi_id` INTEGER, `erp_oid` INTEGER NOT NULL, `kode` TEXT NOT NULL, `nama` TEXT, `luas_ha` REAL, `tahun_tanam` INTEGER, `sph` REAL, `aktif` INTEGER NOT NULL, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, PRIMARY KEY(`blok_id`), FOREIGN KEY(`unit_id`) REFERENCES `unit`(`unit_id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`divisi_id`) REFERENCES `divisi`(`divisi_id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "blokId",
+            "columnName": "blok_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitId",
+            "columnName": "unit_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "divisiId",
+            "columnName": "divisi_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "erpOid",
+            "columnName": "erp_oid",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kode",
+            "columnName": "kode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nama",
+            "columnName": "nama",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "luasHa",
+            "columnName": "luas_ha",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "tahunTanam",
+            "columnName": "tahun_tanam",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "sph",
+            "columnName": "sph",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "aktif",
+            "columnName": "aktif",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "blok_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "ux_blok_unit_id_kode",
+            "unique": true,
+            "columnNames": [
+              "unit_id",
+              "kode"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `ux_blok_unit_id_kode` ON `${TABLE_NAME}` (`unit_id`, `kode`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "unit",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "unit_id"
+            ],
+            "referencedColumns": [
+              "unit_id"
+            ]
+          },
+          {
+            "table": "divisi",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "divisi_id"
+            ],
+            "referencedColumns": [
+              "divisi_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "tph",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tph_id` INTEGER NOT NULL, `blok_id` INTEGER NOT NULL, `no_tph` TEXT NOT NULL, `qr_kode` TEXT NOT NULL, `lat` REAL, `lon` REAL, `aktif` INTEGER NOT NULL, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, PRIMARY KEY(`tph_id`), FOREIGN KEY(`blok_id`) REFERENCES `blok`(`blok_id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "tphId",
+            "columnName": "tph_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "blokId",
+            "columnName": "blok_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "noTph",
+            "columnName": "no_tph",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "qrKode",
+            "columnName": "qr_kode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lat",
+            "columnName": "lat",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "lon",
+            "columnName": "lon",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "aktif",
+            "columnName": "aktif",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "tph_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "ux_tph_qr_kode",
+            "unique": true,
+            "columnNames": [
+              "qr_kode"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `ux_tph_qr_kode` ON `${TABLE_NAME}` (`qr_kode`)"
+          },
+          {
+            "name": "ux_tph_blok_id_no_tph",
+            "unique": true,
+            "columnNames": [
+              "blok_id",
+              "no_tph"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `ux_tph_blok_id_no_tph` ON `${TABLE_NAME}` (`blok_id`, `no_tph`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "blok",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "blok_id"
+            ],
+            "referencedColumns": [
+              "blok_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "pemanen",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`pemanen_id` INTEGER NOT NULL, `unit_id` INTEGER NOT NULL, `erp_hrmb_code` INTEGER NOT NULL, `kode` TEXT, `nama` TEXT NOT NULL, `aktif` INTEGER NOT NULL, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, PRIMARY KEY(`pemanen_id`), FOREIGN KEY(`unit_id`) REFERENCES `unit`(`unit_id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "pemanenId",
+            "columnName": "pemanen_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitId",
+            "columnName": "unit_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "erpHrmbCode",
+            "columnName": "erp_hrmb_code",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kode",
+            "columnName": "kode",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "nama",
+            "columnName": "nama",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "aktif",
+            "columnName": "aktif",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "pemanen_id"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "unit",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "unit_id"
+            ],
+            "referencedColumns": [
+              "unit_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "periode_rotasi",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`periode_id` INTEGER NOT NULL, `unit_id` INTEGER NOT NULL, `rotasi_no` INTEGER NOT NULL, `tgl_mulai` TEXT NOT NULL, `tgl_selesai` TEXT NOT NULL, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, PRIMARY KEY(`periode_id`), FOREIGN KEY(`unit_id`) REFERENCES `unit`(`unit_id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "periodeId",
+            "columnName": "periode_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitId",
+            "columnName": "unit_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rotasiNo",
+            "columnName": "rotasi_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tglMulai",
+            "columnName": "tgl_mulai",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tglSelesai",
+            "columnName": "tgl_selesai",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "periode_id"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "unit",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "unit_id"
+            ],
+            "referencedColumns": [
+              "unit_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "kelas_grading",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`kelas_id` INTEGER NOT NULL, `kode` TEXT NOT NULL, `nama` TEXT NOT NULL, `label_model` INTEGER NOT NULL, `erp_kolom` TEXT, `boleh_dipanen` INTEGER NOT NULL, `urutan` INTEGER NOT NULL, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, PRIMARY KEY(`kelas_id`))",
+        "fields": [
+          {
+            "fieldPath": "kelasId",
+            "columnName": "kelas_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kode",
+            "columnName": "kode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nama",
+            "columnName": "nama",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "labelModel",
+            "columnName": "label_model",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "erpKolom",
+            "columnName": "erp_kolom",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "bolehDipanen",
+            "columnName": "boleh_dipanen",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "urutan",
+            "columnName": "urutan",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "kelas_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "ux_kelas_grading_kode",
+            "unique": true,
+            "columnNames": [
+              "kode"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `ux_kelas_grading_kode` ON `${TABLE_NAME}` (`kode`)"
+          }
+        ]
+      },
+      {
+        "tableName": "model_versi",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`model_id` INTEGER NOT NULL, `nama` TEXT NOT NULL, `versi` TEXT NOT NULL, `file_hash` TEXT, `tgl_rilis` TEXT, `aktif` INTEGER NOT NULL, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, PRIMARY KEY(`model_id`))",
+        "fields": [
+          {
+            "fieldPath": "modelId",
+            "columnName": "model_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nama",
+            "columnName": "nama",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "versi",
+            "columnName": "versi",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fileHash",
+            "columnName": "file_hash",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tglRilis",
+            "columnName": "tgl_rilis",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "aktif",
+            "columnName": "aktif",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "model_id"
+          ]
+        }
+      },
+      {
+        "tableName": "device",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`device_id` TEXT NOT NULL, `nama` TEXT, `os_versi` TEXT, `app_versi` TEXT, `aktif` INTEGER NOT NULL, `terakhir_sinkron` TEXT, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, PRIMARY KEY(`device_id`))",
+        "fields": [
+          {
+            "fieldPath": "deviceId",
+            "columnName": "device_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nama",
+            "columnName": "nama",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "osVersi",
+            "columnName": "os_versi",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "appVersi",
+            "columnName": "app_versi",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "aktif",
+            "columnName": "aktif",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "terakhirSinkron",
+            "columnName": "terakhir_sinkron",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "device_id"
+          ]
+        }
+      },
+      {
+        "tableName": "app_user",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`user_id` INTEGER NOT NULL, `unit_id` INTEGER NOT NULL, `erp_user_oid` INTEGER, `mandor_hrmb_code` INTEGER, `afdeling_kode` TEXT, `username` TEXT NOT NULL, `nama` TEXT NOT NULL, `aktif` INTEGER NOT NULL, `gagal_login` INTEGER NOT NULL, `terkunci_sampai` TEXT, `login_terakhir` TEXT, `offline_hash` TEXT, `offline_salt` TEXT, `offline_berlaku_sampai` TEXT, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, PRIMARY KEY(`user_id`), FOREIGN KEY(`unit_id`) REFERENCES `unit`(`unit_id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "userId",
+            "columnName": "user_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitId",
+            "columnName": "unit_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "erpUserOid",
+            "columnName": "erp_user_oid",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "mandorHrmbCode",
+            "columnName": "mandor_hrmb_code",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "afdelingKode",
+            "columnName": "afdeling_kode",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "username",
+            "columnName": "username",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nama",
+            "columnName": "nama",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "aktif",
+            "columnName": "aktif",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gagalLogin",
+            "columnName": "gagal_login",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "terkunciSampai",
+            "columnName": "terkunci_sampai",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "loginTerakhir",
+            "columnName": "login_terakhir",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "offlineHash",
+            "columnName": "offline_hash",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "offlineSalt",
+            "columnName": "offline_salt",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "offlineBerlakuSampai",
+            "columnName": "offline_berlaku_sampai",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "user_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "ux_app_user_username",
+            "unique": true,
+            "columnNames": [
+              "username"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `ux_app_user_username` ON `${TABLE_NAME}` (`username`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "unit",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "unit_id"
+            ],
+            "referencedColumns": [
+              "unit_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "role",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`role_id` INTEGER NOT NULL, `kode` TEXT NOT NULL, `nama` TEXT NOT NULL, `deskripsi` TEXT, `bawaan` INTEGER NOT NULL, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, PRIMARY KEY(`role_id`))",
+        "fields": [
+          {
+            "fieldPath": "roleId",
+            "columnName": "role_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kode",
+            "columnName": "kode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nama",
+            "columnName": "nama",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deskripsi",
+            "columnName": "deskripsi",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "bawaan",
+            "columnName": "bawaan",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "role_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "ux_role_kode",
+            "unique": true,
+            "columnNames": [
+              "kode"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `ux_role_kode` ON `${TABLE_NAME}` (`kode`)"
+          }
+        ]
+      },
+      {
+        "tableName": "permission",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`permission_id` INTEGER NOT NULL, `kode` TEXT NOT NULL, `modul` TEXT NOT NULL, `nama` TEXT NOT NULL, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, PRIMARY KEY(`permission_id`))",
+        "fields": [
+          {
+            "fieldPath": "permissionId",
+            "columnName": "permission_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kode",
+            "columnName": "kode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modul",
+            "columnName": "modul",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nama",
+            "columnName": "nama",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "permission_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "ux_permission_kode",
+            "unique": true,
+            "columnNames": [
+              "kode"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `ux_permission_kode` ON `${TABLE_NAME}` (`kode`)"
+          }
+        ]
+      },
+      {
+        "tableName": "user_role",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`ur_id` INTEGER NOT NULL, `user_id` INTEGER NOT NULL, `role_id` INTEGER NOT NULL, `berlaku_mulai` TEXT, `berlaku_sampai` TEXT, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, PRIMARY KEY(`ur_id`), FOREIGN KEY(`user_id`) REFERENCES `app_user`(`user_id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`role_id`) REFERENCES `role`(`role_id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "urId",
+            "columnName": "ur_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "user_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "roleId",
+            "columnName": "role_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "berlakuMulai",
+            "columnName": "berlaku_mulai",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "berlakuSampai",
+            "columnName": "berlaku_sampai",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "ur_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "ux_user_role_user_id_role_id",
+            "unique": true,
+            "columnNames": [
+              "user_id",
+              "role_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `ux_user_role_user_id_role_id` ON `${TABLE_NAME}` (`user_id`, `role_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "app_user",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "user_id"
+            ],
+            "referencedColumns": [
+              "user_id"
+            ]
+          },
+          {
+            "table": "role",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "role_id"
+            ],
+            "referencedColumns": [
+              "role_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "role_permission",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`rp_id` INTEGER NOT NULL, `role_id` INTEGER NOT NULL, `permission_id` INTEGER NOT NULL, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, PRIMARY KEY(`rp_id`), FOREIGN KEY(`role_id`) REFERENCES `role`(`role_id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`permission_id`) REFERENCES `permission`(`permission_id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "rpId",
+            "columnName": "rp_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "roleId",
+            "columnName": "role_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "permissionId",
+            "columnName": "permission_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "rp_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "ux_role_permission_role_id_permission_id",
+            "unique": true,
+            "columnNames": [
+              "role_id",
+              "permission_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `ux_role_permission_role_id_permission_id` ON `${TABLE_NAME}` (`role_id`, `permission_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "role",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "role_id"
+            ],
+            "referencedColumns": [
+              "role_id"
+            ]
+          },
+          {
+            "table": "permission",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "permission_id"
+            ],
+            "referencedColumns": [
+              "permission_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "panen_header",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`panen_id` TEXT NOT NULL, `unit_id` INTEGER NOT NULL, `blok_id` INTEGER NOT NULL, `tph_id` INTEGER NOT NULL, `user_id` INTEGER NOT NULL, `device_id` TEXT NOT NULL, `model_id` INTEGER, `periode_id` INTEGER, `tanggal_panen` TEXT NOT NULL, `rotasi_no` INTEGER, `kondisi_cuaca` INTEGER, `brondolan_kg` REAL NOT NULL, `gps_lat` REAL, `gps_lon` REAL, `gps_akurasi_m` REAL, `gps_waktu` TEXT, `gps_mock` INTEGER NOT NULL, `jarak_ke_tph_m` REAL, `status_lokasi` TEXT NOT NULL, `catatan` TEXT, `status` TEXT NOT NULL, `dikirim_pada` TEXT, `pesan_server` TEXT, `disetujui_oleh` INTEGER, `disetujui_pada` TEXT, `kirim_ulang` INTEGER NOT NULL DEFAULT 0, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, PRIMARY KEY(`panen_id`), FOREIGN KEY(`unit_id`) REFERENCES `unit`(`unit_id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`blok_id`) REFERENCES `blok`(`blok_id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`tph_id`) REFERENCES `tph`(`tph_id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`user_id`) REFERENCES `app_user`(`user_id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`device_id`) REFERENCES `device`(`device_id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`model_id`) REFERENCES `model_versi`(`model_id`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`periode_id`) REFERENCES `periode_rotasi`(`periode_id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "panenId",
+            "columnName": "panen_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitId",
+            "columnName": "unit_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "blokId",
+            "columnName": "blok_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tphId",
+            "columnName": "tph_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "user_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "device_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modelId",
+            "columnName": "model_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "periodeId",
+            "columnName": "periode_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "tanggalPanen",
+            "columnName": "tanggal_panen",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rotasiNo",
+            "columnName": "rotasi_no",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "kondisiCuaca",
+            "columnName": "kondisi_cuaca",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "brondolanKg",
+            "columnName": "brondolan_kg",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gpsLat",
+            "columnName": "gps_lat",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "gpsLon",
+            "columnName": "gps_lon",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "gpsAkurasiM",
+            "columnName": "gps_akurasi_m",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "gpsWaktu",
+            "columnName": "gps_waktu",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "gpsMock",
+            "columnName": "gps_mock",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "jarakKeTphM",
+            "columnName": "jarak_ke_tph_m",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "statusLokasi",
+            "columnName": "status_lokasi",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "catatan",
+            "columnName": "catatan",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dikirimPada",
+            "columnName": "dikirim_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "pesanServer",
+            "columnName": "pesan_server",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "disetujuiOleh",
+            "columnName": "disetujui_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "disetujuiPada",
+            "columnName": "disetujui_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "kirimUlang",
+            "columnName": "kirim_ulang",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "panen_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "ix_panen_header_tanggal_panen_unit_id",
+            "unique": false,
+            "columnNames": [
+              "tanggal_panen",
+              "unit_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `ix_panen_header_tanggal_panen_unit_id` ON `${TABLE_NAME}` (`tanggal_panen`, `unit_id`)"
+          },
+          {
+            "name": "ix_panen_header_status",
+            "unique": false,
+            "columnNames": [
+              "status"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `ix_panen_header_status` ON `${TABLE_NAME}` (`status`)"
+          },
+          {
+            "name": "ix_panen_header_tph_id_tanggal_panen",
+            "unique": false,
+            "columnNames": [
+              "tph_id",
+              "tanggal_panen"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `ix_panen_header_tph_id_tanggal_panen` ON `${TABLE_NAME}` (`tph_id`, `tanggal_panen`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "unit",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "unit_id"
+            ],
+            "referencedColumns": [
+              "unit_id"
+            ]
+          },
+          {
+            "table": "blok",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "blok_id"
+            ],
+            "referencedColumns": [
+              "blok_id"
+            ]
+          },
+          {
+            "table": "tph",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "tph_id"
+            ],
+            "referencedColumns": [
+              "tph_id"
+            ]
+          },
+          {
+            "table": "app_user",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "user_id"
+            ],
+            "referencedColumns": [
+              "user_id"
+            ]
+          },
+          {
+            "table": "device",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "device_id"
+            ],
+            "referencedColumns": [
+              "device_id"
+            ]
+          },
+          {
+            "table": "model_versi",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "model_id"
+            ],
+            "referencedColumns": [
+              "model_id"
+            ]
+          },
+          {
+            "table": "periode_rotasi",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "periode_id"
+            ],
+            "referencedColumns": [
+              "periode_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "panen_pemanen",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`pp_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `panen_id` TEXT NOT NULL, `pemanen_id` INTEGER, `jjg_alokasi` INTEGER, `catatan` TEXT, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, FOREIGN KEY(`panen_id`) REFERENCES `panen_header`(`panen_id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`pemanen_id`) REFERENCES `pemanen`(`pemanen_id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "ppId",
+            "columnName": "pp_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "panenId",
+            "columnName": "panen_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pemanenId",
+            "columnName": "pemanen_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "jjgAlokasi",
+            "columnName": "jjg_alokasi",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "catatan",
+            "columnName": "catatan",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "pp_id"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "panen_header",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "panen_id"
+            ],
+            "referencedColumns": [
+              "panen_id"
+            ]
+          },
+          {
+            "table": "pemanen",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "pemanen_id"
+            ],
+            "referencedColumns": [
+              "pemanen_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "panen_grading",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`grading_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `panen_id` TEXT NOT NULL, `kelas_id` INTEGER NOT NULL, `jml_ai` INTEGER NOT NULL, `jml_final` INTEGER NOT NULL, `diubah_manual` INTEGER NOT NULL, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, FOREIGN KEY(`panen_id`) REFERENCES `panen_header`(`panen_id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`kelas_id`) REFERENCES `kelas_grading`(`kelas_id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "gradingId",
+            "columnName": "grading_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "panenId",
+            "columnName": "panen_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kelasId",
+            "columnName": "kelas_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "jmlAi",
+            "columnName": "jml_ai",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "jmlFinal",
+            "columnName": "jml_final",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "diubahManual",
+            "columnName": "diubah_manual",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "grading_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "ux_panen_grading_panen_id_kelas_id",
+            "unique": true,
+            "columnNames": [
+              "panen_id",
+              "kelas_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `ux_panen_grading_panen_id_kelas_id` ON `${TABLE_NAME}` (`panen_id`, `kelas_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "panen_header",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "panen_id"
+            ],
+            "referencedColumns": [
+              "panen_id"
+            ]
+          },
+          {
+            "table": "kelas_grading",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "kelas_id"
+            ],
+            "referencedColumns": [
+              "kelas_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "foto",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`foto_id` TEXT NOT NULL, `panen_id` TEXT NOT NULL, `jenis` TEXT NOT NULL, `path_lokal` TEXT NOT NULL, `sha256` TEXT, `lebar` INTEGER, `tinggi` INTEGER, `status_unggah` TEXT NOT NULL, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, PRIMARY KEY(`foto_id`), FOREIGN KEY(`panen_id`) REFERENCES `panen_header`(`panen_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "fotoId",
+            "columnName": "foto_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "panenId",
+            "columnName": "panen_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "jenis",
+            "columnName": "jenis",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pathLokal",
+            "columnName": "path_lokal",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sha256",
+            "columnName": "sha256",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lebar",
+            "columnName": "lebar",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "tinggi",
+            "columnName": "tinggi",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "statusUnggah",
+            "columnName": "status_unggah",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "foto_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "ix_foto_panen_id",
+            "unique": false,
+            "columnNames": [
+              "panen_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `ix_foto_panen_id` ON `${TABLE_NAME}` (`panen_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "panen_header",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "panen_id"
+            ],
+            "referencedColumns": [
+              "panen_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "deteksi",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`deteksi_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `foto_id` TEXT NOT NULL, `kelas_id` INTEGER NOT NULL, `confidence` REAL NOT NULL, `x` REAL, `y` REAL, `w` REAL, `h` REAL, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, FOREIGN KEY(`foto_id`) REFERENCES `foto`(`foto_id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`kelas_id`) REFERENCES `kelas_grading`(`kelas_id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "deteksiId",
+            "columnName": "deteksi_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fotoId",
+            "columnName": "foto_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kelasId",
+            "columnName": "kelas_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "confidence",
+            "columnName": "confidence",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "x",
+            "columnName": "x",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "y",
+            "columnName": "y",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "w",
+            "columnName": "w",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "h",
+            "columnName": "h",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "deteksi_id"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "foto",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "foto_id"
+            ],
+            "referencedColumns": [
+              "foto_id"
+            ]
+          },
+          {
+            "table": "kelas_grading",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "kelas_id"
+            ],
+            "referencedColumns": [
+              "kelas_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "audit_log",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`audit_id` TEXT NOT NULL, `tabel` TEXT NOT NULL, `baris_id` TEXT NOT NULL, `aksi` TEXT NOT NULL, `nilai_lama` TEXT, `nilai_baru` TEXT, `user_id` INTEGER, `username` TEXT, `device_id` TEXT, `waktu` TEXT NOT NULL, `disinkron` INTEGER NOT NULL, `keterangan` TEXT, PRIMARY KEY(`audit_id`))",
+        "fields": [
+          {
+            "fieldPath": "auditId",
+            "columnName": "audit_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tabel",
+            "columnName": "tabel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "barisId",
+            "columnName": "baris_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "aksi",
+            "columnName": "aksi",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nilaiLama",
+            "columnName": "nilai_lama",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "nilaiBaru",
+            "columnName": "nilai_baru",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "user_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "username",
+            "columnName": "username",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "device_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "waktu",
+            "columnName": "waktu",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "disinkron",
+            "columnName": "disinkron",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "keterangan",
+            "columnName": "keterangan",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "audit_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "ix_audit_log_tabel_baris_id",
+            "unique": false,
+            "columnNames": [
+              "tabel",
+              "baris_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `ix_audit_log_tabel_baris_id` ON `${TABLE_NAME}` (`tabel`, `baris_id`)"
+          },
+          {
+            "name": "ix_audit_log_user_id_waktu",
+            "unique": false,
+            "columnNames": [
+              "user_id",
+              "waktu"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `ix_audit_log_user_id_waktu` ON `${TABLE_NAME}` (`user_id`, `waktu`)"
+          }
+        ]
+      },
+      {
+        "tableName": "sync_queue",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`queue_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `panen_id` TEXT, `entitas` TEXT NOT NULL, `aksi` TEXT NOT NULL, `payload_json` TEXT, `percobaan` INTEGER NOT NULL, `status` TEXT NOT NULL, `error_terakhir` TEXT, `coba_terakhir` TEXT, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, FOREIGN KEY(`panen_id`) REFERENCES `panen_header`(`panen_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "queueId",
+            "columnName": "queue_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "panenId",
+            "columnName": "panen_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "entitas",
+            "columnName": "entitas",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "aksi",
+            "columnName": "aksi",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payloadJson",
+            "columnName": "payload_json",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "percobaan",
+            "columnName": "percobaan",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "errorTerakhir",
+            "columnName": "error_terakhir",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "cobaTerakhir",
+            "columnName": "coba_terakhir",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "queue_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "ix_sync_queue_status_dibuat_pada",
+            "unique": false,
+            "columnNames": [
+              "status",
+              "dibuat_pada"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `ix_sync_queue_status_dibuat_pada` ON `${TABLE_NAME}` (`status`, `dibuat_pada`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "panen_header",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "panen_id"
+            ],
+            "referencedColumns": [
+              "panen_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "master_sync",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`nama_master` TEXT NOT NULL, `unit_id` INTEGER NOT NULL, `versi_server` TEXT, `sinkron_terakhir` TEXT, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, PRIMARY KEY(`nama_master`, `unit_id`), FOREIGN KEY(`unit_id`) REFERENCES `unit`(`unit_id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "namaMaster",
+            "columnName": "nama_master",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitId",
+            "columnName": "unit_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "versiServer",
+            "columnName": "versi_server",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sinkronTerakhir",
+            "columnName": "sinkron_terakhir",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "nama_master",
+            "unit_id"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "unit",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "unit_id"
+            ],
+            "referencedColumns": [
+              "unit_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "kode_temuan",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`kode_id` INTEGER NOT NULL, `kode` TEXT NOT NULL, `nama` TEXT NOT NULL, `kelompok` TEXT NOT NULL, `urut` INTEGER NOT NULL, `aktif` INTEGER NOT NULL, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, PRIMARY KEY(`kode_id`))",
+        "fields": [
+          {
+            "fieldPath": "kodeId",
+            "columnName": "kode_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kode",
+            "columnName": "kode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nama",
+            "columnName": "nama",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kelompok",
+            "columnName": "kelompok",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "urut",
+            "columnName": "urut",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "aktif",
+            "columnName": "aktif",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "kode_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "ux_kode_temuan_kode",
+            "unique": true,
+            "columnNames": [
+              "kode"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `ux_kode_temuan_kode` ON `${TABLE_NAME}` (`kode`)"
+          }
+        ]
+      },
+      {
+        "tableName": "ipd_header",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`ipd_id` TEXT NOT NULL, `unit_id` INTEGER NOT NULL, `blok_id` INTEGER NOT NULL, `pemanen_id` INTEGER NOT NULL, `user_id` INTEGER NOT NULL, `device_id` TEXT NOT NULL, `tanggal_inspeksi` TEXT NOT NULL, `ancak_no` TEXT, `divisi_id` INTEGER NOT NULL, `asisten_user_id` INTEGER, `mandor_user_id` INTEGER, `mandor_hrmb` INTEGER, `catatan` TEXT, `status` TEXT NOT NULL, `dikirim_pada` TEXT, `pesan_server` TEXT, `divalidasi_oleh` INTEGER, `divalidasi_pada` TEXT, `disetujui_oleh` INTEGER, `disetujui_pada` TEXT, `kirim_ulang` INTEGER NOT NULL, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, PRIMARY KEY(`ipd_id`))",
+        "fields": [
+          {
+            "fieldPath": "ipdId",
+            "columnName": "ipd_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unitId",
+            "columnName": "unit_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "blokId",
+            "columnName": "blok_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pemanenId",
+            "columnName": "pemanen_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "user_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "device_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tanggalInspeksi",
+            "columnName": "tanggal_inspeksi",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ancakNo",
+            "columnName": "ancak_no",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "divisiId",
+            "columnName": "divisi_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "asistenUserId",
+            "columnName": "asisten_user_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "mandorUserId",
+            "columnName": "mandor_user_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "mandorHrmb",
+            "columnName": "mandor_hrmb",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "catatan",
+            "columnName": "catatan",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dikirimPada",
+            "columnName": "dikirim_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "pesanServer",
+            "columnName": "pesan_server",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "divalidasiOleh",
+            "columnName": "divalidasi_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "divalidasiPada",
+            "columnName": "divalidasi_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "disetujuiOleh",
+            "columnName": "disetujui_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "disetujuiPada",
+            "columnName": "disetujui_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "kirimUlang",
+            "columnName": "kirim_ulang",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "ipd_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "ix_ipd_header_tanggal_inspeksi_unit_id",
+            "unique": false,
+            "columnNames": [
+              "tanggal_inspeksi",
+              "unit_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `ix_ipd_header_tanggal_inspeksi_unit_id` ON `${TABLE_NAME}` (`tanggal_inspeksi`, `unit_id`)"
+          },
+          {
+            "name": "ix_ipd_header_status",
+            "unique": false,
+            "columnNames": [
+              "status"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `ix_ipd_header_status` ON `${TABLE_NAME}` (`status`)"
+          },
+          {
+            "name": "ix_ipd_header_pemanen_id_blok_id_tanggal_inspeksi",
+            "unique": false,
+            "columnNames": [
+              "pemanen_id",
+              "blok_id",
+              "tanggal_inspeksi"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `ix_ipd_header_pemanen_id_blok_id_tanggal_inspeksi` ON `${TABLE_NAME}` (`pemanen_id`, `blok_id`, `tanggal_inspeksi`)"
+          }
+        ]
+      },
+      {
+        "tableName": "ipd_pokok",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`pokok_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `ipd_id` TEXT NOT NULL, `no_baris` INTEGER NOT NULL, `no_pokok` INTEGER NOT NULL, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, FOREIGN KEY(`ipd_id`) REFERENCES `ipd_header`(`ipd_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "pokokId",
+            "columnName": "pokok_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ipdId",
+            "columnName": "ipd_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "noBaris",
+            "columnName": "no_baris",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "noPokok",
+            "columnName": "no_pokok",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "pokok_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "ux_ipd_pokok_ipd_id_baris_pokok",
+            "unique": true,
+            "columnNames": [
+              "ipd_id",
+              "no_baris",
+              "no_pokok"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `ux_ipd_pokok_ipd_id_baris_pokok` ON `${TABLE_NAME}` (`ipd_id`, `no_baris`, `no_pokok`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "ipd_header",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "ipd_id"
+            ],
+            "referencedColumns": [
+              "ipd_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "ipd_temuan",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`temuan_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `pokok_id` INTEGER NOT NULL, `kode_id` INTEGER NOT NULL, `jumlah` INTEGER NOT NULL, `catatan` TEXT, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, FOREIGN KEY(`pokok_id`) REFERENCES `ipd_pokok`(`pokok_id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`kode_id`) REFERENCES `kode_temuan`(`kode_id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "temuanId",
+            "columnName": "temuan_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pokokId",
+            "columnName": "pokok_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kodeId",
+            "columnName": "kode_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "jumlah",
+            "columnName": "jumlah",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "catatan",
+            "columnName": "catatan",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "temuan_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "ux_ipd_temuan_pokok_id_kode_id",
+            "unique": true,
+            "columnNames": [
+              "pokok_id",
+              "kode_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `ux_ipd_temuan_pokok_id_kode_id` ON `${TABLE_NAME}` (`pokok_id`, `kode_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "ipd_pokok",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "pokok_id"
+            ],
+            "referencedColumns": [
+              "pokok_id"
+            ]
+          },
+          {
+            "table": "kode_temuan",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "kode_id"
+            ],
+            "referencedColumns": [
+              "kode_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "ipd_foto",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`foto_id` TEXT NOT NULL, `ipd_id` TEXT NOT NULL, `keterangan` TEXT, `urut` INTEGER NOT NULL, `path_lokal` TEXT, `sha256` TEXT, `lebar` INTEGER, `tinggi` INTEGER, `ukuran_byte` INTEGER, `status_unggah` TEXT NOT NULL, `dibuat_pada` TEXT NOT NULL, `dibuat_oleh` INTEGER, `diubah_pada` TEXT, `diubah_oleh` INTEGER, `dihapus_pada` TEXT, `dihapus_oleh` INTEGER, PRIMARY KEY(`foto_id`), FOREIGN KEY(`ipd_id`) REFERENCES `ipd_header`(`ipd_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "fotoId",
+            "columnName": "foto_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ipdId",
+            "columnName": "ipd_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "keterangan",
+            "columnName": "keterangan",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "urut",
+            "columnName": "urut",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pathLokal",
+            "columnName": "path_lokal",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sha256",
+            "columnName": "sha256",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lebar",
+            "columnName": "lebar",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "tinggi",
+            "columnName": "tinggi",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "ukuranByte",
+            "columnName": "ukuran_byte",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "statusUnggah",
+            "columnName": "status_unggah",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatPada",
+            "columnName": "dibuat_pada",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dibuatOleh",
+            "columnName": "dibuat_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "diubahPada",
+            "columnName": "diubah_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diubahOleh",
+            "columnName": "diubah_oleh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dihapusPada",
+            "columnName": "dihapus_pada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dihapusOleh",
+            "columnName": "dihapus_oleh",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "foto_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "ix_ipd_foto_ipd_id",
+            "unique": false,
+            "columnNames": [
+              "ipd_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `ix_ipd_foto_ipd_id` ON `${TABLE_NAME}` (`ipd_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "ipd_header",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "ipd_id"
+            ],
+            "referencedColumns": [
+              "ipd_id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '080ece9d07b65bd6f315e3f8031aea0d')"
+    ]
+  }
+}

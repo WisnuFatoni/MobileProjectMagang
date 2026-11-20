@@ -140,24 +140,21 @@ func (r *IpdRepository) Simpan(ctx context.Context, p model.IpdSimpan) error {
 	if p.AsistenID != nil {
 		asisten = *p.AsistenID
 	}
-	var hrmbBlok, hrmbAncak any
-	if p.MandorBlok.Hrmb != nil {
-		hrmbBlok = *p.MandorBlok.Hrmb
-	}
-	if p.MandorAncak.Hrmb != nil {
-		hrmbAncak = *p.MandorAncak.Hrmb
+	var hrmbMandor any
+	if p.Mandor.Hrmb != nil {
+		hrmbMandor = *p.Mandor.Hrmb
 	}
 	validPada := time.Now().UTC()
 
 	if p.Ganti {
 		res, e := tx.ExecContext(ctx, `
 UPDATE dbo.fai_ipd SET device_id=@p2, tanggal_inspeksi=@p3, asm3_oid=@p4, blok_kode=@p5, divisi_id=@p6, asisten_user_id=@p7,
-  pemanen_hrmb_code=@p8, ancak_no=@p9, mandor_blok_user_id=@p10, mandor_blok_hrmb=@p11, mandor_ancak_user_id=@p12, mandor_ancak_hrmb=@p13,
-  catatan=@p14, status=@p15, pesan_tolak=NULL, divalidasi_oleh=@p16, divalidasi_pada=@p17, disetujui_oleh=@p18, disetujui_pada=@p19,
-  diubah_pada=SYSUTCDATETIME(), diubah_oleh=@p16
+  pemanen_hrmb_code=@p8, ancak_no=@p9, mandor_user_id=@p10, mandor_hrmb=@p11,
+  catatan=@p12, status=@p13, pesan_tolak=NULL, divalidasi_oleh=@p14, divalidasi_pada=@p15, disetujui_oleh=@p16, disetujui_pada=@p17,
+  diubah_pada=SYSUTCDATETIME(), diubah_oleh=@p14
 WHERE id=@p1 AND status IN ('MENUNGGU','DITOLAK') AND dihapus_pada IS NULL`,
 			in.IpdID, p.DeviceID, in.TanggalInspeksi, in.Asm3Oid, nullStr(in.BlokKode), p.DivisiID, asisten,
-			in.PemanenHrmbCode, nullStr(in.AncakNo), p.MandorBlok.UserID, hrmbBlok, p.MandorAncak.UserID, hrmbAncak,
+			in.PemanenHrmbCode, nullStr(in.AncakNo), p.Mandor.UserID, hrmbMandor,
 			nullStr(in.Catatan), status, p.UserID, validPada, disetujuiOleh, disetujuiPada)
 		if e != nil {
 			return e
@@ -176,11 +173,11 @@ JOIN dbo.fai_ipd_pokok k ON k.id = t.pokok_id WHERE k.ipd_id=@p1 AND t.dihapus_p
 		}
 	} else if _, err = tx.ExecContext(ctx, `
 INSERT INTO dbo.fai_ipd (id, unit_id, device_id, tanggal_inspeksi, asm3_oid, blok_kode, divisi_id, asisten_user_id, pemanen_hrmb_code, ancak_no,
-  mandor_blok_user_id, mandor_blok_hrmb, mandor_ancak_user_id, mandor_ancak_hrmb, catatan, status, divalidasi_oleh, divalidasi_pada,
+  mandor_user_id, mandor_hrmb, catatan, status, divalidasi_oleh, divalidasi_pada,
   disetujui_oleh, disetujui_pada, dibuat_pada, dibuat_oleh)
-VALUES (@p1,@p2,@p3,@p4,@p5,@p6,@p7,@p8,@p9,@p10,@p11,@p12,@p13,@p14,@p15,@p16,@p17,@p18,@p19,@p20,@p21,@p22)`,
+VALUES (@p1,@p2,@p3,@p4,@p5,@p6,@p7,@p8,@p9,@p10,@p11,@p12,@p13,@p14,@p15,@p16,@p17,@p18,@p19,@p20)`,
 		in.IpdID, p.UnitID, p.DeviceID, in.TanggalInspeksi, in.Asm3Oid, nullStr(in.BlokKode), p.DivisiID, asisten, in.PemanenHrmbCode, nullStr(in.AncakNo),
-		p.MandorBlok.UserID, hrmbBlok, p.MandorAncak.UserID, hrmbAncak, nullStr(in.Catatan), status, p.UserID, validPada,
+		p.Mandor.UserID, hrmbMandor, nullStr(in.Catatan), status, p.UserID, validPada,
 		disetujuiOleh, disetujuiPada, p.DibuatPada, p.UserID); err != nil {
 		return err
 	}
@@ -305,12 +302,11 @@ ORDER BY COALESCE(diubah_pada, diterima_server)`, unitID, userID, sejak)
 
 const dasarIpd = `
 SELECT CONVERT(NVARCHAR(36), f.id), CONVERT(NVARCHAR(10), f.tanggal_inspeksi, 23), dv.kode, f.blok_kode, f.pemanen_hrmb_code, pm.nama, f.ancak_no,
-  ui.username, ui.nama, mb.nama, ma.nama, asn.nama, f.status, f.pesan_tolak, f.catatan, f.dibuat_pada, f.disetujui_pada
+  ui.username, ui.nama, md.nama, asn.nama, f.status, f.pesan_tolak, f.catatan, f.dibuat_pada, f.disetujui_pada
 FROM dbo.fai_ipd f
 JOIN dbo.divisi dv ON dv.divisi_id = f.divisi_id
 JOIN dbo.app_user ui ON ui.user_id = f.dibuat_oleh
-LEFT JOIN dbo.app_user mb ON mb.user_id = f.mandor_blok_user_id
-LEFT JOIN dbo.app_user ma ON ma.user_id = f.mandor_ancak_user_id
+LEFT JOIN dbo.app_user md ON md.user_id = f.mandor_user_id
 LEFT JOIN dbo.app_user asn ON asn.user_id = f.asisten_user_id
 OUTER APPLY (SELECT TOP 1 p.nama FROM dbo.pemanen p WHERE p.unit_id = f.unit_id AND p.erp_hrmb_code = f.pemanen_hrmb_code AND p.dihapus_pada IS NULL ORDER BY p.pemanen_id) pm
 `
@@ -324,15 +320,15 @@ func (r *IpdRepository) bacaBaris(ctx context.Context, q string, args ...any) ([
 	out := []model.IpdBaris{}
 	for rows.Next() {
 		var b model.IpdBaris
-		var blok, pemanen, ancak, mb, ma, asn, tolak, catatan sql.NullString
+		var blok, pemanen, ancak, md, asn, tolak, catatan sql.NullString
 		var disetujui sql.NullTime
 		if err := rows.Scan(&b.ID, &b.TanggalInspeksi, &b.DivisiKode, &blok, &b.PemanenHrmbCode, &pemanen, &ancak, &b.Inspektur, &b.InspekturNama,
-			&mb, &ma, &asn, &b.Status, &tolak, &catatan, &b.DibuatPada, &disetujui); err != nil {
+			&md, &asn, &b.Status, &tolak, &catatan, &b.DibuatPada, &disetujui); err != nil {
 			return nil, err
 		}
 		b.ID = strings.ToLower(b.ID)
 		b.BlokKode, b.PemanenNama, b.AncakNo = strPtr(blok), strPtr(pemanen), strPtr(ancak)
-		b.MandorBlokNama, b.MandorAncakNama, b.AsistenNama = strPtr(mb), strPtr(ma), strPtr(asn)
+		b.MandorNama, b.AsistenNama = strPtr(md), strPtr(asn)
 		b.PesanTolak, b.Catatan = strPtr(tolak), strPtr(catatan)
 		if disetujui.Valid {
 			t := disetujui.Time

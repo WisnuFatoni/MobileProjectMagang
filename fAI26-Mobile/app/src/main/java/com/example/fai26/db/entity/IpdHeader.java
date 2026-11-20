@@ -48,17 +48,12 @@ public class IpdHeader {
     @ColumnInfo(name = "asisten_user_id")
     public Long asistenUserId;
 
-    @ColumnInfo(name = "mandor_blok_user_id")
-    public Long mandorBlokUserId;
+    /** Kemandoran: satu akun berperan MANDOR yang bertanggung jawab atas pemanen/ancak ini. */
+    @ColumnInfo(name = "mandor_user_id")
+    public Long mandorUserId;
 
-    @ColumnInfo(name = "mandor_blok_hrmb")
-    public Long mandorBlokHrmb;
-
-    @ColumnInfo(name = "mandor_ancak_user_id")
-    public Long mandorAncakUserId;
-
-    @ColumnInfo(name = "mandor_ancak_hrmb")
-    public Long mandorAncakHrmb;
+    @ColumnInfo(name = "mandor_hrmb")
+    public Long mandorHrmb;
 
     @Nullable @ColumnInfo(name = "catatan")
     public String catatan;

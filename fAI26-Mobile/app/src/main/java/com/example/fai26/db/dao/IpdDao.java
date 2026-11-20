@@ -136,11 +136,11 @@ public interface IpdDao {
 
     @Query("SELECT h.ipd_id AS ipdId, u.kode AS unitKode, h.tanggal_inspeksi AS tanggalInspeksi, d.kode AS divisiKode, "
             + "b.erp_oid AS asm3Oid, b.kode AS blokKode, pm.erp_hrmb_code AS pemanenHrmb, h.ancak_no AS ancakNo, "
-            + "mb.username AS mandorBlokUsername, ma.username AS mandorAncakUsername, h.catatan AS catatan, "
+            + "md.username AS mandorUsername, h.catatan AS catatan, "
             + "h.dibuat_pada AS dibuatPada, h.kirim_ulang AS kirimUlang, h.user_id AS userId "
             + "FROM ipd_header h JOIN unit u ON u.unit_id = h.unit_id JOIN divisi d ON d.divisi_id = h.divisi_id "
             + "JOIN blok b ON b.blok_id = h.blok_id JOIN pemanen pm ON pm.pemanen_id = h.pemanen_id "
-            + "LEFT JOIN app_user mb ON mb.user_id = h.mandor_blok_user_id LEFT JOIN app_user ma ON ma.user_id = h.mandor_ancak_user_id "
+            + "LEFT JOIN app_user md ON md.user_id = h.mandor_user_id "
             + "WHERE h.ipd_id = :id AND h.dihapus_pada IS NULL")
     IpdHasil.HeaderKirim headerKirim(String id);
 

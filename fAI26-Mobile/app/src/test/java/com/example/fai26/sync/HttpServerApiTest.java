@@ -452,7 +452,7 @@ public class HttpServerApiTest {
         assertEquals("Baris 10 belum lengkap", st.get(0).pesan);
 
         badanJawab = "[{\"id\":\"i1\",\"tanggal_inspeksi\":\"2026-11-20\",\"divisi_kode\":\"DIV2\",\"blok_kode\":\"A12\",\"pemanen_nama\":\"Budi\","
-                + "\"ancak_no\":null,\"inspektur_nama\":\"Mandor Satu\",\"mandor_blok_nama\":\"M1\",\"mandor_ancak_nama\":null,\"catatan\":null,"
+                + "\"ancak_no\":null,\"inspektur_nama\":\"Mandor Satu\",\"mandor_nama\":\"M1\",\"catatan\":null,"
                 + "\"dibuat_pada\":\"2026-11-20T03:00:00Z\",\"ringkasan\":{\"pokok_diperiksa\":5,\"pokok_bertemuan\":3,\"persen_pokok_bertemuan\":60,\"total_temuan\":13,"
                 + "\"per_kode\":[{\"kode\":\"A\",\"nama\":\"Potong buah mentah\",\"pokok\":1,\"jumlah\":1,\"persen_pokok\":20},"
                 + "{\"kode\":\"C\",\"nama\":\"Pelepah\",\"pokok\":0,\"jumlah\":0,\"persen_pokok\":0}]},"

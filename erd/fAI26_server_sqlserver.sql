@@ -454,10 +454,8 @@ CREATE TABLE dbo.fai_ipd (
     asisten_user_id       INT,                             -- asisten divisi saat dikirim = penyetuju; NULL bila divisi belum punya asisten
     pemanen_hrmb_code     INT NOT NULL,                    -- satu catatan = satu pemanen
     ancak_no              NVARCHAR(30),
-    mandor_blok_user_id   INT,                             -- akun berperan MANDOR
-    mandor_blok_hrmb      INT,                             -- salinan kode HRMB saat dipilih
-    mandor_ancak_user_id  INT,
-    mandor_ancak_hrmb     INT,
+    mandor_user_id        INT,                             -- kemandoran: akun berperan MANDOR
+    mandor_hrmb           INT,                             -- salinan kode HRMB saat dipilih
     catatan               NVARCHAR(500),
     status                NVARCHAR(12) NOT NULL DEFAULT 'MENUNGGU',   -- MENUNGGU asisten, DISETUJUI, DITOLAK
     pesan_tolak           NVARCHAR(300),
@@ -476,8 +474,7 @@ CREATE TABLE dbo.fai_ipd (
     CONSTRAINT fk_fai_ipd_device_id FOREIGN KEY (device_id) REFERENCES dbo.device(device_id),
     CONSTRAINT fk_fai_ipd_divisi_id FOREIGN KEY (divisi_id) REFERENCES dbo.divisi(divisi_id),
     CONSTRAINT fk_fai_ipd_asisten FOREIGN KEY (asisten_user_id) REFERENCES dbo.app_user(user_id),
-    CONSTRAINT fk_fai_ipd_mandor_blok FOREIGN KEY (mandor_blok_user_id) REFERENCES dbo.app_user(user_id),
-    CONSTRAINT fk_fai_ipd_mandor_ancak FOREIGN KEY (mandor_ancak_user_id) REFERENCES dbo.app_user(user_id),
+    CONSTRAINT fk_fai_ipd_mandor FOREIGN KEY (mandor_user_id) REFERENCES dbo.app_user(user_id),
     CONSTRAINT ck_fai_ipd_status CHECK (status IN ('MENUNGGU','DISETUJUI','DITOLAK'))
 );
 GO

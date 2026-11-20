@@ -199,7 +199,7 @@ public class IpdBerandaFragment extends Fragment {
         isi.addView(sub);
         LinearLayout[] b = new LinearLayout[1];
         MaterialCardView mulaiKartu = IpdUi.kartu(c, b);
-        b[0].addView(IpdUi.redup(c, "Periksa pokok per pokok, dua baris sekali jalan. Catat loses dan temuan, lalu kirim ke asisten.", 14));
+        b[0].addView(IpdUi.redup(c, "Periksa pokok per pokok, dua baris sekali jalan. Catat loses dan temuan, lalu kirim.", 14));
         MaterialButton mulai = IpdUi.tombol(c, "Mulai inspeksi baru", true);
         mulai.setMinimumHeight(IpdUi.dp(c, 60));
         mulai.setTextSize(17);

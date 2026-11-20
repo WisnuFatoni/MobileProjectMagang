@@ -7,7 +7,9 @@ import { divisiApi, ipdApi } from '@/api/endpoints'
 import type { FilterIpd, IpdBaris, IpdPokokOut } from '@/api/types'
 import { ErrorState } from '@/components/ErrorState'
 import { PageHeader } from '@/components/PageHeader'
+import { TombolEkspor } from '@/components/TombolEkspor'
 import { desimal, tanggal, waktu } from '@/lib/format'
+import { dokumenDaftar, dokumenDetail } from './ekspor'
 import { FotoIpd } from './FotoIpd'
 import { STATUS_IPD } from './ipdTampil'
 
@@ -40,11 +42,28 @@ export function IpdPage() {
     setParams(p, { replace: true })
   }
 
+  /** Mengambil SEMUA inspeksi yang cocok dengan filter (bukan hanya halaman yang terlihat), paling banyak 5.000 baris. */
+  async function ambilSemua() {
+    const semua: IpdBaris[] = []
+    for (let h = 1; h <= 50; h++) {
+      const hal = await ipdApi.daftar({ ...filter, halaman: h, per_halaman: 100 })
+      semua.push(...hal.item)
+      if (semua.length >= hal.total || hal.item.length === 0) break
+    }
+    const bagian = [
+      filter.dari && filter.sampai ? `${tanggal(filter.dari)} sampai ${tanggal(filter.sampai)}` : 'semua tanggal',
+      filter.status ? STATUS_IPD[filter.status as keyof typeof STATUS_IPD]?.teks ?? filter.status : 'semua status',
+      filter.divisi_kode ?? 'semua divisi',
+    ]
+    return dokumenDaftar(semua, bagian.join(' • '))
+  }
+
   return (
     <>
       <PageHeader
         judul="Inspeksi IPD"
         keterangan="Inspeksi panen detail yang dikirim mandor dan asisten dari HP. Klik baris untuk melihat pokok yang diperiksa, temuan, dan foto bukti."
+        aksi={<TombolEkspor ambil={ambilSemua} disabled={!q.data || q.data.total === 0} />}
       />
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space wrap>
@@ -149,7 +168,14 @@ function IpdDetailDrawer({ id, onTutup }: { id: string | null; onTutup: () => vo
   const q = useQuery({ queryKey: ['ipd-detail', id], queryFn: () => ipdApi.detail(id as string), enabled: !!id })
   const d = q.data
   return (
-    <Drawer open={!!id} onClose={onTutup} width={640} title="Rincian inspeksi IPD" destroyOnClose>
+    <Drawer
+      open={!!id}
+      onClose={onTutup}
+      width={640}
+      title="Rincian inspeksi IPD"
+      destroyOnClose
+      extra={d && <TombolEkspor ambil={() => Promise.resolve(dokumenDetail(d))} />}
+    >
       {q.isError && <ErrorState error={q.error} onCoba={() => void q.refetch()} />}
       {q.isLoading && <Skeleton active paragraph={{ rows: 8 }} />}
       {d && (
@@ -159,8 +185,7 @@ function IpdDetailDrawer({ id, onTutup }: { id: string | null; onTutup: () => vo
             <Descriptions.Item label="Blok dan divisi">Blok {d.blok_kode ?? '-'} • {d.divisi_kode}{d.ancak_no ? ` • ancak ${d.ancak_no}` : ''}</Descriptions.Item>
             <Descriptions.Item label="Tanggal inspeksi">{tanggal(d.tanggal_inspeksi)}</Descriptions.Item>
             <Descriptions.Item label="Diinspeksi oleh">{d.inspektur_nama}</Descriptions.Item>
-            <Descriptions.Item label="Mandor di blok">{d.mandor_blok_nama ?? '-'}</Descriptions.Item>
-            <Descriptions.Item label="Mandor di ancak">{d.mandor_ancak_nama ?? '-'}</Descriptions.Item>
+            <Descriptions.Item label="Kemandoran">{d.mandor_nama ?? '-'}</Descriptions.Item>
             <Descriptions.Item label="Asisten penyetuju">{d.asisten_nama ?? 'Belum diatur'}</Descriptions.Item>
             <Descriptions.Item label="Status">
               <Tag color={STATUS_IPD[d.status].warna}>{STATUS_IPD[d.status].teks}</Tag>

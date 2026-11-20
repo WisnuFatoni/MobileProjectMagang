@@ -3,7 +3,7 @@ flowchart TB
         direction TB
         A1(["Inspektur buka kotak IPD"]) --> A2["Mulai inspeksi baru"]
         A2 --> A3["Pilih DIVISI (1 atau 2)<br/>asisten terisi otomatis dari divisi<br/>(diatur admin di web, bisa diganti)"]
-        A3 --> A4["Pilih blok (difilter divisi), pemanen (satu ancak),<br/>mandor di blok dan mandor di ancak<br/>(dipilih dari daftar akun berperan MANDOR)"]
+        A3 --> A4["Pilih blok (difilter divisi), pemanen (satu ancak),<br/>satu kemandoran<br/>(dipilih dari daftar akun berperan MANDOR)"]
         A4 --> A5{"Pemanen + blok ini<br/>diinspeksi 7 hari terakhir?"}
         A5 -->|"ya"| A6["PERINGATAN (bukan larangan):<br/>tampilkan tanggal, inspektur, status<br/>inspektur boleh lanjut"]
         A5 -->|"tidak"| A7(["Lanjut"])
@@ -20,7 +20,7 @@ flowchart TB
         B5 -->|"pokok berikutnya"| B1
         B5 -->|"pindah baris"| B1
         B5 -->|"selesai"| B6["Ringkasan otomatis:<br/>pokok diperiksa, persen loses (buah dan brondolan),<br/>temuan lain (pelepah) terpisah, per kode"]
-        B6 --> B7["Tambah foto (tanpa batas jumlah)<br/>tiap foto diberi keterangan<br/>dikompres saat disimpan di HP"]
+        B6 --> B7["Foto diambil saat jalan (tombol di layar pokok)<br/>keterangan otomatis: baris dan pokok<br/>tanpa batas jumlah, dikompres di HP"]
     end
 
     subgraph C["C. KIRIM DAN VALIDASI"]

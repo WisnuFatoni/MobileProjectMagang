@@ -109,8 +109,7 @@ public interface ServerApi {
         public String pemanenNama;
         public String ancakNo;
         public String inspekturNama;
-        public String mandorBlokNama;
-        public String mandorAncakNama;
+        public String mandorNama;
         public String catatan;
         public long dibuatMillis;
         public long pokokDiperiksa;

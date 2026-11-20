@@ -3,8 +3,8 @@ import type { HakAksesRole } from '@/api/types'
 import { dariServer, hitungPerubahan, kotakDikunci, ubahKotak } from './perubahan'
 
 const role: HakAksesRole[] = [
-  { role_id: 1, kode: 'KRANI', nama: 'Krani', bawaan: true, permission: ['panen.kirim', 'panen.lihat'] },
-  { role_id: 4, kode: 'ADMIN', nama: 'Admin', bawaan: true, permission: ['role.kelola', 'user.kelola'] },
+  { role_id: 1, kode: 'KRANI', nama: 'Krani', deskripsi: null, pengguna: 0, bawaan: true, permission: ['panen.kirim', 'panen.lihat'] },
+  { role_id: 4, kode: 'ADMIN', nama: 'Admin', deskripsi: null, pengguna: 0, bawaan: true, permission: ['role.kelola', 'user.kelola'] },
 ]
 
 describe('perubahan hak akses', () => {

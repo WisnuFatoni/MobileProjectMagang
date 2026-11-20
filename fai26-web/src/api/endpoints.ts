@@ -18,6 +18,7 @@ import type {
   Ok,
   OkQr,
   PanenDetail,
+  RoleInput,
   PanenRingkas,
   Pemanen,
   PemanenInput,
@@ -92,7 +93,12 @@ export const akunApi = {
 export const hakAksesApi = {
   daftar: () => api.get<HakAkses>('/admin/hak-akses'),
   /** Mengganti SELURUH hak satu role dengan daftar ini. */
-  ubah: (roleId: number, permission: string[]) => api.put<Ok>(`/admin/hak-akses/${roleId}`, { permission }),
+  ubah: (roleId: number, permission: string[], profil?: { nama?: string; deskripsi?: string }) =>
+    api.put<Ok>(`/admin/hak-akses/${roleId}`, { permission, ...profil }),
+  /** Membuat role baru beserta hak awalnya. */
+  buat: (b: RoleInput) => api.post<IdDibuat>('/admin/hak-akses', b),
+  /** Menghapus role buatan admin yang tidak dipegang akun aktif mana pun. */
+  hapus: (roleId: number) => api.hapus<Ok>(`/admin/hak-akses/${roleId}`),
 }
 
 export const ipdApi = {

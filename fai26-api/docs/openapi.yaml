@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: fai26-api
-  version: 0.17.0
+  version: 0.18.0
   description: |
     API sinkronisasi aplikasi fAI26 (HP krani ke database `fai26`). Panduan yang lebih mudah dibaca ada di `API.md`.
 
@@ -175,7 +175,9 @@ components:
         role_id: { type: integer, format: int64 }
         kode: { type: string, example: KRANI }
         nama: { type: string, example: Krani }
-        bawaan: { type: boolean, description: true untuk role bawaan sistem }
+        deskripsi: { type: string, nullable: true }
+        bawaan: { type: boolean, description: true untuk role bawaan sistem (tidak bisa dihapus) }
+        pengguna: { type: integer, description: Jumlah akun aktif yang memegang role ini }
         permission:
           type: array
           items: { type: string }
@@ -204,6 +206,19 @@ components:
           description: Daftar LENGKAP permission yang dipegang role (boleh kosong).
           items: { type: string }
           example: [panen.lihat, panen.buat, panen.kirim]
+        nama: { type: string, minLength: 2, maxLength: 60, description: Opsional; mengganti nama role. }
+        deskripsi: { type: string, maxLength: 200, description: Opsional; mengganti keterangan role (kosong menghapusnya). }
+    RoleInput:
+      type: object
+      required: [kode, nama]
+      properties:
+        kode: { type: string, example: KEPALA_KEBUN, description: 2-30 karakter, huruf besar, angka, garis bawah; diawali huruf (huruf kecil diubah jadi besar). }
+        nama: { type: string, minLength: 2, maxLength: 60 }
+        deskripsi: { type: string, maxLength: 200 }
+        permission:
+          type: array
+          description: Hak awal (boleh kosong atau tidak dikirim).
+          items: { type: string }
     GantiPasswordRequest:
       type: object
       required: [password_lama, password_baru]
@@ -337,7 +352,7 @@ components:
         alasan: { type: string, maxLength: 300, example: Blok salah }
     IpdInput:
       type: object
-      required: [ipd_id, unit_kode, tanggal_inspeksi, divisi_kode, asm3_oid, pemanen_hrmb_code, mandor_blok_username, mandor_ancak_username, pokok]
+      required: [ipd_id, unit_kode, tanggal_inspeksi, divisi_kode, asm3_oid, pemanen_hrmb_code, mandor_username, pokok]
       properties:
         ipd_id: { type: string, format: uuid, description: Dibuat di HP. }
         unit_kode: { type: string, description: Harus sama dengan unit akun. }
@@ -347,8 +362,7 @@ components:
         blok_kode: { type: string }
         pemanen_hrmb_code: { type: integer, minimum: 1, description: Satu catatan = satu pemanen. }
         ancak_no: { type: string, maxLength: 30 }
-        mandor_blok_username: { type: string, description: Akun aktif berperan MANDOR (mandor di blok). }
-        mandor_ancak_username: { type: string, description: Akun aktif berperan MANDOR (mandor di ancak). }
+        mandor_username: { type: string, description: Kemandoran, satu akun aktif berperan MANDOR. }
         catatan: { type: string, maxLength: 500 }
         dibuat_pada: { type: string, format: date-time }
         kirim_ulang:
@@ -1777,6 +1791,31 @@ paths:
         '422': { $ref: '#/components/responses/TidakValid' }
         '500': { $ref: '#/components/responses/SalahServer' }
   /api/admin/hak-akses:
+    post:
+      tags: [Admin]
+      summary: Membuat role baru beserta hak awalnya
+      description: |
+        Permission `role.kelola`. Role buatan admin (`bawaan` false) bisa diberi hak apa pun dari katalog, dipasang ke akun
+        lewat halaman Pengguna, dan ikut terunduh ke HP lewat `GET /api/master`. Kode role dijadikan huruf besar dan tidak
+        bisa dipakai ulang (termasuk role yang sudah dihapus). Tercatat di audit log.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RoleInput' }
+      responses:
+        '201':
+          description: Role dibuat.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IdDibuat' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '409': { description: Kode role sudah dipakai., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/TidakValid' }
+        '500': { $ref: '#/components/responses/SalahServer' }
     get:
       tags: [Admin]
       summary: Daftar role beserta hak (permission) dan katalog permission
@@ -1792,6 +1831,30 @@ paths:
         '403': { $ref: '#/components/responses/Terlarang' }
         '500': { $ref: '#/components/responses/SalahServer' }
   /api/admin/hak-akses/{id}:
+    delete:
+      tags: [Admin]
+      summary: Menghapus role buatan admin
+      description: |
+        Permission `role.kelola`. Hapus lunak role beserta pasangan haknya. Ditolak 409 bila role bawaan sistem atau masih
+        dipegang akun aktif (pindahkan akun itu ke role lain dulu).
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: Role dihapus.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StatusOk' }
+        '400': { $ref: '#/components/responses/TidakValid' }
+        '401': { $ref: '#/components/responses/TidakLogin' }
+        '403': { $ref: '#/components/responses/Terlarang' }
+        '404': { description: Role tidak ada., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Role bawaan atau masih dipegang akun aktif., content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '500': { $ref: '#/components/responses/SalahServer' }
     put:
       tags: [Admin]
       summary: Ganti seluruh hak satu role

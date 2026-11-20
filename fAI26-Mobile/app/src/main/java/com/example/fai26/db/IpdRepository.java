@@ -83,10 +83,8 @@ public class IpdRepository {
             h.tanggalInspeksi = d.tanggal;
             h.ancakNo = kosongJadiNull(d.ancakNo);
             h.catatan = kosongJadiNull(d.catatan);
-            h.mandorBlokUserId = d.mandorBlokUserId;
-            h.mandorAncakUserId = d.mandorAncakUserId;
-            h.mandorBlokHrmb = hrmbMandor(d.mandorBlokUserId);
-            h.mandorAncakHrmb = hrmbMandor(d.mandorAncakUserId);
+            h.mandorUserId = d.mandorUserId;
+            h.mandorHrmb = hrmbMandor(d.mandorUserId);
             h.asistenUserId = asistenDivisi(dao, d.divisiId);
             if (baru) dao.insertHeader(h);
             else dao.updateHeader(h);
@@ -121,7 +119,7 @@ public class IpdRepository {
 
     /**
      * Menyimpan lalu mengirim: inspeksi masuk antrean sinkron (valid otomatis saat dikirim). Wajib lengkap: divisi, blok, pemanen,
-     * mandor blok, mandor ancak, dan paling sedikit satu pokok.
+     * kemandoran, dan paling sedikit satu pokok.
      */
     public String kirim(IpdDraf d) {
         pastikanLengkap(d);
@@ -139,8 +137,7 @@ public class IpdRepository {
         if (d.divisiId <= 0) throw new IllegalArgumentException("Pilih divisi dulu");
         if (d.blokId <= 0) throw new IllegalArgumentException("Pilih blok dulu");
         if (d.pemanenId <= 0) throw new IllegalArgumentException("Pilih pemanen dulu");
-        if (d.mandorBlokUserId == null) throw new IllegalArgumentException("Pilih mandor di blok");
-        if (d.mandorAncakUserId == null) throw new IllegalArgumentException("Pilih mandor di ancak");
+        if (d.mandorUserId == null) throw new IllegalArgumentException("Pilih kemandoran (mandor) dulu");
         if (d.pokok.isEmpty()) throw new IllegalArgumentException("Catat minimal satu pokok yang diperiksa");
     }
 
@@ -157,8 +154,7 @@ public class IpdRepository {
         d.pemanenId = h.pemanenId;
         d.ancakNo = h.ancakNo;
         d.catatan = h.catatan;
-        d.mandorBlokUserId = h.mandorBlokUserId;
-        d.mandorAncakUserId = h.mandorAncakUserId;
+        d.mandorUserId = h.mandorUserId;
         d.statusLama = h.status;
         IpdDraf.Pokok terakhir = null;
         for (IpdHasil.PokokBaris b : dao.pokokBaris(ipdId)) {

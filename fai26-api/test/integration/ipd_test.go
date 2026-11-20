@@ -25,7 +25,7 @@ const (
 func ipdContoh(id string) model.IpdInput {
 	return model.IpdInput{
 		IpdID: id, UnitKode: "KP_STL", TanggalInspeksi: "2026-11-20", DivisiKode: "DIV2", Asm3Oid: 1012, BlokKode: "A12",
-		PemanenHrmbCode: 90001, AncakNo: "7", MandorBlokUsername: "mandor1", MandorAncakUsername: "uji.mandor2",
+		PemanenHrmbCode: 90001, AncakNo: "7", MandorUsername: "uji.mandor2",
 		Pokok: []model.IpdPokokInput{
 			{NoBaris: 11, NoPokok: 1},
 			{NoBaris: 11, NoPokok: 2, Temuan: []model.IpdTemuanInput{{Kode: "B1", Jumlah: 6}, {Kode: "S"}}},
@@ -125,7 +125,7 @@ func TestIpdAlurPenuh(t *testing.T) {
 	tolak(func(in *model.IpdInput) { in.Asm3Oid = 99999 }, "blok")
 	tolak(func(in *model.IpdInput) { in.PemanenHrmbCode = 12345 }, "pemanen")
 	tolak(func(in *model.IpdInput) { in.Pokok[1].Temuan[0].Kode = "Z9" }, "kode temuan")
-	tolak(func(in *model.IpdInput) { in.MandorAncakUsername = "krani1" }, "mandor bukan MANDOR")
+	tolak(func(in *model.IpdInput) { in.MandorUsername = "krani1" }, "mandor bukan MANDOR")
 	if hitung(t, e.db, `SELECT COUNT(*) FROM dbo.fai_ipd`) != 0 {
 		t.Fatal("kiriman yang ditolak tidak boleh tersimpan")
 	}
@@ -135,12 +135,12 @@ func TestIpdAlurPenuh(t *testing.T) {
 		t.Fatalf("mandor kirim: %d %s", kode, b)
 	}
 	var st string
-	var asisten, mb, ma int64
-	if err := e.db.QueryRow(`SELECT status, asisten_user_id, mandor_blok_user_id, mandor_ancak_user_id FROM dbo.fai_ipd WHERE id=@p1`, id).Scan(&st, &asisten, &mb, &ma); err != nil {
+	var asisten, mandorDb int64
+	if err := e.db.QueryRow(`SELECT status, asisten_user_id, mandor_user_id FROM dbo.fai_ipd WHERE id=@p1`, id).Scan(&st, &asisten, &mandorDb); err != nil {
 		t.Fatal(err)
 	}
-	if st != "MENUNGGU" || asisten != asisten1 || mb != idMandor1 || ma != mandor2 {
-		t.Fatalf("status/asisten/mandor: %s %d %d %d", st, asisten, mb, ma)
+	if st != "MENUNGGU" || asisten != asisten1 || mandorDb != mandor2 {
+		t.Fatalf("status/asisten/mandor: %s %d %d", st, asisten, mandorDb)
 	}
 	if hitung(t, e.db, `SELECT COUNT(*) FROM dbo.fai_ipd_pokok WHERE ipd_id=@p1 AND dihapus_pada IS NULL`, id) != 4 ||
 		hitung(t, e.db, `SELECT COUNT(*) FROM dbo.fai_ipd_temuan t JOIN dbo.fai_ipd_pokok p ON p.id=t.pokok_id WHERE p.ipd_id=@p1`, id) != 3 {
@@ -235,7 +235,7 @@ func TestIpdAlurPenuh(t *testing.T) {
 	e.json("POST", "/api/ipd/"+id+"/setujui", as2.AccessToken, nil, 403)
 	baris := cari(e.daftar("/api/ipd/menunggu", as1.AccessToken), "id", id)
 	if baris == nil || baris["divisi_kode"] != "DIV2" || baris["pemanen_nama"] != "Pemanen Contoh 1" || baris["inspektur"] != "mandor1" ||
-		baris["mandor_ancak_nama"] != "Uji uji.mandor2" || baris["asisten_nama"] != "Uji uji.asisten1" {
+		baris["mandor_nama"] != "Uji uji.mandor2" || baris["asisten_nama"] != "Uji uji.asisten1" {
 		t.Fatalf("baris menunggu: %v", baris)
 	}
 	rg := baris["ringkasan"].(map[string]any)

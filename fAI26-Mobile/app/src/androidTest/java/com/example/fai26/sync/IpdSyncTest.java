@@ -107,8 +107,7 @@ public class IpdSyncTest {
         x.divisiId = d.divisiId;
         x.blokId = room.ipdDao().blokPilihan(d.divisiId).get(0).blokId;
         x.pemanenId = room.ipdDao().pemanenPilihan().get(0).pemanenId;
-        x.mandorBlokUserId = 2L;
-        x.mandorAncakUserId = 2L;
+        x.mandorUserId = 2L;
         IpdDraf.Pokok p1 = new IpdDraf.Pokok(11, 1);
         IpdDraf.Pokok p2 = new IpdDraf.Pokok(11, 2);
         p2.temuan.put("B1", 6);
@@ -249,14 +248,14 @@ public class IpdSyncTest {
     @Test
     public void kirimTanpaKepalaLengkapDitolakDanDrafBelumTerkirimBisaDihapus() {
         IpdDraf d = draf();
-        d.mandorAncakUserId = null;
+        d.mandorUserId = null;
         try {
             repo.kirim(d);
-            fail("mandor di ancak wajib");
+            fail("kemandoran wajib");
         } catch (IllegalArgumentException e) {
             assertTrue(e.getMessage(), e.getMessage().contains("mandor"));
         }
-        d.mandorAncakUserId = 2L;
+        d.mandorUserId = 2L;
         String id = repo.simpanDraf(d);
         assertTrue(repo.hapusDraf(id));
         assertEquals(0, angka("SELECT COUNT(*) FROM ipd_header"));

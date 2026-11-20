@@ -23,7 +23,7 @@ erDiagram
     ipd_kode_temuan ||--o{ fai_ipd_temuan : "jenis temuan"
     fai_ipd ||--o{ fai_ipd_foto : "punya foto"
     divisi ||--o{ fai_ipd : "divisi inspeksi"
-    app_user ||--o{ fai_ipd : "mandor blok, mandor ancak, asisten"
+    app_user ||--o{ fai_ipd : "kemandoran, asisten"
     app_user |o--o{ divisi : "asisten divisi"
     fai_ipd }o..|| asm3 : "blok asm3_oid"
 
@@ -218,10 +218,8 @@ erDiagram
         NVARCHAR ancak_no
         INT divisi_id FK
         INT asisten_user_id FK "penyetuju, dari divisi saat dikirim"
-        INT mandor_blok_user_id FK
-        INT mandor_blok_hrmb
-        INT mandor_ancak_user_id FK
-        INT mandor_ancak_hrmb
+        INT mandor_user_id FK
+        INT mandor_hrmb
         NVARCHAR catatan
         NVARCHAR status "MENUNGGU, DISETUJUI, DITOLAK"
         NVARCHAR pesan_tolak

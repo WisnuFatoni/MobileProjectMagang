@@ -78,8 +78,7 @@ public final class PayloadBuilder {
         o.putOpt("blok_kode", h.blokKode);
         o.put("pemanen_hrmb_code", h.pemanenHrmb);
         o.putOpt("ancak_no", h.ancakNo);
-        o.putOpt("mandor_blok_username", h.mandorBlokUsername);
-        o.putOpt("mandor_ancak_username", h.mandorAncakUsername);
+        o.putOpt("mandor_username", h.mandorUsername);
         o.putOpt("catatan", h.catatan);
         o.put("dibuat_pada", h.dibuatPada);
         if (h.kirimUlang != 0) o.put("kirim_ulang", true); // mengubah inspeksi yang sudah terkirim atau memperbaiki yang ditolak

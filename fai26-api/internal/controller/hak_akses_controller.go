@@ -24,6 +24,26 @@ func (c *HakAksesController) Daftar(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, out)
 }
 
+// Buat: POST /api/admin/hak-akses (role baru beserta hak awal)
+func (c *HakAksesController) Buat(w http.ResponseWriter, r *http.Request) {
+	var in model.RoleInput
+	if err := decodeJSON(w, r, 1<<16, &in); err != nil {
+		response.Error(w, r, err)
+		return
+	}
+	id, err := c.svc.Buat(r.Context(), klaim(r), in)
+	if err != nil {
+		response.Error(w, r, err)
+		return
+	}
+	response.JSON(w, http.StatusCreated, map[string]int64{"id": id})
+}
+
+// Hapus: DELETE /api/admin/hak-akses/{id} (hanya role buatan admin yang tidak dipegang akun aktif)
+func (c *HakAksesController) Hapus(w http.ResponseWriter, r *http.Request) {
+	selesai(w, r, c.svc.Hapus(r.Context(), klaim(r), idPath(r)))
+}
+
 // Ubah: PUT /api/admin/hak-akses/{id}
 func (c *HakAksesController) Ubah(w http.ResponseWriter, r *http.Request) {
 	var in model.HakAksesInput

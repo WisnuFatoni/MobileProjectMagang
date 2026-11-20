@@ -7,8 +7,10 @@ import { divisiApi, ipdApi } from '@/api/endpoints'
 import type { IpdGrupLoses } from '@/api/types'
 import { ErrorState } from '@/components/ErrorState'
 import { PageHeader } from '@/components/PageHeader'
+import { TombolEkspor } from '@/components/TombolEkspor'
 import { angka, desimal } from '@/lib/format'
 import { BatangLoses } from './BatangLoses'
+import { dokumenLaporan } from './ekspor'
 import { NAMA_KELOMPOK, temuanTeratas, warnaLoses } from './ipdTampil'
 
 function TabelGrup({ data, judul }: { data: IpdGrupLoses[]; judul: string }) {
@@ -88,6 +90,10 @@ export function IpdLaporanPage() {
             <Button icon={<ReloadOutlined />} onClick={() => void q.refetch()} loading={q.isFetching}>
               Muat ulang
             </Button>
+            <TombolEkspor
+              disabled={!r}
+              ambil={() => Promise.resolve(dokumenLaporan(r as NonNullable<typeof r>, divisi.data?.find((d) => d.kode === divisiKode)?.nama))}
+            />
           </Space>
         }
       />
