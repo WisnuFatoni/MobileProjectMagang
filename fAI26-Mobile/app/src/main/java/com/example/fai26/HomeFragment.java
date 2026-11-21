@@ -38,10 +38,15 @@ public class HomeFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         final android.content.Context c = requireContext();
+        // Akar: latar polos, tanda air fAI26 di belakang, lalu isi yang bisa digulir di atasnya.
+        FrameLayout akar = new FrameLayout(c);
+        akar.setBackgroundColor(MaterialColors.getColor(akar, android.R.attr.colorBackground));
+        akar.addView(tandaAir(c)); // memakai parameter letaknya sendiri (di tengah area kosong)
+
         ScrollView gulir = new ScrollView(c);
         gulir.setFillViewport(true);
         gulir.setClipToPadding(false);
-        gulir.setBackgroundColor(MaterialColors.getColor(gulir, android.R.attr.colorBackground));
+        akar.addView(gulir, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         LinearLayout kolom = new LinearLayout(c);
         kolom.setOrientation(LinearLayout.VERTICAL);
@@ -82,7 +87,45 @@ public class HomeFragment extends Fragment {
             v.setPadding(bars.left, 0, bars.right, bars.bottom + (int) (112 * d));
             return insets;
         });
-        return gulir;
+        return akar;
+    }
+
+    /**
+     * Tanda air fAI26: logo besar dan tulisan fAI26 yang sangat samar di area kosong layar awal, supaya tidak terlihat hampa.
+     * Tidak bisa disentuh dan tidak dibaca pembaca layar (hiasan). Muncul pelan saat layar dibuka.
+     */
+    private View tandaAir(android.content.Context c) {
+        LinearLayout kolom = new LinearLayout(c);
+        kolom.setOrientation(LinearLayout.VERTICAL);
+        kolom.setGravity(Gravity.CENTER_HORIZONTAL);
+        kolom.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
+        kolom.setLayoutParams(lp);
+        kolom.setTranslationY(IpdUi.dp(c, 96));
+
+        ImageView logo = new ImageView(c);
+        logo.setImageResource(R.drawable.ic_logo);
+        kolom.addView(logo, new LinearLayout.LayoutParams(IpdUi.dp(c, 210), IpdUi.dp(c, 210)));
+
+        TextView nama = new TextView(c);
+        nama.setText("fAI26");
+        nama.setTextSize(40);
+        nama.setTypeface(androidx.core.content.res.ResourcesCompat.getFont(c, R.font.outfit_semibold));
+        nama.setTextColor(0xFF12612F);
+        nama.setGravity(Gravity.CENTER_HORIZONTAL);
+        nama.setPadding(0, IpdUi.dp(c, 6), 0, 0);
+        kolom.addView(nama);
+
+        TextView ket = new TextView(c);
+        ket.setText("Grading TBS kelapa sawit");
+        ket.setTextSize(14);
+        ket.setTextColor(0xFF6B7280);
+        ket.setGravity(Gravity.CENTER_HORIZONTAL);
+        kolom.addView(ket);
+
+        kolom.setAlpha(0f);
+        kolom.animate().alpha(0.11f).setDuration(1100).setStartDelay(150).start();
+        return kolom;
     }
 
     @Override
