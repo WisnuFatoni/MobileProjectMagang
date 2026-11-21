@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -19,6 +20,7 @@ import (
 
 const (
 	permIpdSetujui = "ipd.setujui"
+	permIpdJejak   = "ipd.jejak"
 	permIpdKelola  = "ipd.kelola"
 
 	pesanIpdTerkunci = "Inspeksi sudah disetujui asisten, tidak bisa diubah lagi"
@@ -37,6 +39,7 @@ type IpdRepo interface {
 	DaftarAdmin(ctx context.Context, unitID int64, f model.FilterIpd) (*model.HalamanIpd, error)
 	Baris(ctx context.Context, unitID int64, id string) (*model.IpdBaris, error)
 	Pokok(ctx context.Context, id string) ([]model.IpdPokokOut, error)
+	Jejak(ctx context.Context, id string) ([]model.IpdTitikOut, error)
 	Mentah(ctx context.Context, ids []string) (map[string]*model.IpdMentah, error)
 	Foto(ctx context.Context, ids []string) (map[string][]model.IpdFotoRef, error)
 	Setujui(ctx context.Context, id string, unitID, userID int64, deviceID, ip string) (string, error)
@@ -371,7 +374,45 @@ func (s *IpdService) Detail(ctx context.Context, k *auth.Klaim, id string) (*mod
 	if err := s.isi(ctx, baris); err != nil {
 		return nil, apperror.Internal("Gagal membaca ringkasan inspeksi", err)
 	}
-	return &model.IpdDetail{IpdBaris: baris[0], Pokok: pokok}, nil
+	out := &model.IpdDetail{IpdBaris: baris[0], Pokok: pokok}
+	// Jalur GPS hanya untuk pemegang ipd.jejak (asisten, askep, KTU, admin); yang lain menerima null.
+	boleh, err := s.akses.Punya(ctx, k.UserID, permIpdJejak)
+	if err != nil {
+		return nil, apperror.Internal("Gagal memeriksa hak melihat jalur", err)
+	}
+	if boleh {
+		titik, err := s.repo.Jejak(ctx, id)
+		if err != nil {
+			return nil, apperror.Internal("Gagal membaca jalur GPS", err)
+		}
+		if len(titik) > 0 {
+			jarak, durasi := RingkasJejak(titik)
+			out.Jejak = &model.IpdJejak{Titik: titik, JarakM: jarak, DurasiMenit: durasi}
+		}
+	}
+	return out, nil
+}
+
+// RingkasJejak menghitung jarak tempuh (meter, jumlah jarak antartitik berurutan) dan lama berjalan (menit, titik pertama
+// sampai terakhir) dari jalur GPS.
+func RingkasJejak(titik []model.IpdTitikOut) (jarakM, durasiMenit float64) {
+	for i := 1; i < len(titik); i++ {
+		jarakM += jarakMeter(titik[i-1].Lat, titik[i-1].Lon, titik[i].Lat, titik[i].Lon)
+	}
+	if len(titik) > 1 {
+		durasiMenit = titik[len(titik)-1].T.Sub(titik[0].T).Minutes()
+	}
+	return math.Round(jarakM*10) / 10, math.Round(durasiMenit*10) / 10
+}
+
+// jarakMeter adalah jarak lingkaran besar (haversine) dua koordinat dalam meter.
+func jarakMeter(lat1, lon1, lat2, lon2 float64) float64 {
+	const radiusBumi = 6371000.0
+	rad := math.Pi / 180
+	dLat := (lat2 - lat1) * rad
+	dLon := (lon2 - lon1) * rad
+	a := math.Sin(dLat/2)*math.Sin(dLat/2) + math.Cos(lat1*rad)*math.Cos(lat2*rad)*math.Sin(dLon/2)*math.Sin(dLon/2)
+	return 2 * radiusBumi * math.Asin(math.Min(1, math.Sqrt(a)))
 }
 
 // Laporan menyusun loses dari inspeksi yang sudah DISETUJUI. Rentang kosong berarti 30 hari terakhir (WIB).

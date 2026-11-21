@@ -14,10 +14,13 @@ public final class IpdDraf {
         public int pokok;
         /** kode temuan -> jumlah (urutan pilih dipertahankan). */
         public final Map<String, Integer> temuan = new LinkedHashMap<>();
+        /** Waktu pokok pertama kali dicatat (UTC ISO 8601): dipertahankan saat draf disimpan ulang, dan dikirim untuk dipasangkan dengan jalur GPS. */
+        public String waktu;
 
         public Pokok(int baris, int pokok) {
             this.baris = baris;
             this.pokok = pokok;
+            this.waktu = com.example.fai26.db.Waktu.utcSekarang();
         }
     }
 

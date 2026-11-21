@@ -930,6 +930,7 @@ Ditambahkan 21 Nov 2026 (rencana: `progres/RENCANA_IPD.md`). IPD mencatat **lose
 | `ipd_pokok` | `fai_ipd_pokok` | Pokok yang diperiksa: nomor baris dan nomor pokok, unik per inspeksi. |
 | `ipd_temuan` | `fai_ipd_temuan` | Temuan pada pokok: kode dan jumlah, unik per pokok dan kode. |
 | `ipd_foto` | `fai_ipd_foto` | Foto bukti (tanpa batas jumlah) dengan keterangan dan urutan. Di HP dikompres, berkasnya dihapus setelah terkirim. |
+| `ipd_jejak` (Room v7) | `fai_ipd_jejak` | Jalur GPS inspeksi: satu baris per titik (waktu UTC, lat, lon, akurasi meter), dicatat tiap 3 meter dan hanya bila akurasi 25 m atau lebih baik. Di HP tanpa kunci asing ke `ipd_header` (perekam latar mulai sebelum draf pertama disimpan; titik inspeksi baru yang dibuang ikut dihapus). Di server unik per (inspeksi, urut); kirim ulang mengganti seluruh jalur. Waktu tiap pokok: `ipd_pokok.dibuat_pada` di HP menjadi `fai_ipd_pokok.dicatat_pada` di server (migrasi 012), dipakai web untuk memasangkan pokok dengan titik jalur terdekat. Hanya pemegang hak `ipd.jejak` (ADMIN, ASISTEN, ASKEP, KTU) yang menerima jalur dari API. |
 
 Kode temuan:
 

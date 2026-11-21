@@ -38,6 +38,7 @@ erDiagram
     ipd_pokok ||--o{ ipd_temuan : "temuan"
     kode_temuan ||--o{ ipd_temuan : "jenis temuan"
     ipd_header ||--o{ ipd_foto : "punya foto"
+    ipd_header ||--o{ ipd_jejak : "titik jalur GPS (tanpa kunci asing)"
     divisi ||--o{ ipd_header : "dipilih saat inspeksi"
     app_user ||--o{ ipd_header : "kemandoran, asisten"
 
@@ -439,6 +440,14 @@ erDiagram
         INTEGER diubah_oleh
         TEXT dihapus_pada "hapus lunak"
         INTEGER dihapus_oleh
+    }
+    ipd_jejak {
+        INTEGER jejak_id PK
+        TEXT ipd_id "rujukan ipd_header.ipd_id, tanpa FK"
+        TEXT waktu "waktu titik diambil (UTC)"
+        REAL lat
+        REAL lon
+        REAL akurasi "meter, boleh NULL"
     }
     ipd_foto {
         TEXT foto_id PK

@@ -119,6 +119,7 @@ WHERE u.unit_id=@p1 AND u.username=@p2 AND u.aktif=1 AND u.dihapus_pada IS NULL
 const (
 	chunkPokok  = 400 // 4 parameter per baris, batas driver 2100
 	chunkTemuan = 300 // 5 parameter per baris
+	chunkJejak  = 300 // 6 parameter per baris
 )
 
 // Simpan menulis catatan, pokok, temuan, dan audit dalam satu transaksi. Ganti=true memperbarui catatan MENUNGGU atau
@@ -186,15 +187,19 @@ VALUES (@p1,@p2,@p3,@p4,@p5,@p6,@p7,@p8,@p9,@p10,@p11,@p12,@p13,@p14,@p15,@p16,@
 	for a := 0; a < len(in.Pokok); a += chunkPokok {
 		z := min(a+chunkPokok, len(in.Pokok))
 		var sb strings.Builder
-		sb.WriteString("INSERT INTO dbo.fai_ipd_pokok (ipd_id, no_baris, no_pokok, dibuat_oleh) VALUES ")
-		args := make([]any, 0, (z-a)*4)
+		sb.WriteString("INSERT INTO dbo.fai_ipd_pokok (ipd_id, no_baris, no_pokok, dibuat_oleh, dicatat_pada) VALUES ")
+		args := make([]any, 0, (z-a)*5)
 		for i := a; i < z; i++ {
 			if i > a {
 				sb.WriteByte(',')
 			}
 			n := len(args)
-			sb.WriteString("(@p" + strconv.Itoa(n+1) + ",@p" + strconv.Itoa(n+2) + ",@p" + strconv.Itoa(n+3) + ",@p" + strconv.Itoa(n+4) + ")")
-			args = append(args, in.IpdID, in.Pokok[i].NoBaris, in.Pokok[i].NoPokok, p.UserID)
+			sb.WriteString("(@p" + strconv.Itoa(n+1) + ",@p" + strconv.Itoa(n+2) + ",@p" + strconv.Itoa(n+3) + ",@p" + strconv.Itoa(n+4) + ",@p" + strconv.Itoa(n+5) + ")")
+			var dicatat any
+			if w, e := model.ParseWaktu(in.Pokok[i].DicatatPada); in.Pokok[i].DicatatPada != "" && e == nil {
+				dicatat = w.UTC()
+			}
+			args = append(args, in.IpdID, in.Pokok[i].NoBaris, in.Pokok[i].NoPokok, p.UserID, dicatat)
 		}
 		if _, err = tx.ExecContext(ctx, sb.String(), args...); err != nil {
 			if adaPelanggaranUnik(err) {
@@ -246,6 +251,33 @@ VALUES (@p1,@p2,@p3,@p4,@p5,@p6,@p7,@p8,@p9,@p10,@p11,@p12,@p13,@p14,@p15,@p16,@
 			n := len(args)
 			sb.WriteString("(@p" + strconv.Itoa(n+1) + ",@p" + strconv.Itoa(n+2) + ",@p" + strconv.Itoa(n+3) + ",@p" + strconv.Itoa(n+4) + ",@p" + strconv.Itoa(n+5) + ")")
 			args = append(args, semua[i].pokok, semua[i].kode, semua[i].jumlah, semua[i].catatan, p.UserID)
+		}
+		if _, err = tx.ExecContext(ctx, sb.String(), args...); err != nil {
+			return err
+		}
+	}
+
+	// Jalur GPS: pada kirim ulang jalur lama diganti seluruhnya.
+	if _, err = tx.ExecContext(ctx, `DELETE FROM dbo.fai_ipd_jejak WHERE ipd_id=@p1`, in.IpdID); err != nil {
+		return err
+	}
+	for a := 0; a < len(in.Jejak); a += chunkJejak {
+		z := min(a+chunkJejak, len(in.Jejak))
+		var sb strings.Builder
+		sb.WriteString("INSERT INTO dbo.fai_ipd_jejak (ipd_id, urut, waktu, lat, lon, akurasi_m) VALUES ")
+		args := make([]any, 0, (z-a)*6)
+		for i := a; i < z; i++ {
+			if i > a {
+				sb.WriteByte(',')
+			}
+			n := len(args)
+			sb.WriteString("(@p" + strconv.Itoa(n+1) + ",@p" + strconv.Itoa(n+2) + ",@p" + strconv.Itoa(n+3) + ",@p" + strconv.Itoa(n+4) + ",@p" + strconv.Itoa(n+5) + ",@p" + strconv.Itoa(n+6) + ")")
+			w, _ := model.ParseWaktu(in.Jejak[i].T) // sudah divalidasi
+			var ak any
+			if in.Jejak[i].Akurasi != nil {
+				ak = *in.Jejak[i].Akurasi
+			}
+			args = append(args, in.IpdID, i, w.UTC(), in.Jejak[i].Lat, in.Jejak[i].Lon, ak)
 		}
 		if _, err = tx.ExecContext(ctx, sb.String(), args...); err != nil {
 			return err
@@ -401,7 +433,7 @@ func (r *IpdRepository) Baris(ctx context.Context, unitID int64, id string) (*mo
 // Pokok mengembalikan semua pokok yang diperiksa pada satu inspeksi beserta temuannya.
 func (r *IpdRepository) Pokok(ctx context.Context, id string) ([]model.IpdPokokOut, error) {
 	rows, err := r.db.QueryContext(ctx, `
-SELECT p.no_baris, p.no_pokok, k.kode, t.jumlah, t.catatan
+SELECT p.no_baris, p.no_pokok, p.dicatat_pada, k.kode, t.jumlah, t.catatan
 FROM dbo.fai_ipd_pokok p
 LEFT JOIN dbo.fai_ipd_temuan t ON t.pokok_id = p.id AND t.dihapus_pada IS NULL
 LEFT JOIN dbo.ipd_kode_temuan k ON k.kode_id = t.kode_id
@@ -415,16 +447,46 @@ WHERE p.ipd_id=@p1 AND p.dihapus_pada IS NULL ORDER BY p.no_baris, p.no_pokok, k
 		var b, n int
 		var kode, cat sql.NullString
 		var jml sql.NullInt64
-		if err := rows.Scan(&b, &n, &kode, &jml, &cat); err != nil {
+		var dicatat sql.NullTime
+		if err := rows.Scan(&b, &n, &dicatat, &kode, &jml, &cat); err != nil {
 			return nil, err
 		}
 		if len(out) == 0 || out[len(out)-1].NoBaris != b || out[len(out)-1].NoPokok != n {
-			out = append(out, model.IpdPokokOut{NoBaris: b, NoPokok: n, Temuan: []model.IpdTemuanOut{}})
+			po := model.IpdPokokOut{NoBaris: b, NoPokok: n, Temuan: []model.IpdTemuanOut{}}
+			if dicatat.Valid {
+				t := dicatat.Time.UTC()
+				po.DicatatPada = &t
+			}
+			out = append(out, po)
 		}
 		if kode.Valid {
 			last := &out[len(out)-1]
 			last.Temuan = append(last.Temuan, model.IpdTemuanOut{Kode: kode.String, Jumlah: jml.Int64, Catatan: strPtr(cat)})
 		}
+	}
+	return out, rows.Err()
+}
+
+// Jejak membaca jalur GPS satu inspeksi berurutan menurut waktu pengambilan titik.
+func (r *IpdRepository) Jejak(ctx context.Context, id string) ([]model.IpdTitikOut, error) {
+	rows, err := r.db.QueryContext(ctx, `SELECT waktu, lat, lon, akurasi_m FROM dbo.fai_ipd_jejak WHERE ipd_id=@p1 ORDER BY urut`, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []model.IpdTitikOut{}
+	for rows.Next() {
+		var t model.IpdTitikOut
+		var ak sql.NullFloat64
+		if err := rows.Scan(&t.T, &t.Lat, &t.Lon, &ak); err != nil {
+			return nil, err
+		}
+		t.T = t.T.UTC()
+		if ak.Valid {
+			v := ak.Float64
+			t.Akurasi = &v
+		}
+		out = append(out, t)
 	}
 	return out, rows.Err()
 }

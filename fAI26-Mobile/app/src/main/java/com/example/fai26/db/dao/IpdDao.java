@@ -7,6 +7,7 @@ import androidx.room.Update;
 
 import com.example.fai26.db.entity.IpdFoto;
 import com.example.fai26.db.entity.IpdHeader;
+import com.example.fai26.db.entity.IpdJejak;
 import com.example.fai26.db.entity.IpdPokok;
 import com.example.fai26.db.entity.IpdTemuan;
 import com.example.fai26.db.entity.KodeTemuan;
@@ -67,9 +68,26 @@ public interface IpdDao {
     @Query("DELETE FROM ipd_header WHERE ipd_id = :id AND status = 'DRAFT'")
     int hapusDraf(String id);
 
+    // ---- Jalur GPS --------------------------------------------------------------------------------------
+
+    @Insert
+    long insertJejak(IpdJejak j);
+
+    @Query("SELECT * FROM ipd_jejak WHERE ipd_id = :id ORDER BY jejak_id DESC LIMIT 1")
+    IpdJejak jejakTerakhir(String id);
+
+    @Query("SELECT COUNT(*) FROM ipd_jejak WHERE ipd_id = :id")
+    int jumlahJejak(String id);
+
+    @Query("SELECT waktu AS waktu, lat AS lat, lon AS lon, akurasi AS akurasi FROM ipd_jejak WHERE ipd_id = :id ORDER BY jejak_id")
+    List<IpdHasil.TitikKirim> jejakKirim(String id);
+
+    @Query("DELETE FROM ipd_jejak WHERE ipd_id = :id")
+    void hapusJejak(String id);
+
     // ---- Memuat ulang -----------------------------------------------------------------------------
 
-    @Query("SELECT p.no_baris AS noBaris, p.no_pokok AS noPokok, k.kode AS kode, t.jumlah AS jumlah FROM ipd_pokok p "
+    @Query("SELECT p.no_baris AS noBaris, p.no_pokok AS noPokok, k.kode AS kode, t.jumlah AS jumlah, p.dibuat_pada AS dicatat FROM ipd_pokok p "
             + "LEFT JOIN ipd_temuan t ON t.pokok_id = p.pokok_id AND t.dihapus_pada IS NULL "
             + "LEFT JOIN kode_temuan k ON k.kode_id = t.kode_id "
             + "WHERE p.ipd_id = :id AND p.dihapus_pada IS NULL ORDER BY p.no_baris, p.no_pokok, k.urut")
@@ -144,7 +162,7 @@ public interface IpdDao {
             + "WHERE h.ipd_id = :id AND h.dihapus_pada IS NULL")
     IpdHasil.HeaderKirim headerKirim(String id);
 
-    @Query("SELECT pokok_id AS pokokId, no_baris AS noBaris, no_pokok AS noPokok FROM ipd_pokok "
+    @Query("SELECT pokok_id AS pokokId, no_baris AS noBaris, no_pokok AS noPokok, dibuat_pada AS dicatatPada FROM ipd_pokok "
             + "WHERE ipd_id = :id AND dihapus_pada IS NULL ORDER BY no_baris, no_pokok")
     List<IpdHasil.PokokKirim> pokokKirim(String id);
 

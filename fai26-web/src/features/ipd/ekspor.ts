@@ -3,6 +3,7 @@ import 'dayjs/locale/id'
 import type { IpdDetail, IpdKodeAgg, IpdRingkasan } from '@/api/types'
 import type { BlokInspeksi, GambarEkspor, HariEkspor, Keterangan, LaporanEkspor, TabelKecil } from '@/lib/ekspor'
 import { STATUS_IPD } from './ipdTampil'
+import { teksDurasi, teksJarak } from './jalur'
 
 /** Persen dibulatkan satu angka desimal tetapi tetap angka. */
 export const bulatPersen = (v: number): number => Math.round(v * 10) / 10
@@ -56,6 +57,7 @@ export function blokInspeksi(d: IpdDetail, nomor: number, gambar: GambarEkspor[]
   }
   const meta = [
     `Kemandoran: ${d.mandor_nama ?? '-'}  •  Diinspeksi oleh: ${d.inspektur_nama}  •  Asisten: ${d.asisten_nama ?? 'belum diatur'}  •  Status: ${STATUS_IPD[d.status].teks}`,
+    ...(d.jejak ? [`Jalur GPS: ${teksJarak(d.jejak.jarak_m)} ditempuh dalam ${teksDurasi(d.jejak.durasi_menit)} (${d.jejak.titik.length} titik)`] : []),
     ...(d.pesan_tolak ? [`Alasan ditolak: ${d.pesan_tolak}`] : []),
     ...(d.catatan ? [`Catatan inspeksi: ${d.catatan}`] : []),
   ]

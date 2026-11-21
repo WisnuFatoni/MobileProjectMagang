@@ -47,11 +47,11 @@ const det = (id: string, tgl: string, nama: string): IpdDetail => ({
   ringkasan,
   foto: [],
   pokok: [
-    { no_baris: 120, no_pokok: 1, temuan: [] },
-    { no_baris: 120, no_pokok: 2, temuan: [{ kode: 'B1', jumlah: 6, catatan: null }] },
-    { no_baris: 121, no_pokok: 5, temuan: [{ kode: 'A', jumlah: 1, catatan: null }, { kode: 'C', jumlah: 1, catatan: null }] },
-    { no_baris: 121, no_pokok: 6, temuan: [] },
-    { no_baris: 121, no_pokok: 7, temuan: [] },
+    { no_baris: 120, no_pokok: 1, dicatat_pada: null, temuan: [] },
+    { no_baris: 120, no_pokok: 2, dicatat_pada: null, temuan: [{ kode: 'B1', jumlah: 6, catatan: null }] },
+    { no_baris: 121, no_pokok: 5, dicatat_pada: null, temuan: [{ kode: 'A', jumlah: 1, catatan: null }, { kode: 'C', jumlah: 1, catatan: null }] },
+    { no_baris: 121, no_pokok: 6, dicatat_pada: null, temuan: [] },
+    { no_baris: 121, no_pokok: 7, dicatat_pada: null, temuan: [] },
   ],
 })
 
@@ -93,7 +93,7 @@ describe('ekspor IPD: satu lembar per tanggal', () => {
   })
 
   it('inspeksi tanpa temuan ditulis semua bersih', () => {
-    const d = { ...det('a', '2026-11-20', 'BUDI'), pokok: [{ no_baris: 1, no_pokok: 1, temuan: [] }] }
+    const d = { ...det('a', '2026-11-20', 'BUDI'), pokok: [{ no_baris: 1, no_pokok: 1, dicatat_pada: null, temuan: [] }] }
     const b = blokInspeksi(d, 2, [])
     expect(b.baris).toEqual([])
     expect(b.penutup).toBe('Semua 1 pokok bersih, tidak ada temuan.')

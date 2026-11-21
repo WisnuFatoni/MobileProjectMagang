@@ -113,6 +113,46 @@ public class IpdTest {
     }
 
     @Test
+    public void jalurGpsDanWaktuPokokIkutDikirimBilaAda() throws Exception {
+        IpdHasil.HeaderKirim h = new IpdHasil.HeaderKirim();
+        h.ipdId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+        h.unitKode = "KP_STL";
+        h.tanggalInspeksi = "2026-11-20";
+        h.divisiKode = "DIV2";
+        h.asm3Oid = 1012;
+        h.pemanenHrmb = 90001;
+        h.mandorUsername = "mandor1";
+        h.dibuatPada = "2026-11-20T03:00:00Z";
+        IpdHasil.PokokKirim p = new IpdHasil.PokokKirim();
+        p.pokokId = 1;
+        p.noBaris = 120;
+        p.noPokok = 5;
+        p.dicatatPada = "2026-11-20T03:04:10Z";
+        IpdHasil.TitikKirim t1 = new IpdHasil.TitikKirim();
+        t1.waktu = "2026-11-20T03:00:00Z";
+        t1.lat = -2.7;
+        t1.lon = 104.3;
+        t1.akurasi = 8.04;
+        IpdHasil.TitikKirim t2 = new IpdHasil.TitikKirim();
+        t2.waktu = "2026-11-20T03:00:05Z";
+        t2.lat = -2.69997;
+        t2.lon = 104.3;
+
+        JSONObject o = PayloadBuilder.ipd(h, Arrays.asList(p), new ArrayList<>(), Arrays.asList(t1, t2));
+        assertEquals("2026-11-20T03:04:10Z", o.getJSONArray("pokok").getJSONObject(0).getString("dicatat_pada"));
+        JSONArray j = o.getJSONArray("jejak");
+        assertEquals(2, j.length());
+        assertEquals("2026-11-20T03:00:00Z", j.getJSONObject(0).getString("t"));
+        assertEquals(-2.7, j.getJSONObject(0).getDouble("lat"), 1e-9);
+        assertEquals(8.0, j.getJSONObject(0).getDouble("ak"), 1e-9);
+        assertTrue("akurasi tak diketahui tidak dikirim", !j.getJSONObject(1).has("ak"));
+
+        // Tanpa jalur (HP tanpa GPS atau dimatikan): kunci jejak tidak ada sama sekali.
+        assertTrue(!PayloadBuilder.ipd(h, Arrays.asList(p), new ArrayList<>()).has("jejak"));
+        assertTrue(!PayloadBuilder.ipd(h, Arrays.asList(p), new ArrayList<>(), new ArrayList<>()).has("jejak"));
+    }
+
+    @Test
     public void aturanEditHanyaSebelumDisetujui() {
         assertTrue(IpdRepository.bisaDiubah("DRAFT"));
         assertTrue(IpdRepository.bisaDiubah("MENUNGGU_SETUJU"));

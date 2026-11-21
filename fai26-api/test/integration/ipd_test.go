@@ -28,17 +28,25 @@ func ipdContoh(id string) model.IpdInput {
 		PemanenHrmbCode: 90001, AncakNo: "7", MandorUsername: "uji.mandor2",
 		Pokok: []model.IpdPokokInput{
 			{NoBaris: 11, NoPokok: 1},
-			{NoBaris: 11, NoPokok: 2, Temuan: []model.IpdTemuanInput{{Kode: "B1", Jumlah: 6}, {Kode: "S"}}},
+			{NoBaris: 11, NoPokok: 2, DicatatPada: "2026-11-20T03:04:10Z", Temuan: []model.IpdTemuanInput{{Kode: "B1", Jumlah: 6}, {Kode: "S"}}},
 			{NoBaris: 11, NoPokok: 3},
 			{NoBaris: 10, NoPokok: 1, Temuan: []model.IpdTemuanInput{{Kode: "B1", Jumlah: 4}}},
+		},
+		// Jalur GPS: tiga titik berjarak sekitar 55 m, selang 2 menit.
+		Jejak: []model.IpdTitikInput{
+			{T: "2026-11-20T03:00:00Z", Lat: -2.7000, Lon: 104.3000, Akurasi: ptrF(8)},
+			{T: "2026-11-20T03:02:00Z", Lat: -2.6995, Lon: 104.3000, Akurasi: ptrF(6.5)},
+			{T: "2026-11-20T03:04:00Z", Lat: -2.6990, Lon: 104.3000},
 		},
 	}
 }
 
+func ptrF(v float64) *float64 { return &v }
+
 func bersihkanIpd(e *lingkunganUji) {
 	for _, q := range []string{
 		`UPDATE dbo.divisi SET asisten_user_id=NULL`,
-		`DELETE FROM dbo.fai_ipd_foto`, `DELETE FROM dbo.fai_ipd_temuan`, `DELETE FROM dbo.fai_ipd_pokok`, `DELETE FROM dbo.fai_ipd`,
+		`DELETE FROM dbo.fai_ipd_foto`, `DELETE FROM dbo.fai_ipd_jejak`, `DELETE FROM dbo.fai_ipd_temuan`, `DELETE FROM dbo.fai_ipd_pokok`, `DELETE FROM dbo.fai_ipd`,
 	} {
 		if _, err := e.db.Exec(q); err != nil {
 			e.t.Logf("bersih-bersih IPD (%s): %v", q, err)
@@ -380,6 +388,28 @@ WHERE p.ipd_id=@p1 AND p.dihapus_pada IS NULL AND t.dihapus_pada IS NULL AND k.k
 	det := e.json("GET", "/api/admin/ipd/"+id, ad.AccessToken, nil, 200)
 	if pk, _ := det["pokok"].([]any); len(pk) != 6 || pk[0].(map[string]any)["no_baris"] != float64(10) {
 		t.Fatalf("rincian harus memuat 6 pokok berurutan baris lalu pokok: %v", det["pokok"])
+	}
+	// Jalur GPS: admin melihatnya lengkap dengan jarak dan durasi; waktu pokok ikut tersimpan.
+	jj, _ := det["jejak"].(map[string]any)
+	if tt, _ := jj["titik"].([]any); len(tt) != 3 || jj["durasi_menit"] != float64(4) || jj["jarak_m"].(float64) < 100 || jj["jarak_m"].(float64) > 120 {
+		t.Fatalf("jejak admin: %v", det["jejak"])
+	}
+	var pokokBerwaktu int
+	for _, p := range det["pokok"].([]any) {
+		if p.(map[string]any)["dicatat_pada"] != nil {
+			pokokBerwaktu++
+		}
+	}
+	if pokokBerwaktu != 1 {
+		t.Fatalf("hanya satu pokok yang dikirim dengan dicatat_pada: %d", pokokBerwaktu)
+	}
+	// Mandor boleh melihat rincian (ipd.lihat) tetapi tidak jalurnya (tanpa ipd.jejak).
+	if dm := e.json("GET", "/api/admin/ipd/"+id, md.AccessToken, nil, 200); dm["jejak"] != nil {
+		t.Fatalf("mandor tidak boleh menerima jejak: %v", dm["jejak"])
+	}
+	// ASKEP (hanya melihat) memegang ipd.jejak.
+	if da := e.json("GET", "/api/admin/ipd/"+id, ak.AccessToken, nil, 200); da["jejak"] == nil {
+		t.Fatal("ASKEP harus bisa melihat jejak")
 	}
 	e.json("GET", "/api/admin/ipd/bbbb0099-0000-4000-8000-000000000099", ad.AccessToken, nil, 404)
 	e.json("GET", "/api/admin/ipd/bukan-uuid", ad.AccessToken, nil, 422)

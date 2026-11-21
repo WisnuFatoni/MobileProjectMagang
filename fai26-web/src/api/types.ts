@@ -384,14 +384,32 @@ export interface IpdBaris {
   foto: IpdFotoRef[]
 }
 
+export interface IpdTitikJalur {
+  t: string
+  lat: number
+  lon: number
+  /** Akurasi GPS dalam meter; null bila tidak dilaporkan. */
+  ak: number | null
+}
+
+/** Jalur GPS inspeksi. Hanya dikirim server untuk akun pemegang `ipd.jejak`. */
+export interface IpdJejak {
+  titik: IpdTitikJalur[]
+  jarak_m: number
+  durasi_menit: number
+}
+
 export interface IpdPokokOut {
   no_baris: number
   no_pokok: number
+  /** Waktu pokok dicatat di HP; null untuk HP lama. */
+  dicatat_pada: string | null
   temuan: { kode: string; jumlah: number; catatan: string | null }[]
 }
 
 export interface IpdDetail extends IpdBaris {
   pokok: IpdPokokOut[]
+  jejak?: IpdJejak | null
 }
 
 export interface FilterIpd {

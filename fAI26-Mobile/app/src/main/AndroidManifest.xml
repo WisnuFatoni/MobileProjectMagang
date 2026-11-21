@@ -6,6 +6,10 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Jalur GPS inspeksi IPD: layanan latar bertipe lokasi dengan notifikasi tetap. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature
         android:name="android.hardware.camera"
         android:required="true" />
@@ -42,6 +46,11 @@
             android:name=".MainActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
+        <service
+            android:name=".lokasi.JejakService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
         <activity
             android:name=".FotoProfilCropActivity"
             android:exported="false"

@@ -496,6 +496,7 @@ CREATE TABLE dbo.fai_ipd_pokok (
     ipd_id                UNIQUEIDENTIFIER NOT NULL,
     no_baris              INT NOT NULL,
     no_pokok              INT NOT NULL,
+    dicatat_pada          DATETIME2 NULL,              -- waktu pokok dicatat di HP (migrasi 012); dipasangkan dengan titik jalur
     dibuat_pada           DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     dibuat_oleh           INT,
     diubah_pada           DATETIME2,
@@ -552,6 +553,21 @@ CREATE TABLE dbo.fai_ipd_foto (
 );
 GO
 
+-- Jalur GPS inspeksi (migrasi 012): titik tiap 3 meter selama inspeksi berjalan. Hanya pemegang ipd.jejak yang melihatnya di web.
+IF OBJECT_ID('dbo.fai_ipd_jejak', 'U') IS NULL
+CREATE TABLE dbo.fai_ipd_jejak (
+    jejak_id              BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    ipd_id                UNIQUEIDENTIFIER NOT NULL,
+    urut                  INT NOT NULL,                -- urutan titik dalam satu inspeksi (0, 1, 2, ...)
+    waktu                 DATETIME2 NOT NULL,          -- waktu titik diambil (UTC)
+    lat                   DECIMAL(9,6) NOT NULL,
+    lon                   DECIMAL(9,6) NOT NULL,
+    akurasi_m             DECIMAL(6,1) NULL,
+    CONSTRAINT fk_fai_ipd_jejak_ipd FOREIGN KEY (ipd_id) REFERENCES dbo.fai_ipd(id),
+    CONSTRAINT ux_fai_ipd_jejak_ipd_urut UNIQUE (ipd_id, urut)
+);
+GO
+
 -- Kode temuan IPD (urutan sesuai form lapangan).
 INSERT INTO dbo.ipd_kode_temuan (kode, nama, kelompok, urut)
 SELECT x.kode, x.nama, x.kelompok, x.urut
@@ -592,7 +608,8 @@ FROM (VALUES
     ('ipd.setujui',  'IPD',      N'Menyetujui inspeksi yang dikirim mandor'),
     ('ipd.lihat',    'IPD',      N'Melihat daftar inspeksi di dashboard web'),
     ('laporan.ipd',  'Laporan',  N'Melihat laporan loses IPD'),
-    ('ipd.kelola',   'IPD',      N'Mengelola kode temuan IPD')
+    ('ipd.kelola',   'IPD',      N'Mengelola kode temuan IPD'),
+    ('ipd.jejak',    'IPD',      N'Melihat jalur GPS inspeksi di peta')
 ) AS x (kode, modul, nama)
 WHERE NOT EXISTS (SELECT 1 FROM dbo.permission p WHERE p.kode = x.kode);
 GO
@@ -628,7 +645,11 @@ FROM (VALUES
     ('KTU',    'laporan.lihat'),
     ('KTU',    'master.lihat'),
     ('KTU',    'ipd.lihat'),
-    ('KTU',    'laporan.ipd')
+    ('KTU',    'laporan.ipd'),
+    ('ADMIN',  'ipd.jejak'),
+    ('ASISTEN','ipd.jejak'),
+    ('ASKEP',  'ipd.jejak'),
+    ('KTU',    'ipd.jejak')
 ) AS x (role_kode, perm_kode)
 JOIN dbo.role r ON r.kode = x.role_kode
 JOIN dbo.permission p ON p.kode = x.perm_kode

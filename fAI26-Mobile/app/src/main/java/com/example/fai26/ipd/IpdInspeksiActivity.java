@@ -146,6 +146,21 @@ public class IpdInspeksiActivity extends AppCompatActivity {
     private ActivityResultLauncher<Uri> ambilFoto;
     private ActivityResultLauncher<String> mintaIzinKamera;
 
+    // ---- Jalur GPS inspeksi ----
+    /** Merekam jalur GPS selama mencatat pokok (bisa dimatikan; bawaan mati bila yang diubah inspeksi yang sudah terkirim). */
+    private boolean rekamJejak = true;
+    private boolean jejakDitentukan = false;
+    private com.google.android.material.materialswitch.MaterialSwitch swJejak;
+    private TextView txtJejak;
+    private ActivityResultLauncher<String[]> mintaIzinJejak;
+    private final Runnable pantauJejak = new Runnable() {
+        @Override
+        public void run() {
+            perbaruiTeksJejak();
+            main.postDelayed(this, 2000);
+        }
+    };
+
     /** Satu baris kode temuan di langkah 2. */
     private static final class BarisKode {
         MaterialButton tombol;
@@ -173,6 +188,15 @@ public class IpdInspeksiActivity extends AppCompatActivity {
                 keteranganFotoOtomatis = null;
                 if (fotoMentah != null) //noinspection ResultOfMethodCallIgnored
                     fotoMentah.delete();
+            }
+        });
+        mintaIzinJejak = registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), hasil -> {
+            if (com.example.fai26.lokasi.PencatatLokasi.adaIzin(this)) {
+                mulaiJejak();
+            } else {
+                rekamJejak = false;
+                if (swJejak != null) swJejak.setChecked(false);
+                Toast.makeText(this, "Izin lokasi diperlukan untuk merekam jalur; inspeksi tetap bisa dicatat tanpa jalur", Toast.LENGTH_LONG).show();
             }
         });
         mintaIzinKamera = registerForActivityResult(new ActivityResultContracts.RequestPermission(), ok -> {
@@ -299,7 +323,66 @@ public class IpdInspeksiActivity extends AppCompatActivity {
             langkahChip[i].setTextColor(aktif ? 0xFFFFFFFF : ContextCompat.getColor(this, R.color.brand_on_primary_container));
         }
         if (n == 2) segarkanRingkasan();
-        if (n == 1) segarkanFoto();
+        if (n == 1) {
+            segarkanFoto();
+            mulaiJejak();
+            main.removeCallbacks(pantauJejak);
+            main.post(pantauJejak);
+        } else {
+            main.removeCallbacks(pantauJejak);
+        }
+    }
+
+    // ---- Jalur GPS --------------------------------------------------------------------------------------
+
+    /** Memulai perekam jalur untuk inspeksi ini bila diizinkan: minta izin lokasi dulu bila belum ada. */
+    private void mulaiJejak() {
+        if (!jejakDitentukan) {
+            jejakDitentukan = true;
+            rekamJejak = draf.statusLama == null || IpdRepository.DRAFT.equals(draf.statusLama);
+            if (swJejak != null) swJejak.setChecked(rekamJejak);
+        }
+        if (!rekamJejak) return;
+        if (draf.ipdId == null) draf.ipdId = UUID.randomUUID().toString();
+        if (!com.example.fai26.lokasi.PencatatLokasi.adaIzin(this)) {
+            mintaIzinJejak.launch(android.os.Build.VERSION.SDK_INT >= 33
+                    ? new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.POST_NOTIFICATIONS}
+                    : new String[]{Manifest.permission.ACCESS_FINE_LOCATION});
+            return;
+        }
+        android.location.LocationManager lm = (android.location.LocationManager) getSystemService(LOCATION_SERVICE);
+        if (lm != null && !lm.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER)) {
+            Toast.makeText(this, "GPS di HP mati: nyalakan GPS supaya jalur terekam", Toast.LENGTH_LONG).show();
+        }
+        if (!draf.ipdId.equals(com.example.fai26.lokasi.JejakService.ipdAktif())) {
+            com.example.fai26.lokasi.JejakService.mulai(this, draf.ipdId);
+        }
+    }
+
+    private void perbaruiTeksJejak() {
+        if (txtJejak == null) return;
+        if (!rekamJejak) {
+            txtJejak.setText("Jalur GPS tidak direkam");
+            return;
+        }
+        boolean aktif = draf.ipdId != null && draf.ipdId.equals(com.example.fai26.lokasi.JejakService.ipdAktif());
+        if (!aktif) {
+            txtJejak.setText("Jalur GPS belum aktif");
+            return;
+        }
+        int n = com.example.fai26.lokasi.JejakService.jumlahSesi();
+        float ak = com.example.fai26.lokasi.JejakService.akurasiTerakhir();
+        txtJejak.setText(n == 0 ? "Jalur GPS aktif • menunggu sinyal GPS…"
+                : "Jalur GPS aktif • " + n + " titik" + (ak > 0 ? String.format(java.util.Locale.US, " • akurasi ±%.0f m", ak) : ""));
+    }
+
+    /** Inspeksi baru yang dibuang tanpa disimpan: titik jalurnya ikut dibuang (yang sudah tersimpan sebagai draf tidak disentuh). */
+    private void buangJejakBaru() {
+        final String id = draf.ipdId;
+        if (id == null) return;
+        io.execute(() -> {
+            if (dao.header(id) == null) dao.hapusJejak(id);
+        });
     }
 
     private void pindahLangkah(int n) {
@@ -595,6 +678,23 @@ public class IpdInspeksiActivity extends AppCompatActivity {
 
         txtInfo = IpdUi.judul(c, "", 15);
         k.addView(txtInfo, IpdUi.lebarPenuh(c, 0, 8));
+
+        // Jalur GPS: direkam tiap 3 meter selama mencatat pokok; terlihat jelas aktif atau tidaknya.
+        swJejak = new com.google.android.material.materialswitch.MaterialSwitch(c);
+        swJejak.setText("Rekam jalur GPS");
+        swJejak.setTextSize(15);
+        swJejak.setChecked(rekamJejak);
+        swJejak.setOnCheckedChangeListener((v, ok) -> {
+            rekamJejak = ok;
+            jejakDitentukan = true;
+            if (ok) mulaiJejak();
+            else com.example.fai26.lokasi.JejakService.berhenti(this);
+            perbaruiTeksJejak();
+        });
+        k.addView(swJejak, IpdUi.lebarPenuh(c, 0, 0));
+        txtJejak = IpdUi.redup(c, "", 12);
+        txtJejak.setPadding(IpdUi.dp(c, 2), 0, 0, IpdUi.dp(c, 8));
+        k.addView(txtJejak);
 
         LinearLayout[] kartuIsi = new LinearLayout[1];
         MaterialCardView kartu = IpdUi.kartu(c, kartuIsi);
@@ -1336,7 +1436,17 @@ public class IpdInspeksiActivity extends AppCompatActivity {
         new MaterialAlertDialogBuilder(this).setTitle("Keluar dari inspeksi?")
                 .setMessage("Ada isian yang belum disimpan.")
                 .setNeutralButton("Tetap di sini", null)
-                .setNegativeButton("Keluar tanpa menyimpan", (d, w) -> finish())
+                .setNegativeButton("Keluar tanpa menyimpan", (d, w) -> {
+                    buangJejakBaru();
+                    finish();
+                })
                 .setPositiveButton("Simpan draf", (d, w) -> simpanDraf(true)).show();
+    }
+
+    @Override
+    protected void onDestroy() {
+        main.removeCallbacks(pantauJejak);
+        if (isFinishing()) com.example.fai26.lokasi.JejakService.berhenti(this);
+        super.onDestroy();
     }
 }

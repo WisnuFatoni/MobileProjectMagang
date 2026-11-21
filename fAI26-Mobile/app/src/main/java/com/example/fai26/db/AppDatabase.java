@@ -27,6 +27,7 @@ import com.example.fai26.db.entity.Divisi;
 import com.example.fai26.db.entity.Foto;
 import com.example.fai26.db.entity.IpdFoto;
 import com.example.fai26.db.entity.IpdHeader;
+import com.example.fai26.db.entity.IpdJejak;
 import com.example.fai26.db.entity.IpdPokok;
 import com.example.fai26.db.entity.IpdTemuan;
 import com.example.fai26.db.entity.KelasGrading;
@@ -57,12 +58,13 @@ import com.example.fai26.db.entity.UserRole;
                 AppUser.class, Role.class, Permission.class, UserRole.class, RolePermission.class,
                 PanenHeader.class, PanenPemanen.class, PanenGrading.class, Foto.class, Deteksi.class,
                 AuditLog.class, SyncQueue.class, MasterSync.class,
-                KodeTemuan.class, IpdHeader.class, IpdPokok.class, IpdTemuan.class, IpdFoto.class
+                KodeTemuan.class, IpdHeader.class, IpdPokok.class, IpdTemuan.class, IpdFoto.class, IpdJejak.class
         },
-        version = 6,
+        version = 7,
         autoMigrations = {
                 @AutoMigration(from = 4, to = 5),
-                @AutoMigration(from = 5, to = 6, spec = AppDatabase.SatuKemandoran.class)},
+                @AutoMigration(from = 5, to = 6, spec = AppDatabase.SatuKemandoran.class),
+                @AutoMigration(from = 6, to = 7)}, // versi 7: tabel ipd_jejak (jalur GPS inspeksi)
         exportSchema = true)
 public abstract class AppDatabase extends RoomDatabase {
 

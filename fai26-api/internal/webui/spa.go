@@ -11,8 +11,9 @@ import (
 )
 
 // Kebijakan keamanan konten. Ant Design menulis gaya lewat <style> di runtime, maka style-src butuh 'unsafe-inline'.
-// Foto bukti dimuat lewat blob:, dan web tidak memuat apa pun dari domain lain.
-const csp = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; " +
+// Foto bukti dimuat lewat blob:. Satu-satunya domain luar yang boleh memuat gambar adalah ubin peta OpenStreetMap
+// untuk peta jalur inspeksi; skrip, gaya, dan sambungan data tetap hanya dari origin sendiri.
+const csp = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tile.openstreetmap.org; " +
 	"font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 
 // Handler menyajikan berkas statis dari dir. Alamat yang bukan berkas (rute React Router seperti /tph) dijawab
@@ -30,7 +31,8 @@ func Handler(dir string) http.Handler {
 		h := w.Header()
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("X-Frame-Options", "DENY")
-		h.Set("Referrer-Policy", "same-origin")
+		// Ubin OpenStreetMap mewajibkan Referer. Ke domain lain hanya asal situs yang dikirim, tanpa path.
+		h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		h.Set("Content-Security-Policy", csp)
 
 		bersih := path.Clean("/" + r.URL.Path)

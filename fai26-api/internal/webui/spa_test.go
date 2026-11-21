@@ -82,7 +82,7 @@ func TestHeaderKeamananSelaluAda(t *testing.T) {
 	for k, mau := range map[string]string{
 		"X-Content-Type-Options": "nosniff",
 		"X-Frame-Options":        "DENY",
-		"Referrer-Policy":        "same-origin",
+		"Referrer-Policy":        "strict-origin-when-cross-origin",
 	} {
 		if got := w.Header().Get(k); got != mau {
 			t.Errorf("%s = %q, mau %q", k, got, mau)
@@ -90,6 +90,10 @@ func TestHeaderKeamananSelaluAda(t *testing.T) {
 	}
 	if c := w.Header().Get("Content-Security-Policy"); !strings.Contains(c, "frame-ancestors 'none'") || strings.Contains(c, "script-src 'self' 'unsafe") {
 		t.Errorf("CSP tidak sesuai: %q", c)
+	}
+	// Hanya gambar yang boleh dari luar, dan hanya dari host ubin peta; sambungan data tetap origin sendiri.
+	if c := w.Header().Get("Content-Security-Policy"); !strings.Contains(c, "img-src 'self' data: blob: https://tile.openstreetmap.org;") || !strings.Contains(c, "connect-src 'self';") {
+		t.Errorf("CSP img-src/connect-src tidak sesuai: %q", c)
 	}
 }
 

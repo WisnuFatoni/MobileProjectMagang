@@ -1,6 +1,6 @@
 # Dokumentasi API fai26-api
 
-Versi 0.19.0 · terakhir diperbarui 21 Nov 2026 · spesifikasi mesin: [`openapi.yaml`](openapi.yaml)
+Versi 0.20.0 · terakhir diperbarui 21 Nov 2026 · spesifikasi mesin: [`openapi.yaml`](openapi.yaml)
 (bisa dibuka di Swagger Editor, Postman, atau Insomnia).
 
 > **Aturan tim:** setiap endpoint baru atau perubahan bentuk data **wajib** memperbarui `openapi.yaml`, dokumen ini,
@@ -502,7 +502,8 @@ dan tanpa `kirim_ulang` dijawab 200 `SUDAH_ADA` tanpa perubahan.
 | `catatan` | string | tidak | Maksimal 500 karakter |
 | `dibuat_pada` | ISO 8601 UTC | tidak | |
 | `kirim_ulang` | boolean | tidak | `true` mengubah catatan `MENUNGGU` (isi diganti, tetap `MENUNGGU`) atau memperbaiki `DITOLAK` (kembali `MENUNGGU`). Catatan `DISETUJUI` dijawab 423 |
-| `pokok` | array | ya | 1 sampai 3000 pokok, `no_baris` dan `no_pokok` 1 sampai 9999, tidak boleh ganda |
+| `pokok` | array | ya | 1 sampai 3000 pokok, `no_baris` dan `no_pokok` 1 sampai 9999, tidak boleh ganda. Tiap pokok boleh memuat `dicatat_pada` (waktu dicatat di HP, ISO 8601 UTC) |
+| `jejak` | array | tidak | Jalur GPS inspeksi, maksimal 20000 titik `{"t": "2026-11-20T03:00:00Z", "lat": -2.7, "lon": 104.3, "ak": 6.5}` (`ak` akurasi meter, opsional). HP mencatat tiap 3 meter dan hanya yang akurasinya 25 m atau lebih baik. `kirim_ulang` menggantikan jalur lama seluruhnya. Koordinat harus sah (bukan 0,0) dan waktu valid, kalau tidak 422 |
 
 Tiap `pokok`: `{ "no_baris": 11, "no_pokok": 2, "temuan": [{ "kode": "B1", "jumlah": 6, "catatan": "..." }] }`. `temuan` kosong berarti pokok bersih. `jumlah` kosong dianggap 1 (maksimal 9999),
 kode tidak boleh ganda dalam satu pokok.
@@ -1121,13 +1122,17 @@ Semua persen dibulatkan 1 desimal. `per_kelompok` selalu BUAH, BRONDOLAN, PELEPA
 
 ## GET /api/admin/ipd/{id}
 
-**Rincian satu inspeksi.** Permission `ipd.lihat`. Seperti satu baris daftar, ditambah `pokok`: semua pokok yang diperiksa berurutan (baris lalu pokok), tiap pokok dengan `temuan` (kosong bila bersih).
+**Rincian satu inspeksi.** Permission `ipd.lihat`. Seperti satu baris daftar, ditambah `pokok`: semua pokok yang diperiksa berurutan (baris lalu pokok), tiap pokok dengan `temuan` (kosong bila bersih) dan `dicatat_pada` (waktu dicatat di HP, null untuk HP lama).
+
+Bila pemanggil memegang **`ipd.jejak`** (asisten, askep, KTU, admin; mandor tidak) dan HP mengirim jalur GPS, ada `jejak`: `titik` (berurutan menurut waktu), `jarak_m` (jumlah jarak antartitik, haversine), dan `durasi_menit` (titik pertama sampai terakhir). Tanpa hak itu, atau tanpa jalur, `jejak` bernilai `null`.
 
 **200**
 
 ```json
 { "id": "…", "status": "DISETUJUI", "ringkasan": { "pokok_diperiksa": 6 }, "foto": [],
-  "pokok": [{ "no_baris": 10, "no_pokok": 1, "temuan": [{ "kode": "B1", "jumlah": 5, "catatan": null }] }, { "no_baris": 11, "no_pokok": 1, "temuan": [] }] }
+  "pokok": [{ "no_baris": 10, "no_pokok": 1, "dicatat_pada": "2026-11-20T03:04:10Z", "temuan": [{ "kode": "B1", "jumlah": 5, "catatan": null }] },
+            { "no_baris": 11, "no_pokok": 1, "dicatat_pada": null, "temuan": [] }],
+  "jejak": { "titik": [{ "t": "2026-11-20T03:00:00Z", "lat": -2.7, "lon": 104.3, "ak": 8 }], "jarak_m": 222.4, "durasi_menit": 10 } }
 ```
 
 **Galat:** 404 · 422 id bukan UUID
@@ -1150,6 +1155,7 @@ Semua persen dibulatkan 1 desimal. `per_kelompok` selalu BUAH, BRONDOLAN, PELEPA
 
 | Tanggal | Versi | Perubahan |
 |---|---|---|
+| 21 Nov 2026 | 0.20.0 | **Jalur GPS inspeksi IPD.** `POST /api/ipd` menerima `jejak` (titik GPS, maksimal 20000) dan `pokok[].dicatat_pada`; `GET /api/admin/ipd/{id}` menambah `pokok[].dicatat_pada` dan `jejak` (titik, `jarak_m`, `durasi_menit`; hanya untuk pemegang permission baru **`ipd.jejak`**: ASISTEN, ASKEP, KTU, ADMIN, null untuk yang lain). Perlu migrasi `012_jejak_ipd.sql` (tabel `fai_ipd_jejak`, kolom `fai_ipd_pokok.dicatat_pada`, permission `ipd.jejak`). Penambahan saja: HP lama tanpa jalur tetap diterima. |
 | 21 Nov 2026 | 0.19.0 | **Foto profil akun.** Endpoint baru `PUT /api/auth/foto`, `GET /api/auth/foto`, `DELETE /api/auth/foto` (tiap akun mengelola fotonya sendiri; diproses server menjadi JPEG persegi 384 px). Objek profil (`login`, `me`) menambah `foto_versi`. Perlu migrasi `011_foto_profil.sql`. Penambahan saja: tidak ada yang berubah untuk klien lama. |
 | 20 Nov 2026 | 0.18.0 | **IPD: satu kemandoran. Role buatan admin.** (1) `POST /api/ipd`: `mandor_blok_username` dan `mandor_ancak_username` diganti satu field `mandor_username` (kemandoran); respons IPD memuat `mandor_nama` (menggantikan `mandor_blok_nama` dan `mandor_ancak_nama`). **Tidak kompatibel dengan HP versi lama**; perlu migrasi `010_satu_kemandoran.sql` dan HP terbaru (Room v6). (2) Endpoint baru `POST /api/admin/hak-akses` (buat role) dan `DELETE /api/admin/hak-akses/{id}` (hapus role buatan admin yang tidak dipegang akun aktif); `PUT /api/admin/hak-akses/{id}` menerima `nama` dan `deskripsi`; `GET /api/admin/hak-akses` menambah `deskripsi` dan `pengguna` per role. |
 | 21 Nov 2026 | 0.17.0 | **IPD: loses dipisah dari temuan lain.** Temuan buah dan brondolan = loses; pelepah (C, R) = temuan lain yang tidak memengaruhi produksi. `IpdKodeAgg` menambah `jenis`; `ringkasan` menambah `pokok_loses`, `persen_pokok_loses`, `total_loses`, `pokok_temuan_lain`, `persen_pokok_temuan_lain`, `total_temuan_lain`; baris laporan (`per_pemanen`, `per_blok`, `per_divisi`, `per_tanggal`) menambah kolom yang sama dan `per_pemanen`/`per_blok` kini diurutkan menurut persen loses. Penambahan saja: field lama tidak berubah. |

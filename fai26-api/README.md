@@ -60,7 +60,7 @@ ke folder yang lega (folder `.cache` di sini diabaikan git).
 Tidak ada data atau akun contoh di aplikasi maupun API. Akun dan master diisi lewat web admin. Tes integrasi memakai akun contoh milik
 tes sendiri (`test/integration/seed_tes_test.go`) dan **hanya berjalan di database berakhiran `_tes`** (pengaman, karena tes menghapus
 isi tabel panen, sesi, dan audit). Buat database kosong bernama mis. `fai26_tes`, jalankan `erd/fAI26_server_sqlserver.sql` lalu migrasi
-002, 003, 005, 006, 007, 008, 009, 010, 011 (`sqlcmd -I`), dan arahkan `FAI26_TEST_DSN` ke sana. Di database lain tes dilewati.
+002, 003, 005, 006, 007, 008, 009, 010, 011, 012 (`sqlcmd -I`), dan arahkan `FAI26_TEST_DSN` ke sana. Di database lain tes dilewati.
 
 ## Dokumentasi API
 

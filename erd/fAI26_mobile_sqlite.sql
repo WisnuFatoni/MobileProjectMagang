@@ -501,6 +501,19 @@ CREATE TABLE ipd_foto (
 
 CREATE INDEX ix_ipd_foto_ipd_id ON ipd_foto (ipd_id);
 
+-- Jalur GPS inspeksi (Room v7). Satu baris = satu titik, dicatat tiap 3 meter dengan akurasi baik saja. Sengaja tanpa kunci asing
+-- ke ipd_header: perekam latar mulai sebelum draf pertama disimpan. Waktu tiap pokok = ipd_pokok.dibuat_pada.
+CREATE TABLE ipd_jejak (
+    jejak_id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    ipd_id                TEXT NOT NULL,
+    waktu                 TEXT NOT NULL,                 -- waktu titik diambil, UTC
+    lat                   REAL NOT NULL,
+    lon                   REAL NOT NULL,
+    akurasi               REAL                           -- meter; NULL bila perangkat tidak melaporkan
+);
+
+CREATE INDEX ix_ipd_jejak_ipd_id ON ipd_jejak (ipd_id);
+
 -- Data awal kode temuan IPD (urutan sesuai form lapangan).
 INSERT INTO kode_temuan (kode_id, kode, nama, kelompok, urut) VALUES
     (1, 'A', 'Potong buah mentah', 'BUAH', 1),

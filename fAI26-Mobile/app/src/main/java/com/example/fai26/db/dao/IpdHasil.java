@@ -95,6 +95,16 @@ public final class IpdHasil {
         public long noPokok;
         public String kode;
         public Long jumlah;
+        /** Waktu pokok pertama kali dicatat (UTC ISO 8601). */
+        public String dicatat;
+    }
+
+    /** Satu titik jalur GPS untuk dikirim ke server. */
+    public static class TitikKirim {
+        public String waktu;
+        public double lat;
+        public double lon;
+        public Double akurasi;
     }
 
     /** Kepala catatan IPD untuk dikirim (lihat fai26-api/docs/API.md, POST /api/ipd). */
@@ -118,6 +128,7 @@ public final class IpdHasil {
         public long pokokId;
         public long noBaris;
         public long noPokok;
+        public String dicatatPada;
     }
 
     public static class TemuanKirim {

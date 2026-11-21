@@ -97,7 +97,8 @@ public class IpdRepository {
                 pk.ipdId = id;
                 pk.noBaris = p.baris;
                 pk.noPokok = p.pokok;
-                pk.dibuatPada = sekarang;
+                // Waktu catat pokok dipertahankan antar simpan ulang (bukan waktu simpan), supaya cocok dengan jalur GPS.
+                pk.dibuatPada = p.waktu == null || p.waktu.isEmpty() ? sekarang : p.waktu;
                 pk.dibuatOleh = userId;
                 long pokokId = dao.insertPokok(pk);
                 for (Map.Entry<String, Integer> e : p.temuan.entrySet()) {
@@ -160,6 +161,7 @@ public class IpdRepository {
         for (IpdHasil.PokokBaris b : dao.pokokBaris(ipdId)) {
             if (terakhir == null || terakhir.baris != b.noBaris || terakhir.pokok != b.noPokok) {
                 terakhir = new IpdDraf.Pokok((int) b.noBaris, (int) b.noPokok);
+                if (b.dicatat != null && !b.dicatat.isEmpty()) terakhir.waktu = b.dicatat;
                 d.pokok.add(terakhir);
             }
             if (b.kode != null) terakhir.temuan.put(b.kode, (int) (b.jumlah == null ? 1 : b.jumlah));
@@ -171,6 +173,7 @@ public class IpdRepository {
     public boolean hapusDraf(String ipdId) {
         List<IpdFoto> foto = db.ipdDao().foto(ipdId);
         if (db.ipdDao().hapusDraf(ipdId) == 0) return false;
+        db.ipdDao().hapusJejak(ipdId);
         for (IpdFoto f : foto) hapusBerkas(f.pathLokal);
         return true;
     }

@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Card, DatePicker, Descriptions, Drawer, Select, Skeleton, Space, Table, Tag, Typography } from 'antd'
 import dayjs from 'dayjs'
-import { useMemo, useState } from 'react'
+import { Suspense, lazy, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { divisiApi, ipdApi } from '@/api/endpoints'
 import type { FilterIpd, IpdBaris, IpdPokokOut } from '@/api/types'
@@ -16,6 +16,9 @@ import { pilihanEksporSatu } from './pilihanEkspor'
 import { TombolEksporCetak } from './TombolEksporCetak'
 
 const HALAMAN = 25
+
+// Peta (Leaflet) dimuat hanya saat sebuah inspeksi punya jalur GPS dan laci dibuka.
+const JalurPeta = lazy(() => import('./JalurPeta'))
 
 /** Daftar inspeksi panen detail (IPD). Filter hidup di URL supaya bisa dibagikan. Klik baris untuk rincian pokok dan foto. */
 export function IpdPage() {
@@ -226,6 +229,24 @@ function IpdDetailDrawer({ id, onTutup }: { id: string | null; onTutup: () => vo
                 { title: '% pokok', dataIndex: 'persen_pokok', align: 'right', width: 90, render: (v: number) => `${desimal(v)}%` },
               ]}
             />
+          </div>
+
+          <div>
+            <Typography.Title level={5}>Jalur inspeksi</Typography.Title>
+            {d.jejak ? (
+              <Suspense fallback={<Skeleton active paragraph={{ rows: 6 }} />}>
+                <JalurPeta
+                  jejak={d.jejak}
+                  pokok={d.pokok}
+                  jenisKode={new Map(d.ringkasan.per_kode.map((k) => [k.kode, k.jenis]))}
+                  namaKode={new Map(d.ringkasan.per_kode.map((k) => [k.kode, k.nama]))}
+                />
+              </Suspense>
+            ) : (
+              <Typography.Text type="secondary">
+                Tidak ada jalur GPS: HP tidak mengirim jalur untuk inspeksi ini, atau akun ini tidak punya hak melihat jalur.
+              </Typography.Text>
+            )}
           </div>
 
           <div>

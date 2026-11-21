@@ -443,7 +443,7 @@ public class SyncService {
         com.example.fai26.db.dao.IpdHasil.HeaderKirim h = id == null ? null : ipd.headerKirim(id);
         if (h == null) throw new ApiException(404, "Inspeksi tidak ditemukan di HP");
         try {
-            api.kirimIpd(token, PayloadBuilder.ipd(h, ipd.pokokKirim(id), ipd.temuanKirim(id)));
+            api.kirimIpd(token, PayloadBuilder.ipd(h, ipd.pokokKirim(id), ipd.temuanKirim(id), ipd.jejakKirim(id)));
         } catch (JSONException e) {
             throw new ApiException(422, "Isi inspeksi tidak bisa dibentuk: " + e.getMessage(), e);
         } catch (ApiException e) {

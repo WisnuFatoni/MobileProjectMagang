@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: fai26-api
-  version: 0.19.0
+  version: 0.20.0
   description: |
     API sinkronisasi aplikasi fAI26 (HP krani ke database `fai26`). Panduan yang lebih mudah dibaca ada di `API.md`.
 
@@ -380,6 +380,7 @@ components:
             properties:
               no_baris: { type: integer, minimum: 1, maximum: 9999 }
               no_pokok: { type: integer, minimum: 1, maximum: 9999 }
+              dicatat_pada: { type: string, format: date-time, description: Waktu pokok dicatat di HP (opsional); dipasangkan dengan titik jalur terdekat di peta. }
               temuan:
                 type: array
                 items:
@@ -389,6 +390,20 @@ components:
                     kode: { type: string, enum: [A, G, S, M1, M2, M3, M4, B1, B2, C, R] }
                     jumlah: { type: integer, minimum: 1, maximum: 9999, description: Kosong dianggap 1. }
                     catatan: { type: string, maxLength: 200 }
+        jejak:
+          type: array
+          maxItems: 20000
+          description: |
+            Jalur GPS inspeksi (opsional): HP mencatat titik tiap 3 meter selama inspeksi, hanya yang akurasinya baik (25 m atau lebih
+            baik). Pada kirim_ulang menggantikan jalur lama seluruhnya. Hanya pemegang `ipd.jejak` yang dapat melihatnya di web.
+          items:
+            type: object
+            required: [t, lat, lon]
+            properties:
+              t: { type: string, format: date-time, description: Waktu titik diambil (UTC). }
+              lat: { type: number, minimum: -90, maximum: 90 }
+              lon: { type: number, minimum: -180, maximum: 180 }
+              ak: { type: number, minimum: 0, maximum: 9999, description: Akurasi dalam meter (opsional). }
     DivisiInput:
       type: object
       required: [kode, nama]
@@ -718,7 +733,7 @@ paths:
     get:
       tags: [Auth]
       summary: Membaca foto profil sendiri
-      description: Mengembalikan JPEG 384 x 384. Mendukung `If-None-Match` (ETag = versi foto): 304 bila belum berubah. 404 bila belum punya foto.
+      description: "Mengembalikan JPEG 384 x 384. Mendukung `If-None-Match` (ETag berisi versi foto): 304 bila belum berubah. 404 bila belum punya foto."
       security: [{ bearerAuth: [] }]
       responses:
         '200':
@@ -1377,7 +1392,9 @@ paths:
       tags: [IPD]
       summary: Rincian satu inspeksi
       description: |
-        Permission `ipd.lihat`. Seperti satu baris daftar, ditambah `pokok`: semua pokok yang diperiksa berurutan dengan temuannya (kosong bila bersih).
+        Permission `ipd.lihat`. Seperti satu baris daftar, ditambah `pokok`: semua pokok yang diperiksa berurutan dengan temuannya (kosong bila bersih),
+        tiap pokok dengan `dicatat_pada` (waktu dicatat di HP, null bila HP lama). Bila pemanggil memegang `ipd.jejak` dan HP mengirim jalur,
+        ada juga `jejak`: `titik` (`t`, `lat`, `lon`, `ak`), `jarak_m`, dan `durasi_menit`; selain itu `jejak` bernilai null.
       security: [{ bearerAuth: [] }]
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }

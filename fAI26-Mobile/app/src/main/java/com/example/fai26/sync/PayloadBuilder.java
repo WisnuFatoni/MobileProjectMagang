@@ -69,6 +69,13 @@ public final class PayloadBuilder {
     /** Badan POST /api/ipd: satu inspeksi (satu pemanen) beserta semua pokok yang diperiksa. */
     public static JSONObject ipd(com.example.fai26.db.dao.IpdHasil.HeaderKirim h, List<com.example.fai26.db.dao.IpdHasil.PokokKirim> pokok,
                                  List<com.example.fai26.db.dao.IpdHasil.TemuanKirim> temuan) throws JSONException {
+        return ipd(h, pokok, temuan, null);
+    }
+
+    /** Sama seperti di atas, ditambah jalur GPS inspeksi ({@code jejak} boleh null atau kosong: tidak dikirim). */
+    public static JSONObject ipd(com.example.fai26.db.dao.IpdHasil.HeaderKirim h, List<com.example.fai26.db.dao.IpdHasil.PokokKirim> pokok,
+                                 List<com.example.fai26.db.dao.IpdHasil.TemuanKirim> temuan,
+                                 List<com.example.fai26.db.dao.IpdHasil.TitikKirim> jejak) throws JSONException {
         JSONObject o = new JSONObject();
         o.put("ipd_id", h.ipdId);
         o.put("unit_kode", h.unitKode);
@@ -101,11 +108,24 @@ public final class PayloadBuilder {
             JSONObject b = new JSONObject();
             b.put("no_baris", p.noBaris);
             b.put("no_pokok", p.noPokok);
+            b.putOpt("dicatat_pada", p.dicatatPada);
             JSONArray a = perPokok.get(p.pokokId);
             b.put("temuan", a == null ? new JSONArray() : a);
             pk.put(b);
         }
         o.put("pokok", pk);
+        if (jejak != null && !jejak.isEmpty()) {
+            JSONArray js = new JSONArray();
+            for (com.example.fai26.db.dao.IpdHasil.TitikKirim t : jejak) {
+                JSONObject b = new JSONObject();
+                b.put("t", t.waktu);
+                b.put("lat", t.lat);
+                b.put("lon", t.lon);
+                if (t.akurasi != null) b.put("ak", Math.round(t.akurasi * 10.0) / 10.0);
+                js.put(b);
+            }
+            o.put("jejak", js);
+        }
         return o;
     }
 

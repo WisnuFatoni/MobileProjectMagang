@@ -30,6 +30,8 @@ type fakeIpd struct {
 	terakhir   [3]string // dari, sampai, kecuali pada panggilan Terakhir
 	foto       map[string]bool
 	fotoSimpan []model.IpdFoto
+	baris      *model.IpdBaris
+	jejak      []model.IpdTitikOut
 }
 
 func newFakeIpd() *fakeIpd {
@@ -85,8 +87,12 @@ func (f *fakeIpd) DaftarAdmin(context.Context, int64, model.FilterIpd) (*model.H
 	return &model.HalamanIpd{}, nil
 }
 func (f *fakeIpd) Baris(context.Context, int64, string) (*model.IpdBaris, error) {
+	if f.baris != nil {
+		return f.baris, nil
+	}
 	return nil, repository.ErrNotFound
 }
+func (f *fakeIpd) Jejak(context.Context, string) ([]model.IpdTitikOut, error) { return f.jejak, nil }
 func (f *fakeIpd) Pokok(context.Context, string) ([]model.IpdPokokOut, error) { return nil, nil }
 func (f *fakeIpd) Mentah(context.Context, []string) (map[string]*model.IpdMentah, error) {
 	return map[string]*model.IpdMentah{}, nil

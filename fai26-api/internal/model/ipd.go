@@ -27,6 +27,19 @@ type IpdPokokInput struct {
 	NoBaris int              `json:"no_baris"`
 	NoPokok int              `json:"no_pokok"`
 	Temuan  []IpdTemuanInput `json:"temuan"`
+	// DicatatPada: waktu pokok ini dicatat di HP (opsional); dipakai memasangkan pokok dengan titik jalur GPS terdekat.
+	DicatatPada string `json:"dicatat_pada"`
+}
+
+// MaksTitikJejak membatasi jumlah titik jalur GPS per inspeksi (sekitar 7 jam berjalan, 1 titik tiap 3 meter).
+const MaksTitikJejak = 20000
+
+// IpdTitikInput adalah satu titik jalur GPS dari HP: waktu (ISO 8601 UTC), koordinat, dan akurasi (meter, opsional).
+type IpdTitikInput struct {
+	T       string   `json:"t"`
+	Lat     float64  `json:"lat"`
+	Lon     float64  `json:"lon"`
+	Akurasi *float64 `json:"ak"`
 }
 
 // IpdInput adalah satu catatan inspeksi panen detail dari HP: satu pemanen (satu ancak). Pengguna, unit, dan penyetuju
@@ -47,6 +60,8 @@ type IpdInput struct {
 	// Tanpa ini catatan yang sudah ada dijawab SUDAH_ADA tanpa diubah (aman untuk percobaan ulang jaringan).
 	KirimUlang bool            `json:"kirim_ulang"`
 	Pokok      []IpdPokokInput `json:"pokok"`
+	// Jejak: jalur GPS inspeksi (opsional). Pada kirim_ulang menggantikan jalur lama seluruhnya.
+	Jejak []IpdTitikInput `json:"jejak"`
 }
 
 // Validasi memeriksa isi catatan (bentuk, bukan master). Mengisi jumlah temuan yang kosong dengan 1.
@@ -100,6 +115,11 @@ func (p *IpdInput) Validasi() error {
 			return fmt.Errorf("pokok ganda: baris %d pokok %d", pk.NoBaris, pk.NoPokok)
 		}
 		sudah[kunci] = true
+		if pk.DicatatPada != "" {
+			if _, err := ParseWaktu(pk.DicatatPada); err != nil {
+				return fmt.Errorf("dicatat_pada pokok baris %d pokok %d: %v", pk.NoBaris, pk.NoPokok, err)
+			}
+		}
 		kode := map[string]bool{}
 		for j := range pk.Temuan {
 			t := &pk.Temuan[j]
@@ -120,6 +140,20 @@ func (p *IpdInput) Validasi() error {
 			if len([]rune(t.Catatan)) > 200 {
 				return errors.New("catatan temuan maksimal 200 karakter")
 			}
+		}
+	}
+	if len(p.Jejak) > MaksTitikJejak {
+		return fmt.Errorf("jejak maksimal %d titik per catatan", MaksTitikJejak)
+	}
+	for i, t := range p.Jejak {
+		if t.Lat < -90 || t.Lat > 90 || t.Lon < -180 || t.Lon > 180 || (t.Lat == 0 && t.Lon == 0) {
+			return fmt.Errorf("jejak titik %d: koordinat tidak sah", i+1)
+		}
+		if _, err := ParseWaktu(t.T); err != nil {
+			return fmt.Errorf("jejak titik %d: t %v", i+1, err)
+		}
+		if t.Akurasi != nil && (*t.Akurasi < 0 || *t.Akurasi > 9999) {
+			return fmt.Errorf("jejak titik %d: ak di luar batas", i+1)
 		}
 	}
 	return nil
@@ -258,15 +292,33 @@ type IpdTemuanOut struct {
 }
 
 type IpdPokokOut struct {
-	NoBaris int            `json:"no_baris"`
-	NoPokok int            `json:"no_pokok"`
-	Temuan  []IpdTemuanOut `json:"temuan"`
+	NoBaris     int            `json:"no_baris"`
+	NoPokok     int            `json:"no_pokok"`
+	DicatatPada *time.Time     `json:"dicatat_pada"`
+	Temuan      []IpdTemuanOut `json:"temuan"`
 }
 
-// IpdDetail adalah satu inspeksi lengkap dengan semua pokok yang diperiksa.
+// IpdTitikOut adalah satu titik jalur GPS.
+type IpdTitikOut struct {
+	T       time.Time `json:"t"`
+	Lat     float64   `json:"lat"`
+	Lon     float64   `json:"lon"`
+	Akurasi *float64  `json:"ak"`
+}
+
+// IpdJejak adalah jalur GPS satu inspeksi beserta ringkasannya (jarak dan lama berjalan).
+type IpdJejak struct {
+	Titik       []IpdTitikOut `json:"titik"`
+	JarakM      float64       `json:"jarak_m"`
+	DurasiMenit float64       `json:"durasi_menit"`
+}
+
+// IpdDetail adalah satu inspeksi lengkap dengan semua pokok yang diperiksa. Jejak hanya terisi untuk pemegang ipd.jejak dan
+// bila HP mengirim jalur; selain itu null.
 type IpdDetail struct {
 	IpdBaris
 	Pokok []IpdPokokOut `json:"pokok"`
+	Jejak *IpdJejak     `json:"jejak"`
 }
 
 // FilterIpd adalah penyaring daftar inspeksi di web.
