@@ -112,8 +112,11 @@ public final class FotoProfilLokal {
 
     // ---- simpan, hapus, tandai ---------------------------------------------------------------------------------
 
-    /** Dari kamera atau galeri: diproses, disimpan di HP, dan ditandai untuk dikirim ke server. */
-    public static void simpanDariUri(Context c, long userId, Uri uri) throws IOException {
+    /**
+     * Membaca gambar dari kamera atau galeri dalam keadaan tegak (EXIF diterapkan), dikecilkan seperlunya supaya sisi terpendeknya
+     * masih {@code minSisi} atau lebih. Dipakai pemotong foto dan simpan cepat.
+     */
+    public static Bitmap decodeTegak(Context c, Uri uri, int minSisi) throws IOException {
         Context app = c.getApplicationContext();
         int w;
         int h;
@@ -133,7 +136,7 @@ public final class FotoProfilLokal {
             // tanpa EXIF: dianggap tegak
         }
         BitmapFactory.Options o = new BitmapFactory.Options();
-        o.inSampleSize = sampel(w, h, SISI * 3 / 2);
+        o.inSampleSize = sampel(w, h, minSisi);
         Bitmap mentah;
         try (InputStream in = app.getContentResolver().openInputStream(uri)) {
             mentah = in == null ? null : BitmapFactory.decodeStream(in, null, o);
@@ -142,14 +145,31 @@ public final class FotoProfilLokal {
         Matrix putar = matriksExif(orientasi);
         Bitmap tegak = putar.isIdentity() ? mentah : Bitmap.createBitmap(mentah, 0, 0, mentah.getWidth(), mentah.getHeight(), putar, true);
         if (tegak != mentah) mentah.recycle();
+        return tegak;
+    }
+
+    /** Simpan cepat tanpa pemotong: potong persegi dari tengah. */
+    public static void simpanDariUri(Context c, long userId, Uri uri) throws IOException {
+        Bitmap tegak = decodeTegak(c, uri, SISI * 3 / 2);
         Bitmap akhir = potongDanKecilkan(tegak);
         if (akhir != tegak) tegak.recycle();
         try {
-            ByteArrayOutputStream jpeg = new ByteArrayOutputStream();
-            akhir.compress(Bitmap.CompressFormat.JPEG, 88, jpeg);
-            tulis(app, userId, jpeg.toByteArray());
+            simpanBitmap(c, userId, akhir);
         } finally {
             akhir.recycle();
+        }
+    }
+
+    /** Menyimpan gambar persegi yang sudah dipotong (mis. dari pemotong foto) dan menandainya untuk dikirim ke server. */
+    public static void simpanBitmap(Context c, long userId, Bitmap persegi) throws IOException {
+        Context app = c.getApplicationContext();
+        Bitmap b = persegi.getWidth() == SISI && persegi.getHeight() == SISI ? persegi : Bitmap.createScaledBitmap(persegi, SISI, SISI, true);
+        try {
+            ByteArrayOutputStream jpeg = new ByteArrayOutputStream();
+            b.compress(Bitmap.CompressFormat.JPEG, 88, jpeg);
+            tulis(app, userId, jpeg.toByteArray());
+        } finally {
+            if (b != persegi) b.recycle();
         }
         pref(app).edit().putString("tunda_" + userId, TUNDA_UNGGAH).apply();
     }

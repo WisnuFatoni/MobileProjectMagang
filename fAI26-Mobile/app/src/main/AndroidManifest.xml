@@ -43,6 +43,10 @@
             android:exported="false"
             android:screenOrientation="portrait" />
         <activity
+            android:name=".FotoProfilCropActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
             android:name=".QrActivity"
             android:exported="false"
             android:screenOrientation="portrait" />

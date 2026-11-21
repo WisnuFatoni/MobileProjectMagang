@@ -6,7 +6,8 @@ import { fotoProfilApi } from '@/api/endpoints'
 import { pesanGalat } from '@/lib/galat'
 import { useAuth } from './AuthProvider'
 import { AvatarAkun } from './FotoProfil'
-import { kecilkanFoto, useFotoProfil } from './useFotoProfil'
+import { PemotongFoto, type PemotongHandle } from './PemotongFoto'
+import { useFotoProfil } from './useFotoProfil'
 
 const TIPE_BOLEH = ['image/jpeg', 'image/png', 'image/webp']
 const MAKS_ASLI = 25 * 1024 * 1024
@@ -18,19 +19,9 @@ export function FotoProfilModal({ buka, onTutup }: { buka: boolean; onTutup: () 
   const qc = useQueryClient()
   const input = useRef<HTMLInputElement>(null)
   const [berkas, setBerkas] = useState<File | null>(null)
-  const [pratinjau, setPratinjau] = useState<string | null>(null)
+  const pemotong = useRef<PemotongHandle>(null)
   const [sibuk, setSibuk] = useState<'simpan' | 'hapus' | null>(null)
   const fotoSekarang = useFotoProfil(profil?.foto_versi)
-
-  useEffect(() => {
-    if (!berkas) {
-      setPratinjau(null)
-      return
-    }
-    const u = URL.createObjectURL(berkas)
-    setPratinjau(u)
-    return () => URL.revokeObjectURL(u)
-  }, [berkas])
 
   useEffect(() => {
     if (!buka) setBerkas(null)
@@ -53,7 +44,8 @@ export function FotoProfilModal({ buka, onTutup }: { buka: boolean; onTutup: () 
     if (!berkas) return
     setSibuk('simpan')
     try {
-      await fotoProfilApi.simpan(await kecilkanFoto(berkas))
+      // Yang diunggah adalah bagian di dalam lingkaran (768 px), bukan gambar utuh.
+      await fotoProfilApi.simpan(await (pemotong.current as PemotongHandle).hasil())
       await muatUlangProfil()
       void qc.invalidateQueries({ queryKey: ['foto-profil'] })
       void message.success('Foto profil disimpan')
@@ -87,7 +79,7 @@ export function FotoProfilModal({ buka, onTutup }: { buka: boolean; onTutup: () 
       open={buka}
       onCancel={sibuk ? undefined : onTutup}
       title="Foto profil"
-      width={420}
+      width={380}
       destroyOnClose
       footer={
         <Space wrap>
@@ -106,19 +98,15 @@ export function FotoProfilModal({ buka, onTutup }: { buka: boolean; onTutup: () 
       }
     >
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: '8px 0' }}>
-        {pratinjau ? (
-          <img
-            src={pratinjau}
-            alt="Pratinjau foto profil"
-            style={{ width: 168, height: 168, borderRadius: '50%', objectFit: 'cover', border: '3px solid #15803d' }}
-          />
+        {berkas ? (
+          <PemotongFoto ref={pemotong} berkas={berkas} />
         ) : fotoSekarang ? (
           <img src={fotoSekarang} alt="Foto profil saat ini" style={{ width: 168, height: 168, borderRadius: '50%', objectFit: 'cover' }} />
         ) : (
           <AvatarAkun nama={profil?.nama} versi={null} size={168} />
         )}
         <Typography.Text type="secondary" style={{ textAlign: 'center' }}>
-          Bagian tengah gambar yang dipakai (bulat). Gambar JPEG, PNG, atau WebP.
+          {berkas ? 'Geser gambar dan atur zoom sampai pas di dalam lingkaran.' : 'Pilih gambar JPEG, PNG, atau WebP, lalu atur posisinya.'}
         </Typography.Text>
         <input
           ref={input}

@@ -56,17 +56,35 @@ public class AkunFragment extends Fragment {
     private ActivityResultLauncher<String> pilihGaleri;
     private ActivityResultLauncher<String> mintaIzinKamera;
     private File fotoSementara;
+    private ActivityResultLauncher<Intent> pemotong;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        ambilKamera = registerForActivityResult(new ActivityResultContracts.TakePicture(), ok -> {
-            if (ok && fotoSementara != null) simpanFoto(Uri.fromFile(fotoSementara), true);
-            else if (fotoSementara != null) //noinspection ResultOfMethodCallIgnored
+        pemotong = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), hasil -> {
+            if (fotoSementara != null) {
+                //noinspection ResultOfMethodCallIgnored
                 fotoSementara.delete();
+                fotoSementara = null;
+            }
+            if (hasil.getResultCode() == android.app.Activity.RESULT_OK && isAdded()) {
+                final Context app = requireContext().getApplicationContext();
+                Toast.makeText(app, "Foto profil disimpan", Toast.LENGTH_SHORT).show();
+                muat();
+                SyncRunner.jalankan(app, true, null);
+            }
+        });
+        ambilKamera = registerForActivityResult(new ActivityResultContracts.TakePicture(), ok -> {
+            if (ok && fotoSementara != null) {
+                bukaPemotong(androidx.core.content.FileProvider.getUriForFile(requireContext(),
+                        requireContext().getPackageName() + ".fotoipd", fotoSementara));
+            } else if (fotoSementara != null) {
+                //noinspection ResultOfMethodCallIgnored
+                fotoSementara.delete();
+            }
         });
         pilihGaleri = registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
-            if (uri != null) simpanFoto(uri, false);
+            if (uri != null) bukaPemotong(uri);
         });
         mintaIzinKamera = registerForActivityResult(new ActivityResultContracts.RequestPermission(), ok -> {
             if (ok) bukaKamera();
@@ -112,29 +130,12 @@ public class AkunFragment extends Fragment {
         }
     }
 
-    /** Memproses foto terpilih di latar belakang, menyimpannya di HP, lalu mengirimnya ke server (bila ada sinyal). */
-    private void simpanFoto(Uri uri, boolean dariKamera) {
-        final Context app = requireContext().getApplicationContext();
-        final long uid = Sesi.userId(app);
-        final File sementara = dariKamera ? fotoSementara : null;
-        io.execute(() -> {
-            String pesan;
-            try {
-                FotoProfilLokal.simpanDariUri(app, uid, uri);
-                pesan = "Foto profil disimpan";
-            } catch (Exception e) {
-                pesan = "Foto gagal diproses: " + e.getMessage();
-            }
-            if (sementara != null) //noinspection ResultOfMethodCallIgnored
-                sementara.delete();
-            final String hasil = pesan;
-            main.post(() -> {
-                if (!isAdded()) return;
-                Toast.makeText(app, hasil, Toast.LENGTH_SHORT).show();
-                muat();
-                SyncRunner.jalankan(app, true, null);
-            });
-        });
+    /** Membuka pemotong foto (geser, zoom, putar) untuk gambar yang baru dipilih dari kamera atau galeri. */
+    private void bukaPemotong(Uri uri) {
+        Intent i = new Intent(requireContext(), FotoProfilCropActivity.class);
+        i.setData(uri);
+        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        pemotong.launch(i);
     }
 
     @Nullable
