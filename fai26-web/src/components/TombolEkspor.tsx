@@ -2,6 +2,7 @@ import { DownloadOutlined } from '@ant-design/icons'
 import { App, Button, Dropdown } from 'antd'
 import type { MenuProps } from 'antd'
 import { useState } from 'react'
+import { cetakLaporan } from '@/lib/cetak'
 import { eksporExcel, eksporPdf, type LaporanEkspor } from '@/lib/ekspor'
 import { pesanGalat } from '@/lib/galat'
 
@@ -9,7 +10,7 @@ import { pesanGalat } from '@/lib/galat'
 export interface PilihanEkspor {
   key: string
   label: string
-  format: 'xlsx' | 'pdf'
+  format: 'xlsx' | 'pdf' | 'cetak'
   /** Judul kelompok di menu (pilihan dengan kelompok sama dikumpulkan). */
   kelompok?: string
   /** Menyusun isi dokumen (boleh mengambil data dulu dari server). `lapor` memperbarui pesan kemajuan. */
@@ -36,8 +37,9 @@ export function TombolEkspor({ pilihan, disabled }: Props) {
       const dok = await p.ambil(lapor)
       lapor('Menyusun berkas…')
       if (p.format === 'xlsx') await eksporExcel(dok)
-      else await eksporPdf(dok)
-      void message.open({ key: KUNCI_PESAN, type: 'success', content: 'Berkas siap diunduh', duration: 3 })
+      else if (p.format === 'pdf') await eksporPdf(dok)
+      else await cetakLaporan(dok)
+      void message.open({ key: KUNCI_PESAN, type: 'success', content: p.format === 'cetak' ? 'Dialog cetak dibuka' : 'Berkas siap diunduh', duration: 3 })
     } catch (e) {
       void message.open({ key: KUNCI_PESAN, type: 'error', content: `Ekspor gagal: ${pesanGalat(e)}`, duration: 6 })
     } finally {

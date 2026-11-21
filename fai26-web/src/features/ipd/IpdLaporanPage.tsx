@@ -7,11 +7,10 @@ import { divisiApi, ipdApi } from '@/api/endpoints'
 import type { IpdGrupLoses } from '@/api/types'
 import { ErrorState } from '@/components/ErrorState'
 import { PageHeader } from '@/components/PageHeader'
-import { TombolEkspor } from '@/components/TombolEkspor'
 import { angka, desimal, tanggal } from '@/lib/format'
 import { BatangLoses } from './BatangLoses'
 import { laporanHarian } from './ekspor'
-import { pilihanEksporLaporan } from './pilihanEkspor'
+import { TombolEksporCetak } from './TombolEksporCetak'
 import { NAMA_KELOMPOK, temuanTeratas, warnaLoses } from './ipdTampil'
 
 function TabelGrup({ data, judul }: { data: IpdGrupLoses[]; judul: string }) {
@@ -63,7 +62,6 @@ export function IpdLaporanPage() {
     queryFn: () => ipdApi.laporan({ dari, sampai, divisi_kode: divisiKode }),
   })
   const r = q.data
-  const divisiNama = divisi.data?.find((d) => d.kode === divisiKode)?.nama
 
   return (
     <>
@@ -92,22 +90,22 @@ export function IpdLaporanPage() {
             <Button icon={<ReloadOutlined />} onClick={() => void q.refetch()} loading={q.isFetching}>
               Muat ulang
             </Button>
-            <TombolEkspor
-              disabled={!r}
+            <TombolEksporCetak
+              divisiAwal={divisiKode}
               // Laporan hanya menghitung inspeksi yang sudah disetujui, jadi isinya pun hanya yang disetujui.
-              pilihan={pilihanEksporLaporan({ dari, sampai, divisi_kode: divisiKode, status: 'DISETUJUI' }, (detail, foto) =>
+              statusTetap="DISETUJUI"
+              susun={(detail, foto, k) =>
                 laporanHarian(
                   'Laporan Loses IPD',
                   [
-                    ['Periode', `${tanggal(dari)} sampai ${tanggal(sampai)}`],
-                    ['Divisi', divisiNama ?? 'Semua divisi'],
+                    ['Periode', k.dari === k.sampai ? tanggal(k.dari) : `${tanggal(k.dari)} sampai ${tanggal(k.sampai)}`],
+                    ['Divisi', k.divisiNama ?? 'Semua divisi'],
                     ['Isi', 'Inspeksi yang sudah disetujui asisten'],
                   ],
                   detail,
                   foto,
-                  r?.ringkasan,
-                ),
-              )}
+                )
+              }
             />
           </Space>
         }

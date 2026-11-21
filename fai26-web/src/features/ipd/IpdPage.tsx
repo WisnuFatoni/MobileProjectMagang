@@ -12,7 +12,8 @@ import { desimal, tanggal, waktu } from '@/lib/format'
 import { laporanHarian } from './ekspor'
 import { FotoIpd } from './FotoIpd'
 import { STATUS_IPD } from './ipdTampil'
-import { pilihanEksporLaporan, pilihanEksporSatu } from './pilihanEkspor'
+import { pilihanEksporSatu } from './pilihanEkspor'
+import { TombolEksporCetak } from './TombolEksporCetak'
 
 const HALAMAN = 25
 
@@ -43,15 +44,6 @@ export function IpdPage() {
     setParams(p, { replace: true })
   }
 
-  const filterTeks = [
-    filter.dari && filter.sampai ? `${tanggal(filter.dari)} sampai ${tanggal(filter.sampai)}` : 'semua tanggal',
-    filter.status ? STATUS_IPD[filter.status as keyof typeof STATUS_IPD]?.teks ?? filter.status : 'semua status',
-    filter.divisi_kode ?? 'semua divisi',
-  ].join(' • ')
-
-  const { halaman: _h, per_halaman: _p, ...filterTanpaHalaman } = filter
-  void _h
-  void _p
 
   return (
     <>
@@ -59,11 +51,21 @@ export function IpdPage() {
         judul="Inspeksi IPD"
         keterangan="Inspeksi panen detail yang dikirim mandor dan asisten dari HP. Klik baris untuk melihat pokok yang diperiksa, temuan, dan foto bukti."
         aksi={
-          <TombolEkspor
-            disabled={!q.data || q.data.total === 0}
-            pilihan={pilihanEksporLaporan(filterTanpaHalaman, (detail, foto) =>
-              laporanHarian('Laporan Inspeksi IPD', [['Filter', filterTeks]], detail, foto),
-            )}
+          <TombolEksporCetak
+            divisiAwal={filter.divisi_kode}
+            statusAwal={filter.status}
+            susun={(detail, foto, k) =>
+              laporanHarian(
+                'Laporan Inspeksi IPD',
+                [
+                  ['Periode', k.dari === k.sampai ? tanggal(k.dari) : `${tanggal(k.dari)} sampai ${tanggal(k.sampai)}`],
+                  ['Divisi', k.divisiNama ?? 'Semua divisi'],
+                  ['Status', k.statusTeks ?? 'Semua status'],
+                ],
+                detail,
+                foto,
+              )
+            }
           />
         }
       />
