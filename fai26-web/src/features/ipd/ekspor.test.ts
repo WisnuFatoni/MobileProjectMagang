@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import type { IpdBaris, IpdDetail, IpdKodeAgg, IpdLaporan, IpdRingkasan } from '@/api/types'
-import { namaBerkas, namaLembar } from '@/lib/ekspor'
-import { bulatPersen, dampakPokok, dokumenDaftar, dokumenDetail, dokumenLaporan, dokumenLaporanRinci, teksTemuanPokok } from './ekspor'
+import type { IpdDetail, IpdKodeAgg, IpdRingkasan } from '@/api/types'
+import { namaBerkas, perkiraanBaris } from '@/lib/ekspor'
+import { blokInspeksi, bulatPersen, dampakPokok, kelompokkanPerHari, laporanHarian, ringkasKode, teksTemuanPokok } from './ekspor'
 
-const kode = (k: string, jenis: 'LOSES' | 'TEMUAN', pokok: number, jumlah: number, persen: number): IpdKodeAgg => ({
+const kode = (k: string, nama: string, jenis: 'LOSES' | 'TEMUAN', pokok: number, jumlah: number, persen: number): IpdKodeAgg => ({
   kode: k,
-  nama: `Nama ${k}`,
+  nama,
   kelompok: jenis === 'LOSES' ? 'BUAH' : 'PELEPAH',
   jenis,
   pokok,
@@ -14,26 +14,26 @@ const kode = (k: string, jenis: 'LOSES' | 'TEMUAN', pokok: number, jumlah: numbe
 })
 
 const ringkasan: IpdRingkasan = {
-  pokok_diperiksa: 9,
-  pokok_bertemuan: 4,
-  persen_pokok_bertemuan: 44.44,
-  total_temuan: 14,
-  pokok_loses: 3,
-  persen_pokok_loses: 33.333,
-  total_loses: 13,
+  pokok_diperiksa: 5,
+  pokok_bertemuan: 2,
+  persen_pokok_bertemuan: 40,
+  total_temuan: 8,
+  pokok_loses: 2,
+  persen_pokok_loses: 40,
+  total_loses: 7,
   pokok_temuan_lain: 1,
-  persen_pokok_temuan_lain: 11.111,
+  persen_pokok_temuan_lain: 20,
   total_temuan_lain: 1,
-  per_kode: [kode('A', 'LOSES', 1, 1, 11.1), kode('C', 'TEMUAN', 1, 1, 11.1), kode('S', 'LOSES', 0, 0, 0)],
+  per_kode: [kode('B1', 'Brondolan tak dikutip', 'LOSES', 1, 6, 20), kode('A', 'Potong buah mentah', 'LOSES', 1, 1, 20), kode('C', 'Pelepah sengkleh', 'TEMUAN', 1, 1, 20)],
 }
 
-const baris: IpdBaris = {
-  id: 'x',
-  tanggal_inspeksi: '2026-11-20',
+const det = (id: string, tgl: string, nama: string): IpdDetail => ({
+  id,
+  tanggal_inspeksi: tgl,
   divisi_kode: 'DIV1',
   blok_kode: 'A12',
   pemanen_hrmb_code: 90001,
-  pemanen_nama: 'Budi',
+  pemanen_nama: nama,
   ancak_no: '7',
   inspektur: 'mandor1',
   inspektur_nama: 'Mandor Satu',
@@ -42,90 +42,23 @@ const baris: IpdBaris = {
   status: 'DISETUJUI',
   pesan_tolak: null,
   catatan: null,
-  dibuat_pada: '2026-11-20T03:00:00Z',
+  dibuat_pada: `${tgl}T03:00:00Z`,
   disetujui_pada: null,
   ringkasan,
   foto: [],
-}
+  pokok: [
+    { no_baris: 120, no_pokok: 1, temuan: [] },
+    { no_baris: 120, no_pokok: 2, temuan: [{ kode: 'B1', jumlah: 6, catatan: null }] },
+    { no_baris: 121, no_pokok: 5, temuan: [{ kode: 'A', jumlah: 1, catatan: null }, { kode: 'C', jumlah: 1, catatan: null }] },
+    { no_baris: 121, no_pokok: 6, temuan: [] },
+    { no_baris: 121, no_pokok: 7, temuan: [] },
+  ],
+})
 
-describe('ekspor IPD', () => {
+describe('ekspor IPD: satu lembar per tanggal', () => {
   it('persen dibulatkan satu desimal tetapi tetap angka', () => {
     expect(bulatPersen(33.333)).toBe(33.3)
     expect(typeof bulatPersen(50)).toBe('number')
-  })
-
-  it('daftar memuat satu baris per inspeksi dengan loses dan temuan lain terpisah, angka tetap angka', () => {
-    const d = dokumenDaftar([baris], 'semua status')
-    const t = d.tabel[0]
-    expect(t.baris).toHaveLength(1)
-    expect(t.kolom.length).toBe(t.baris[0].length)
-    const r = t.baris[0]
-    expect(r[4]).toBe('Royyy') // kemandoran
-    expect(r[7]).toBe('Disetujui')
-    expect(r[9]).toBe(3) // pokok loses
-    expect(r[10]).toBe(33.3)
-    expect(r[11]).toBe(1) // pokok temuan lain
-    expect(d.keterangan?.some(([k, v]) => k === 'Jumlah inspeksi' && v === '1')).toBe(true)
-  })
-
-  it('laporan: ringkasan menyebut aturan loses, per kode menandai jenis, tiap tabel lengkap kolomnya', () => {
-    const lap: IpdLaporan = {
-      dari: '2026-11-01',
-      sampai: '2026-11-20',
-      inspeksi: 1,
-      pemanen: 1,
-      ringkasan,
-      per_kelompok: [],
-      per_pemanen: [
-        {
-          kunci: '1',
-          nama: 'Budi',
-          inspeksi: 1,
-          pokok_diperiksa: 9,
-          pokok_bertemuan: 4,
-          persen_pokok_bertemuan: 44.4,
-          total_temuan: 14,
-          pokok_loses: 3,
-          persen_pokok_loses: 33.3,
-          total_loses: 13,
-          pokok_temuan_lain: 1,
-          persen_pokok_temuan_lain: 11.1,
-          total_temuan_lain: 1,
-          temuan_per_kode: { A: 1, C: 1 },
-        },
-      ],
-      per_blok: [],
-      per_divisi: [],
-      per_tanggal: [],
-    }
-    const d = dokumenLaporan(lap, 'Divisi 1')
-    expect(d.keterangan?.find(([k]) => k === 'Divisi')?.[1]).toBe('Divisi 1')
-    expect(d.keterangan?.find(([k]) => k === 'Cara menghitung')?.[1]).toContain('Persen loses = jumlah POKOK')
-    expect(d.tabel.map((t) => t.judul)).toEqual(['Arti kode temuan', 'Per kode', 'Per pemanen', 'Per blok', 'Per divisi', 'Per tanggal'])
-    expect(d.tabel[0].baris.map((b) => b[3])).toEqual(['Loses', 'Temuan lain', 'Loses'])
-    expect(d.tabel[1].baris.map((b) => b[2])).toEqual(['Loses', 'Temuan lain', 'Loses'])
-    for (const t of d.tabel) for (const b of t.baris) expect(b.length).toBe(t.kolom.length)
-    expect(d.tabel[2].baris[0][4]).toBe(33.3)
-  })
-
-  it('rincian satu inspeksi: pokok bersih ditulis Bersih, temuan memakai kode dan jumlah', () => {
-    const det: IpdDetail = {
-      ...baris,
-      pokok: [
-        { no_baris: 120, no_pokok: 1, temuan: [] },
-        { no_baris: 121, no_pokok: 1, temuan: [{ kode: 'B1', jumlah: 6, catatan: null }, { kode: 'C', jumlah: 1, catatan: null }] },
-      ],
-    }
-    const d = dokumenDetail(det)
-    // PDF: hanya pokok yang kena temuan, dengan nama temuan dan dampaknya; yang bersih diringkas di catatan.
-    const kena = d.tabel.find((t) => t.judul === 'Pokok yang kena temuan')
-    expect(kena?.baris).toEqual([[121, 1, 'B1 x6; C Nama C x1', 'Loses + temuan lain']])
-    expect(kena?.catatan).toBe('Dari 2 pokok diperiksa: 1 kena temuan, 1 bersih.')
-    // Excel: semua pokok, satu baris per temuan, pokok bersih tetap ada.
-    const excel = d.tabel.find((t) => t.judul === 'Rincian pokok')
-    expect(excel?.hanya).toBe('excel')
-    expect(excel?.baris.map((b) => [b[4], b[5], b[6], b[8], b[9]])).toEqual([[120, 1, '-', '-', 0], [121, 1, 'B1', 'Loses', 6], [121, 1, 'C', 'Temuan lain', 1]])
-    expect(d.tabel.find((t) => t.judul === 'Per kode')?.baris.map((b) => b[0])).toEqual(['A', 'C']) // hanya kode yang punya temuan
   })
 
   it('dampak dan teks temuan per pokok memakai nama temuan dan jenisnya', () => {
@@ -140,25 +73,63 @@ describe('ekspor IPD', () => {
     expect(teksTemuanPokok([{ kode: 'A', jumlah: 2 }, { kode: 'C', jumlah: 1 }], peta)).toBe('A Potong buah mentah x2; C Pelepah x1')
   })
 
-  it('laporan rinci: satu bagian per inspeksi dengan foto, dan lembar Excel inspeksi serta pokok', () => {
-    const det: IpdDetail = { ...baris, foto: [{ id: 'f1', keterangan: 'buah tinggal', urut: 0 }], pokok: [{ no_baris: 120, no_pokok: 3, temuan: [{ kode: 'A', jumlah: 1, catatan: null }] }] }
-    const lap = { dari: '2026-11-01', sampai: '2026-11-20', inspeksi: 1, pemanen: 1, ringkasan, per_kelompok: [], per_pemanen: [], per_blok: [], per_divisi: [], per_tanggal: [] } as IpdLaporan
-    const foto = new Map([['x', [{ keterangan: 'buah tinggal', dataUrl: 'data:image/jpeg;base64,AA', lebar: 4, tinggi: 3 }]]])
-    const d = dokumenLaporanRinci(lap, [det], foto)
-    expect(d.bagian).toHaveLength(1)
-    expect(d.bagian?.[0].gambar[0].keterangan).toBe('buah tinggal')
-    expect(d.bagian?.[0].judul).toContain('Budi')
-    expect(d.tabel.filter((t) => t.hanya === 'excel').map((t) => t.judul)).toEqual(['Inspeksi', 'Rincian pokok'])
-    const inspeksi = d.tabel.find((t) => t.judul === 'Inspeksi')
-    for (const b of inspeksi?.baris ?? []) expect(b.length).toBe(inspeksi?.kolom.length)
+  it('satu blok inspeksi: ancak dan pemanen di judul, siapa yang menginspeksi, hasil, dan SEMUA temuan per pokok', () => {
+    const b = blokInspeksi(det('a', '2026-11-20', 'ALFARIZI'), 1, [])
+    expect(b.judul).toBe('1. ALFARIZI  •  Blok A12  •  Ancak 7  •  DIV1')
+    expect(b.meta[0]).toContain('Kemandoran: Royyy')
+    expect(b.meta[0]).toContain('Diinspeksi oleh: Mandor Satu')
+    expect(b.meta[0]).toContain('Asisten: Ferdi')
+    expect(b.hasil).toContain('5 pokok diperiksa')
+    expect(b.hasil).toContain('Loses 40% (2 pokok, jumlah 7)')
+    expect(b.hasil).toContain('Temuan lain 20% (1 pokok, jumlah 1)')
+    // Satu baris per temuan; pokok bersih tidak dicantumkan tetapi dihitung di penutup.
+    expect(b.baris).toEqual([
+      [120, 2, 'B1', 'Brondolan tak dikutip', 'Loses', 6, ''],
+      [121, 5, 'A', 'Potong buah mentah', 'Loses', 1, ''],
+      [121, 5, 'C', 'Pelepah sengkleh', 'Temuan lain', 1, ''],
+    ])
+    for (const baris of b.baris) expect(baris.length).toBe(b.kolom.length)
+    expect(b.penutup).toBe('Pokok bersih: 3 dari 5. Pokok yang kena temuan: 2.')
   })
 
-  it('nama berkas dan nama lembar aman dipakai', () => {
+  it('inspeksi tanpa temuan ditulis semua bersih', () => {
+    const d = { ...det('a', '2026-11-20', 'BUDI'), pokok: [{ no_baris: 1, no_pokok: 1, temuan: [] }] }
+    const b = blokInspeksi(d, 2, [])
+    expect(b.baris).toEqual([])
+    expect(b.penutup).toBe('Semua 1 pokok bersih, tidak ada temuan.')
+  })
+
+  it('dikelompokkan per tanggal (urut naik), lalu per pemanen, dengan ringkasan harian', () => {
+    const hari = kelompokkanPerHari(
+      [det('3', '2026-11-20', 'CAHYO'), det('1', '2026-11-13', 'BUDI'), det('2', '2026-11-20', 'ALFARIZI')],
+      new Map([['2', [{ keterangan: 'buah tinggal', dataUrl: 'data:image/jpeg;base64,AA', lebar: 4, tinggi: 3 }]]]),
+    )
+    expect(hari.map((h) => h.judul)).toEqual(['Inspeksi tanggal Jumat, 13 November 2026', 'Inspeksi tanggal Jumat, 20 November 2026'])
+    expect(hari[1].inspeksi.map((b) => b.judul.split('  •  ')[0])).toEqual(['1. ALFARIZI', '2. CAHYO'])
+    expect(hari[1].ringkas).toContain('2 inspeksi')
+    expect(hari[1].ringkas).toContain('10 pokok diperiksa')
+    expect(hari[1].ringkas).toContain('Loses 40% (4 pokok)')
+    expect(hari[1].inspeksi[0].gambar[0].keterangan).toBe('buah tinggal')
+    expect(hari[1].inspeksi[1].gambar).toEqual([])
+  })
+
+  it('laporan: keterangan atas memuat rumus, ringkasan per kode menjumlah semua inspeksi', () => {
+    const daftar = [det('1', '2026-11-13', 'BUDI'), det('2', '2026-11-20', 'ALFARIZI')]
+    const l = laporanHarian('Laporan Loses IPD', [['Periode', '1 sampai 20 Nov']], daftar, new Map())
+    expect(l.keterangan.find(([k]) => k === 'Cara menghitung')?.[1]).toContain('Persen loses = jumlah POKOK')
+    expect(l.keterangan.find(([k]) => k === 'Jumlah inspeksi')?.[1]).toBe('2')
+    expect(l.keterangan.find(([k]) => k === 'Pokok diperiksa')?.[1]).toBe('10')
+    expect(l.hari).toHaveLength(2)
+    const t = ringkasKode(daftar)
+    expect(t.kolom).toEqual(['Kode', 'Pokok', 'Jumlah', 'Temuan', 'Jenis', '% pokok'])
+    expect(t.baris.find((b) => b[0] === 'B1')).toEqual(['B1', 2, 12, 'Brondolan tak dikutip', 'Loses', 20])
+    expect(l.ringkasKode?.baris.every((b) => b.length === t.kolom.length)).toBe(true)
+  })
+
+  it('nama berkas aman dipakai dan perkiraan baris teks wajar', () => {
     expect(namaBerkas('Laporan Loses IPD', 'xlsx', new Date(2026, 10, 20))).toBe('Laporan_Loses_IPD_2026-11-20.xlsx')
     expect(namaBerkas('a/b:c*', 'pdf', new Date(2026, 0, 5))).toBe('abc_2026-01-05.pdf')
-    const dipakai = new Set<string>()
-    expect(namaLembar('Per pemanen/blok?', dipakai)).toBe('Per pemanen blok')
-    expect(namaLembar('Per pemanen/blok?', dipakai)).toBe('Per pemanen blok 2')
-    expect(namaLembar('x'.repeat(50), new Set()).length).toBe(31)
+    expect(perkiraanBaris('x'.repeat(250), 100)).toBe(3)
+    expect(perkiraanBaris('', 100)).toBe(1)
   })
 })

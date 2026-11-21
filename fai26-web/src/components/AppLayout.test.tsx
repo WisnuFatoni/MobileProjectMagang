@@ -1,9 +1,21 @@
 import { describe, expect, it } from 'vitest'
+import { kunciAktif } from '@/lib/menuAktif'
 import { bangunMenu } from './menu'
 
 type Grup = { type: 'group'; label: string; children: { key: string }[] }
 
 const grup = (permission: string[]) => (bangunMenu({ permission }) as Grup[]).map((g) => ({ judul: g.label, anak: g.children.map((c) => c.key) }))
+
+describe('menu yang menyala', () => {
+  it('alamat bersarang menyalakan halamannya sendiri, bukan induknya', () => {
+    expect(kunciAktif('/ipd/laporan')).toBe('/ipd/laporan')
+    expect(kunciAktif('/ipd')).toBe('/ipd')
+    expect(kunciAktif('/ipd/')).toBe('/ipd')
+    expect(kunciAktif('/tph/cetak')).toBe('/tph')
+    expect(kunciAktif('/')).toBe('/')
+    expect(kunciAktif('/hak-akses')).toBe('/hak-akses')
+  })
+})
 
 describe('menu', () => {
   it('admin melihat tiga kelompok lengkap', () => {

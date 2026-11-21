@@ -1,12 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { eksporExcel, eksporPdf, type DokumenEkspor } from './ekspor'
+import { eksporExcel, eksporPdf, type LaporanEkspor } from './ekspor'
 
-const dok: DokumenEkspor = {
+const dok: LaporanEkspor = {
   judul: 'Uji Ekspor',
   keterangan: [['Periode', '1 Nov 2026 sampai 20 Nov 2026']],
-  tabel: [
-    { judul: 'Per kode', kolom: ['Kode', 'Temuan', 'Pokok'], baris: [['A', 'Potong buah mentah', 3], ['C', '=1+1', 0]], kananIdx: [2] },
-    { judul: 'Per kode', kolom: ['Kode'], baris: [] },
+  ringkasKode: { judul: 'Ringkasan per kode', kolom: ['Kode', 'Pokok', 'Jumlah', 'Temuan', 'Jenis', '% pokok'], baris: [['A', 3, 4, 'Potong buah mentah', 'Loses', 30]], kananIdx: [1, 2, 5] },
+  hari: [
+    {
+      judul: 'Inspeksi tanggal Jumat, 20 November 2026',
+      ringkas: '1 inspeksi',
+      inspeksi: [
+        {
+          judul: '1. ALFARIZI  •  Blok 10C  •  Ancak 7  •  DIV1',
+          meta: ['Kemandoran: Royyy'],
+          hasil: '10 pokok diperiksa',
+          kolom: ['Baris', 'Pokok', 'Kode', 'Temuan', 'Dampak', 'Jumlah', 'Catatan'],
+          baris: [[120, 2, 'A', '=1+1', 'Loses', 1, '']],
+          kananIdx: [0, 1, 5],
+          penutup: 'Pokok bersih: 9 dari 10.',
+          gambar: [],
+        },
+      ],
+    },
   ],
 }
 

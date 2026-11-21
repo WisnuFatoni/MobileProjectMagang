@@ -6,15 +6,10 @@ import { useTema } from '@/app/tema'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { GantiPasswordModal } from '@/features/auth/GantiPasswordModal'
 import { halamanBoleh } from '@/lib/izin'
+import { kunciAktif } from '@/lib/menuAktif'
 import { bangunMenu } from './menu'
 import { Logo } from './Logo'
 import './layout.css'
-
-function kunciAktif(path: string): string {
-  if (path === '/' || path === '') return '/'
-  const awal = '/' + path.split('/')[1]
-  return awal
-}
 
 export function AppLayout() {
   const { profil, keluar } = useAuth()

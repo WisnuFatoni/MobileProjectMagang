@@ -2,7 +2,7 @@ import { DownloadOutlined } from '@ant-design/icons'
 import { App, Button, Dropdown } from 'antd'
 import type { MenuProps } from 'antd'
 import { useState } from 'react'
-import { eksporExcel, eksporPdf, type DokumenEkspor } from '@/lib/ekspor'
+import { eksporExcel, eksporPdf, type LaporanEkspor } from '@/lib/ekspor'
 import { pesanGalat } from '@/lib/galat'
 
 /** Satu pilihan di menu Ekspor. */
@@ -13,7 +13,7 @@ export interface PilihanEkspor {
   /** Judul kelompok di menu (pilihan dengan kelompok sama dikumpulkan). */
   kelompok?: string
   /** Menyusun isi dokumen (boleh mengambil data dulu dari server). `lapor` memperbarui pesan kemajuan. */
-  ambil: (lapor: (teks: string) => void) => Promise<DokumenEkspor>
+  ambil: (lapor: (teks: string) => void) => Promise<LaporanEkspor>
 }
 
 interface Props {

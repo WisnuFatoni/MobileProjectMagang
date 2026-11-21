@@ -8,10 +8,10 @@ import type { IpdGrupLoses } from '@/api/types'
 import { ErrorState } from '@/components/ErrorState'
 import { PageHeader } from '@/components/PageHeader'
 import { TombolEkspor } from '@/components/TombolEkspor'
-import { angka, desimal } from '@/lib/format'
+import { angka, desimal, tanggal } from '@/lib/format'
 import { BatangLoses } from './BatangLoses'
-import { dokumenLaporan, dokumenLaporanRinci } from './ekspor'
-import { pilihanEksporRinci } from './pilihanEkspor'
+import { laporanHarian } from './ekspor'
+import { pilihanEksporLaporan } from './pilihanEkspor'
 import { NAMA_KELOMPOK, temuanTeratas, warnaLoses } from './ipdTampil'
 
 function TabelGrup({ data, judul }: { data: IpdGrupLoses[]; judul: string }) {
@@ -94,12 +94,20 @@ export function IpdLaporanPage() {
             </Button>
             <TombolEkspor
               disabled={!r}
-              pilihan={pilihanEksporRinci({
-                ringkas: () => Promise.resolve(dokumenLaporan(r as NonNullable<typeof r>, divisiNama)),
-                // Laporan hanya menghitung inspeksi yang sudah disetujui, jadi rincinya pun hanya yang disetujui.
-                filter: { dari, sampai, divisi_kode: divisiKode, status: 'DISETUJUI' },
-                rinci: (detail, foto) => dokumenLaporanRinci(r as NonNullable<typeof r>, detail, foto, divisiNama),
-              })}
+              // Laporan hanya menghitung inspeksi yang sudah disetujui, jadi isinya pun hanya yang disetujui.
+              pilihan={pilihanEksporLaporan({ dari, sampai, divisi_kode: divisiKode, status: 'DISETUJUI' }, (detail, foto) =>
+                laporanHarian(
+                  'Laporan Loses IPD',
+                  [
+                    ['Periode', `${tanggal(dari)} sampai ${tanggal(sampai)}`],
+                    ['Divisi', divisiNama ?? 'Semua divisi'],
+                    ['Isi', 'Inspeksi yang sudah disetujui asisten'],
+                  ],
+                  detail,
+                  foto,
+                  r?.ringkasan,
+                ),
+              )}
             />
           </Space>
         }

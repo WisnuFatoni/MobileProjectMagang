@@ -9,10 +9,10 @@ import { ErrorState } from '@/components/ErrorState'
 import { PageHeader } from '@/components/PageHeader'
 import { TombolEkspor } from '@/components/TombolEkspor'
 import { desimal, tanggal, waktu } from '@/lib/format'
-import { dokumenDaftar, dokumenDaftarRinci } from './ekspor'
+import { laporanHarian } from './ekspor'
 import { FotoIpd } from './FotoIpd'
 import { STATUS_IPD } from './ipdTampil'
-import { pilihanEksporRinci, pilihanEksporSatu } from './pilihanEkspor'
+import { pilihanEksporLaporan, pilihanEksporSatu } from './pilihanEkspor'
 
 const HALAMAN = 25
 
@@ -49,16 +49,6 @@ export function IpdPage() {
     filter.divisi_kode ?? 'semua divisi',
   ].join(' • ')
 
-  /** Mengambil SEMUA inspeksi yang cocok dengan filter (bukan hanya halaman yang terlihat), paling banyak 5.000 baris. */
-  async function ambilSemua() {
-    const semua: IpdBaris[] = []
-    for (let h = 1; h <= 50; h++) {
-      const hal = await ipdApi.daftar({ ...filter, halaman: h, per_halaman: 100 })
-      semua.push(...hal.item)
-      if (semua.length >= hal.total || hal.item.length === 0) break
-    }
-    return dokumenDaftar(semua, filterTeks)
-  }
   const { halaman: _h, per_halaman: _p, ...filterTanpaHalaman } = filter
   void _h
   void _p
@@ -71,11 +61,9 @@ export function IpdPage() {
         aksi={
           <TombolEkspor
             disabled={!q.data || q.data.total === 0}
-            pilihan={pilihanEksporRinci({
-              ringkas: ambilSemua,
-              filter: filterTanpaHalaman,
-              rinci: (detail, foto) => dokumenDaftarRinci(detail, foto, filterTeks),
-            })}
+            pilihan={pilihanEksporLaporan(filterTanpaHalaman, (detail, foto) =>
+              laporanHarian('Laporan Inspeksi IPD', [['Filter', filterTeks]], detail, foto),
+            )}
           />
         }
       />
@@ -188,7 +176,7 @@ function IpdDetailDrawer({ id, onTutup }: { id: string | null; onTutup: () => vo
       width={640}
       title="Rincian inspeksi IPD"
       destroyOnClose
-      extra={d && <TombolEkspor pilihan={pilihanEksporSatu(d)} />}
+      extra={d && <TombolEkspor pilihan={pilihanEksporSatu(d, (detail, foto) => laporanHarian(`Inspeksi IPD ${d.pemanen_nama ?? d.pemanen_hrmb_code}`, [], detail, foto))} />}
     >
       {q.isError && <ErrorState error={q.error} onCoba={() => void q.refetch()} />}
       {q.isLoading && <Skeleton active paragraph={{ rows: 8 }} />}
