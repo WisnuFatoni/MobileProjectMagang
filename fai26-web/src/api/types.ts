@@ -9,6 +9,8 @@ export interface Profil {
   role: string[]
   permission: string[]
   wajib_ganti_password: boolean
+  /** Waktu ubah foto profil (milidetik); null bila belum punya foto. */
+  foto_versi?: number | null
 }
 
 export interface LoginResponse {

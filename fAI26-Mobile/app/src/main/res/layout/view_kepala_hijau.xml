@@ -52,17 +52,30 @@
                 android:textSize="13sp" />
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/txtAvatar"
+        <FrameLayout
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_marginStart="12dp"
-            android:background="@drawable/bg_avatar"
-            android:fontFamily="@font/outfit_semibold"
-            android:gravity="center"
-            android:importantForAccessibility="no"
-            android:textColor="?attr/colorPrimary"
-            android:textSize="17sp" />
+            android:layout_marginStart="12dp">
+
+            <TextView
+                android:id="@+id/txtAvatar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_avatar"
+                android:fontFamily="@font/outfit_semibold"
+                android:gravity="center"
+                android:importantForAccessibility="no"
+                android:textColor="?attr/colorPrimary"
+                android:textSize="17sp" />
+
+            <ImageView
+                android:id="@+id/imgAvatar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="Foto profil"
+                android:scaleType="centerCrop"
+                android:visibility="gone" />
+        </FrameLayout>
     </LinearLayout>
 
     <!-- Status koneksi: pil transparan seperti kolom pencarian; ketuk untuk menyegarkan -->

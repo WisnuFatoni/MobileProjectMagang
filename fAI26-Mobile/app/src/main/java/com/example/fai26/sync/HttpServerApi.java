@@ -219,11 +219,45 @@ public class HttpServerApi implements ServerApi {
     }
 
     private byte[] unduhBerkas(String tokenAkses, String awalan, String fotoId) throws ApiException {
-        if (baseUrl.isEmpty()) throw new ApiException(0, "Alamat server belum diatur");
         if (fotoId == null || !fotoId.matches("[0-9a-fA-F-]{36}")) throw new ApiException(422, "Id foto tidak sah");
+        return unduhPath(tokenAkses, awalan + fotoId);
+    }
+
+    // ---- Foto profil akun sendiri (tidak termasuk ServerApi: hanya dipakai FotoProfilSync) ------------------
+
+    /** Profil akun yang login (memuat foto_versi). */
+    public JSONObject profilSaya(String tokenAkses) throws ApiException {
+        Jawaban r = panggil("GET", "/api/auth/me", tokenAkses, null, null, null);
+        try {
+            return new JSONObject(r.isi);
+        } catch (JSONException e) {
+            throw new ApiException(0, "Jawaban server tidak terbaca", e);
+        }
+    }
+
+    /** Mengirim foto profil (JPEG). Mengembalikan versi barunya di server. */
+    public long unggahFotoProfil(String tokenAkses, byte[] jpeg) throws ApiException {
+        Jawaban r = panggil("PUT", "/api/auth/foto", tokenAkses, "image/jpeg", jpeg, null);
+        try {
+            return new JSONObject(r.isi).getLong("foto_versi");
+        } catch (JSONException e) {
+            throw new ApiException(0, "Jawaban server tidak terbaca", e);
+        }
+    }
+
+    public byte[] unduhFotoProfil(String tokenAkses) throws ApiException {
+        return unduhPath(tokenAkses, "/api/auth/foto");
+    }
+
+    public void hapusFotoProfil(String tokenAkses) throws ApiException {
+        panggil("DELETE", "/api/auth/foto", tokenAkses, null, null, null);
+    }
+
+    private byte[] unduhPath(String tokenAkses, String path) throws ApiException {
+        if (baseUrl.isEmpty()) throw new ApiException(0, "Alamat server belum diatur");
         HttpURLConnection c = null;
         try {
-            c = (HttpURLConnection) new URL(baseUrl + awalan + fotoId).openConnection();
+            c = (HttpURLConnection) new URL(baseUrl + path).openConnection();
             c.setConnectTimeout(WAKTU_SAMBUNG_MS);
             c.setReadTimeout(WAKTU_BACA_MS);
             c.setRequestMethod("GET");

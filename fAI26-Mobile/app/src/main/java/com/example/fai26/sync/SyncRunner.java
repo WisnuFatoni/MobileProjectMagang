@@ -46,7 +46,11 @@ public final class SyncRunner {
                 r.masalah = "Alamat server belum diatur";
                 return r;
             }
-            return new SyncService(AppDatabase.getInstance(app), new HttpServerApi(pref.serverUrl()), pref).jalankan(paksa);
+            HttpServerApi api = new HttpServerApi(pref.serverUrl());
+            SyncService.Ringkasan r = new SyncService(AppDatabase.getInstance(app), api, pref).jalankan(paksa);
+            // Foto profil menyusul setelah data kerja (tidak menggagalkan sinkronisasi bila gagal).
+            FotoProfilSync.jalankan(app, api, pref);
+            return r;
         } catch (Exception e) {
             SyncService.Ringkasan r = new SyncService.Ringkasan();
             r.masalah = "Sinkronisasi gagal: " + e.getMessage();

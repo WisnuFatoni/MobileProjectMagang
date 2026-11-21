@@ -57,6 +57,7 @@ public final class KepalaHijau {
         String tgl = new SimpleDateFormat("EEEE, d MMMM yyyy", new Locale("id", "ID")).format(new Date());
         ((TextView) akar.findViewById(R.id.txtPeranTanggal)).setText((Sesi.peran(c).isEmpty() ? "" : Sesi.peran(c) + " • ") + tgl);
         ((TextView) akar.findViewById(R.id.txtAvatar)).setText(inisial(Sesi.nama(c)));
+        AvatarProfil.pasang(c, akar.findViewById(R.id.txtAvatar), akar.findViewById(R.id.imgAvatar));
 
         titik = akar.findViewById(R.id.dotStatus);
         txtStatus = akar.findViewById(R.id.txtStatusKoneksi);
@@ -81,6 +82,7 @@ public final class KepalaHijau {
     }
 
     public void perbaruiStatus() {
+        AvatarProfil.pasang(konteks, akar.findViewById(R.id.txtAvatar), akar.findViewById(R.id.imgAvatar));
         if (new PengaturanSync(konteks).adaToken()) {
             titik.setImageResource(R.drawable.ic_wifi_online);
             txtStatus.setText("Online • Terhubung ke Server");

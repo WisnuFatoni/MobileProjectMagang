@@ -26,21 +26,49 @@
             android:paddingEnd="24dp"
             android:paddingBottom="56dp">
 
-            <TextView
-                android:id="@+id/txtInisial"
-                android:layout_width="84dp"
-                android:layout_height="84dp"
-                android:background="@drawable/bg_avatar"
-                android:fontFamily="@font/outfit_semibold"
-                android:gravity="center"
-                android:textColor="?attr/colorPrimary"
-                android:textSize="32sp" />
+            <FrameLayout
+                android:id="@+id/boxAvatar"
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:clickable="true"
+                android:contentDescription="Ubah foto profil"
+                android:focusable="true">
+
+                <TextView
+                    android:id="@+id/txtInisial"
+                    android:layout_width="84dp"
+                    android:layout_height="84dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/bg_avatar"
+                    android:fontFamily="@font/outfit_semibold"
+                    android:gravity="center"
+                    android:textColor="?attr/colorPrimary"
+                    android:textSize="32sp" />
+
+                <ImageView
+                    android:id="@+id/imgAvatar"
+                    android:layout_width="84dp"
+                    android:layout_height="84dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="Foto profil"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
+
+                <ImageView
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_gravity="bottom|end"
+                    android:background="@drawable/bg_lencana_foto"
+                    android:importantForAccessibility="no"
+                    android:padding="6dp"
+                    android:src="@drawable/ic_kamera_kecil" />
+            </FrameLayout>
 
             <TextView
                 android:id="@+id/txtNama"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
+                android:layout_marginTop="10dp"
                 android:fontFamily="@font/outfit_semibold"
                 android:textColor="@color/header_on"
                 android:textSize="24sp" />

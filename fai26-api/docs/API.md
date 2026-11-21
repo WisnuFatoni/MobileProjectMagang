@@ -1,6 +1,6 @@
 # Dokumentasi API fai26-api
 
-Versi 0.18.0 · terakhir diperbarui 20 Nov 2026 · spesifikasi mesin: [`openapi.yaml`](openapi.yaml)
+Versi 0.19.0 · terakhir diperbarui 21 Nov 2026 · spesifikasi mesin: [`openapi.yaml`](openapi.yaml)
 (bisa dibuka di Swagger Editor, Postman, atau Insomnia).
 
 > **Aturan tim:** setiap endpoint baru atau perubahan bentuk data **wajib** memperbarui `openapi.yaml`, dokumen ini,
@@ -17,6 +17,9 @@ Versi 0.18.0 · terakhir diperbarui 20 Nov 2026 · spesifikasi mesin: [`openapi.
 | POST | `/api/auth/logout` | ya | - | Cabut sesi perangkat |
 | GET | `/api/auth/me` | ya | - | Profil dan permission terbaru |
 | POST | `/api/auth/password` | ya | - | Ganti password sendiri |
+| PUT | `/api/auth/foto` | ya | - | Ganti foto profil sendiri |
+| GET | `/api/auth/foto` | ya | - | Baca foto profil sendiri |
+| DELETE | `/api/auth/foto` | ya | - | Hapus foto profil sendiri |
 | POST | `/api/panen` | ya | `panen.kirim` | Kirim satu catatan panen |
 | GET | `/api/panen` | ya | `panen.lihat` | Status catatan (Terkirim, Diterima, Ditolak) |
 | GET | `/api/panen/ringkasan` | ya | `panen.lihat` | Ringkasan dashboard HP (produksi hari ini, kelas, blok, tren 7 hari) |
@@ -182,6 +185,22 @@ Perlu login. Tanpa body. Mencabut sesi perangkat ini. **200** `{"status": "kelua
 ## GET /api/auth/me
 
 Perlu login. **200** objek `profil` seperti pada login, dengan role dan permission terbaru dari database.
+
+## PUT /api/auth/foto
+
+Perlu login (tanpa permission khusus). Mengganti **foto profil milik sendiri**. Isi permintaan adalah berkas gambar mentah (`Content-Type: image/jpeg` atau `image/png`), maksimal 6 MB, minimal 64 x 64 piksel.
+Server memotongnya persegi dari tengah, mengecilkannya ke 384 x 384, dan menyimpan ulang sebagai JPEG (metadata foto asli seperti lokasi tidak ikut tersimpan). Tercatat di audit log.
+
+**200** `{"foto_versi": 1790000000000}` (waktu ubah, milidetik). **Galat:** 401 · 422 bukan JPEG/PNG, rusak, terlalu kecil, kosong, atau lebih dari 6 MB.
+
+## GET /api/auth/foto
+
+Perlu login. Mengembalikan foto profil sendiri (JPEG 384 x 384). Header `ETag` berisi versi foto; kirim `If-None-Match` untuk mendapat **304** bila belum berubah. **404** bila belum punya foto.
+`foto_versi` juga ada di objek profil (`/api/auth/login`, `/api/auth/me`), jadi klien cukup membandingkan versi lalu mengunduh bila berbeda.
+
+## DELETE /api/auth/foto
+
+Perlu login. Menghapus foto profil sendiri. **200** `{"status": "OK"}`; aman dipanggil berulang.
 
 ## POST /api/auth/password
 
@@ -1131,6 +1150,7 @@ Semua persen dibulatkan 1 desimal. `per_kelompok` selalu BUAH, BRONDOLAN, PELEPA
 
 | Tanggal | Versi | Perubahan |
 |---|---|---|
+| 21 Nov 2026 | 0.19.0 | **Foto profil akun.** Endpoint baru `PUT /api/auth/foto`, `GET /api/auth/foto`, `DELETE /api/auth/foto` (tiap akun mengelola fotonya sendiri; diproses server menjadi JPEG persegi 384 px). Objek profil (`login`, `me`) menambah `foto_versi`. Perlu migrasi `011_foto_profil.sql`. Penambahan saja: tidak ada yang berubah untuk klien lama. |
 | 20 Nov 2026 | 0.18.0 | **IPD: satu kemandoran. Role buatan admin.** (1) `POST /api/ipd`: `mandor_blok_username` dan `mandor_ancak_username` diganti satu field `mandor_username` (kemandoran); respons IPD memuat `mandor_nama` (menggantikan `mandor_blok_nama` dan `mandor_ancak_nama`). **Tidak kompatibel dengan HP versi lama**; perlu migrasi `010_satu_kemandoran.sql` dan HP terbaru (Room v6). (2) Endpoint baru `POST /api/admin/hak-akses` (buat role) dan `DELETE /api/admin/hak-akses/{id}` (hapus role buatan admin yang tidak dipegang akun aktif); `PUT /api/admin/hak-akses/{id}` menerima `nama` dan `deskripsi`; `GET /api/admin/hak-akses` menambah `deskripsi` dan `pengguna` per role. |
 | 21 Nov 2026 | 0.17.0 | **IPD: loses dipisah dari temuan lain.** Temuan buah dan brondolan = loses; pelepah (C, R) = temuan lain yang tidak memengaruhi produksi. `IpdKodeAgg` menambah `jenis`; `ringkasan` menambah `pokok_loses`, `persen_pokok_loses`, `total_loses`, `pokok_temuan_lain`, `persen_pokok_temuan_lain`, `total_temuan_lain`; baris laporan (`per_pemanen`, `per_blok`, `per_divisi`, `per_tanggal`) menambah kolom yang sama dan `per_pemanen`/`per_blok` kini diurutkan menurut persen loses. Penambahan saja: field lama tidak berubah. |
 | 21 Nov 2026 | 0.16.0 | **Modul IPD (Inspeksi Panen Detail).** Endpoint baru: `POST /api/ipd`, `GET /api/ipd`, `GET /api/ipd/inspeksi-terakhir`, `GET /api/ipd/menunggu`, `POST /api/ipd/{id}/setujui`, `POST /api/ipd/{id}/tolak`, `POST /api/ipd/{id}/media`, `GET /api/ipd/foto/{id}`, `GET /api/admin/ipd`, `GET /api/admin/ipd/laporan`, `GET /api/admin/ipd/{id}`. `GET /api/master` menambah `kode_temuan` dan `divisi[].asisten_user_id`. `GET/POST/PUT /api/admin/divisi` menambah `asisten_user_id` (asisten divisi; `GET` juga `asisten_nama`). Permission baru: `akses.panen`, `akses.ipd`, `ipd.buat`, `ipd.kirim`, `ipd.setujui`, `ipd.lihat`, `laporan.ipd`, `ipd.kelola`; role baru ASKEP dan KTU (hanya melihat). Perlu migrasi `009_ipd.sql`. Penambahan saja: endpoint dan kolom lama tidak berubah. |

@@ -29,6 +29,8 @@ type Profil struct {
 	// MandorHrmbCode dan AfdelingKode terisi untuk akun mandor (diisi admin): dasar atribusi catatan dan pembatas master HP.
 	MandorHrmbCode *int64  `json:"mandor_hrmb_code"`
 	AfdelingKode   *string `json:"afdeling_kode"`
+	// FotoVersi: waktu ubah foto profil (milidetik); nil bila belum punya foto. Klien mengunduh ulang bila versinya berbeda.
+	FotoVersi *int64 `json:"foto_versi"`
 }
 
 type LoginResponse struct {
@@ -58,6 +60,7 @@ type User struct {
 	WajibGanti     bool
 	MandorHrmbCode *int64
 	AfdelingKode   *string
+	FotoVersi      *int64
 }
 
 // Perangkat adalah HP yang login.

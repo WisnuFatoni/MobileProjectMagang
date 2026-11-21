@@ -36,6 +36,21 @@ describe('idPerangkat', () => {
   })
 })
 
+describe('http: isi mentah (foto profil)', () => {
+  it('mengirim berkas apa adanya dengan Content-Type berkas itu, bukan JSON', async () => {
+    sesi.atur(token(1))
+    fetchMock.mockResolvedValueOnce(json(200, { foto_versi: 123 }))
+    const berkas = new Blob([new Uint8Array([1, 2, 3])], { type: 'image/jpeg' })
+    const hasil = await http<{ foto_versi: number }>('PUT', '/auth/foto', { mentah: berkas })
+    expect(hasil.foto_versi).toBe(123)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe('/api/auth/foto')
+    expect(init.method).toBe('PUT')
+    expect((init.headers as Record<string, string>)['Content-Type']).toBe('image/jpeg')
+    expect(init.body).toBe(berkas)
+  })
+})
+
 describe('http', () => {
   it('mengirim token Bearer dan membaca JSON', async () => {
     sesi.atur(token(1))

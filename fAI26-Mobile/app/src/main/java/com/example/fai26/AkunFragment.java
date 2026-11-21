@@ -2,6 +2,7 @@ package com.example.fai26;
 
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.content.pm.PackageInfo;
 import android.os.Build;
 import android.os.Bundle;
@@ -13,6 +14,8 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.graphics.Insets;
@@ -20,7 +23,9 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 
+import com.example.fai26.auth.FotoProfilLokal;
 import com.example.fai26.auth.GantiPasswordService;
+import com.example.fai26.ui.AvatarProfil;
 import com.example.fai26.auth.Sesi;
 import com.example.fai26.sync.HttpServerApi;
 import com.example.fai26.sync.MasterSync;
@@ -36,6 +41,7 @@ import com.example.fai26.db.Waktu;
 import com.example.fai26.db.entity.AppUser;
 import com.google.android.material.color.MaterialColors;
 
+import java.io.File;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -46,6 +52,90 @@ public class AkunFragment extends Fragment {
     private final Handler main = new Handler(Looper.getMainLooper());
 
     private LinearLayout daftarInfo;
+    private ActivityResultLauncher<Uri> ambilKamera;
+    private ActivityResultLauncher<String> pilihGaleri;
+    private ActivityResultLauncher<String> mintaIzinKamera;
+    private File fotoSementara;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        ambilKamera = registerForActivityResult(new ActivityResultContracts.TakePicture(), ok -> {
+            if (ok && fotoSementara != null) simpanFoto(Uri.fromFile(fotoSementara), true);
+            else if (fotoSementara != null) //noinspection ResultOfMethodCallIgnored
+                fotoSementara.delete();
+        });
+        pilihGaleri = registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+            if (uri != null) simpanFoto(uri, false);
+        });
+        mintaIzinKamera = registerForActivityResult(new ActivityResultContracts.RequestPermission(), ok -> {
+            if (ok) bukaKamera();
+            else Toast.makeText(requireContext(), "Izin kamera diperlukan untuk memotret foto profil", Toast.LENGTH_LONG).show();
+        });
+    }
+
+    /** Pilihan sumber foto profil: kamera, galeri, atau hapus. */
+    private void pilihSumberFoto() {
+        final Context c = requireContext();
+        final boolean ada = FotoProfilLokal.ada(c, Sesi.userId(c));
+        final String[] pilihan = ada ? new String[]{"Ambil foto (kamera)", "Pilih dari galeri", "Hapus foto"} : new String[]{"Ambil foto (kamera)", "Pilih dari galeri"};
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(c)
+                .setTitle("Foto profil")
+                .setItems(pilihan, (d, i) -> {
+                    if (i == 0) {
+                        if (androidx.core.content.ContextCompat.checkSelfPermission(c, android.Manifest.permission.CAMERA)
+                                == android.content.pm.PackageManager.PERMISSION_GRANTED) bukaKamera();
+                        else mintaIzinKamera.launch(android.Manifest.permission.CAMERA);
+                    } else if (i == 1) {
+                        pilihGaleri.launch("image/*");
+                    } else {
+                        final long uid = Sesi.userId(c);
+                        FotoProfilLokal.hapus(c, uid);
+                        muat();
+                        SyncRunner.jalankan(c, true, null);
+                        Toast.makeText(c, "Foto profil dihapus", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("Batal", null)
+                .show();
+    }
+
+    private void bukaKamera() {
+        try {
+            File dir = new File(requireContext().getCacheDir(), "foto_ipd_mentah");
+            if (!dir.exists() && !dir.mkdirs()) throw new java.io.IOException("folder");
+            fotoSementara = new File(dir, "profil_" + System.currentTimeMillis() + ".jpg");
+            Uri uri = androidx.core.content.FileProvider.getUriForFile(requireContext(), requireContext().getPackageName() + ".fotoipd", fotoSementara);
+            ambilKamera.launch(uri);
+        } catch (Exception e) {
+            Toast.makeText(requireContext(), "Kamera tidak bisa dibuka: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /** Memproses foto terpilih di latar belakang, menyimpannya di HP, lalu mengirimnya ke server (bila ada sinyal). */
+    private void simpanFoto(Uri uri, boolean dariKamera) {
+        final Context app = requireContext().getApplicationContext();
+        final long uid = Sesi.userId(app);
+        final File sementara = dariKamera ? fotoSementara : null;
+        io.execute(() -> {
+            String pesan;
+            try {
+                FotoProfilLokal.simpanDariUri(app, uid, uri);
+                pesan = "Foto profil disimpan";
+            } catch (Exception e) {
+                pesan = "Foto gagal diproses: " + e.getMessage();
+            }
+            if (sementara != null) //noinspection ResultOfMethodCallIgnored
+                sementara.delete();
+            final String hasil = pesan;
+            main.post(() -> {
+                if (!isAdded()) return;
+                Toast.makeText(app, hasil, Toast.LENGTH_SHORT).show();
+                muat();
+                SyncRunner.jalankan(app, true, null);
+            });
+        });
+    }
 
     @Nullable
     @Override
@@ -66,6 +156,7 @@ public class AkunFragment extends Fragment {
         });
 
         pasangSinkron(raiz);
+        raiz.findViewById(R.id.boxAvatar).setOnClickListener(v -> pilihSumberFoto());
 
         raiz.findViewById(R.id.btnGantiPassword).setOnClickListener(v -> tampilkanGantiPassword());
         raiz.findViewById(R.id.btnKeluar).setOnClickListener(v ->
@@ -109,6 +200,7 @@ public class AkunFragment extends Fragment {
         txtNama.setText(nama);
         txtPeran.setText(peran.isEmpty() ? "Pengguna" : peran);
         txtInisial.setText(nama.isEmpty() ? "?" : nama.substring(0, 1).toUpperCase());
+        AvatarProfil.pasang(app, txtInisial, getView().findViewById(R.id.imgAvatar));
 
         io.execute(() -> {
             try {

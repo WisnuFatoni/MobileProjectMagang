@@ -32,6 +32,7 @@ func Bangun(cfg config.Config, db *sql.DB) http.Handler {
 	admins := repository.NewAdminRepository(db)
 	hakAkses := repository.NewHakAksesRepository(db)
 	ipds := repository.NewIpdRepository(db)
+	fotoProfils := repository.NewFotoProfilRepository(db)
 	files := storage.NewFileStorage(cfg.MediaDir)
 
 	// service
@@ -49,6 +50,7 @@ func Bangun(cfg config.Config, db *sql.DB) http.Handler {
 	adminSvc := service.NewAdminService(admins)
 	hakAksesSvc := service.NewHakAksesService(hakAkses)
 	ipdSvc := service.NewIpdService(ipds, units, akses, files)
+	fotoProfilSvc := service.NewFotoProfilService(fotoProfils, files)
 
 	// controller dan routes
 	api := routes.Daftar(routes.Controller{
@@ -63,6 +65,7 @@ func Bangun(cfg config.Config, db *sql.DB) http.Handler {
 		AdminMaster: controller.NewAdminMasterController(adminMasterSvc),
 		Admin:       controller.NewAdminController(adminSvc, files),
 		HakAkses:    controller.NewHakAksesController(hakAksesSvc),
+		FotoProfil:  controller.NewFotoProfilController(fotoProfilSvc),
 	}, tokens, akses, routes.Opsi{
 		BatasLogin:    middleware.NewPembatasLaju(cfg.BatasLoginPerMenit),
 		BatasUmum:     middleware.NewPembatasLaju(cfg.BatasUmumPerMenit),

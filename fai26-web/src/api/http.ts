@@ -96,6 +96,8 @@ interface Opsi {
   /** false untuk endpoint tanpa token (login dan refresh): tidak mencoba memulihkan sesi saat 401. */
   auth?: boolean
   blob?: boolean
+  /** Isi mentah (mis. berkas gambar), dikirim apa adanya dengan Content-Type berkas itu, bukan JSON. */
+  mentah?: Blob
 }
 
 async function ubahJadiGalat(res: Response): Promise<ApiError> {
@@ -152,10 +154,11 @@ export async function http<T>(metode: string, path: string, opsi: Opsi = {}): Pr
     const headers: Record<string, string> = {}
     if (sesi.access && opsi.auth !== false) headers.Authorization = `Bearer ${sesi.access}`
     if (opsi.body !== undefined) headers['Content-Type'] = 'application/json'
+    if (opsi.mentah) headers['Content-Type'] = opsi.mentah.type || 'application/octet-stream'
     return fetch(url, {
       method: metode,
       headers,
-      body: opsi.body === undefined ? undefined : JSON.stringify(opsi.body),
+      body: opsi.mentah ?? (opsi.body === undefined ? undefined : JSON.stringify(opsi.body)),
     })
   }
 

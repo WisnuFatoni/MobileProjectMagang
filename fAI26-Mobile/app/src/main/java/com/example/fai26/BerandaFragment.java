@@ -244,6 +244,7 @@ public class BerandaFragment extends Fragment {
 
     private void perbaruiStatusKoneksi() {
         if (!isAdded() || dotStatus == null || txtStatusKoneksi == null) return;
+        com.example.fai26.ui.AvatarProfil.pasang(requireContext(), cari(R.id.txtAvatar), cari(R.id.imgAvatar));
         com.example.fai26.sync.PengaturanSync pref = new com.example.fai26.sync.PengaturanSync(requireContext());
         if (pref.adaToken()) {
             dotStatus.setImageResource(R.drawable.ic_wifi_online);

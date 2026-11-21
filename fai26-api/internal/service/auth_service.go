@@ -115,7 +115,7 @@ func (s *AuthService) Login(ctx context.Context, req model.LoginRequest, ip stri
 		AccessToken: akses, AccessExpires: exp, RefreshToken: refresh,
 		Profil: model.Profil{UserID: u.ID, UnitID: u.UnitID, UnitKode: u.UnitKode, Username: u.Username, Nama: u.Nama,
 			Role: roles, Permission: perms, WajibGanti: u.WajibGanti,
-			MandorHrmbCode: u.MandorHrmbCode, AfdelingKode: u.AfdelingKode},
+			MandorHrmbCode: u.MandorHrmbCode, AfdelingKode: u.AfdelingKode, FotoVersi: u.FotoVersi},
 	}, nil
 }
 

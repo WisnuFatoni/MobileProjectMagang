@@ -1,4 +1,4 @@
-import { api } from './http'
+import { api, http } from './http'
 import type {
   AuditItem,
   Blok,
@@ -99,6 +99,13 @@ export const hakAksesApi = {
   buat: (b: RoleInput) => api.post<IdDibuat>('/admin/hak-akses', b),
   /** Menghapus role buatan admin yang tidak dipegang akun aktif mana pun. */
   hapus: (roleId: number) => api.hapus<Ok>(`/admin/hak-akses/${roleId}`),
+}
+
+/** Foto profil milik akun yang sedang login. */
+export const fotoProfilApi = {
+  simpan: (berkas: Blob) => http<{ foto_versi: number }>('PUT', '/auth/foto', { mentah: berkas }),
+  baca: () => api.blob('/auth/foto'),
+  hapus: () => api.hapus<Ok>('/auth/foto'),
 }
 
 export const ipdApi = {

@@ -15,36 +15,36 @@ func NewUserRepository(db *sql.DB) *UserRepository { return &UserRepository{db: 
 func (r *UserRepository) CariByUsername(ctx context.Context, username string) (*model.User, error) {
 	var u model.User
 	var terkunci int
-	var mandor sql.NullInt64
+	var mandor, foto sql.NullInt64
 	var afdeling sql.NullString
 	err := r.db.QueryRowContext(ctx, `
 SELECT u.user_id, u.unit_id, n.kode, u.username, u.nama, u.password_hash, u.aktif, u.gagal_login,
        CASE WHEN u.terkunci_sampai > SYSUTCDATETIME() THEN 1 ELSE 0 END, u.wajib_ganti_password,
-       u.mandor_hrmb_code, u.afdeling_kode
+       u.mandor_hrmb_code, u.afdeling_kode, u.foto_profil_versi
 FROM dbo.app_user u JOIN dbo.unit n ON n.unit_id = u.unit_id
 WHERE u.username=@p1 AND u.dihapus_pada IS NULL`, username).
-		Scan(&u.ID, &u.UnitID, &u.UnitKode, &u.Username, &u.Nama, &u.PasswordHash, &u.Aktif, &u.GagalLogin, &terkunci, &u.WajibGanti, &mandor, &afdeling)
+		Scan(&u.ID, &u.UnitID, &u.UnitKode, &u.Username, &u.Nama, &u.PasswordHash, &u.Aktif, &u.GagalLogin, &terkunci, &u.WajibGanti, &mandor, &afdeling, &foto)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
 	u.Terkunci = terkunci == 1
-	u.MandorHrmbCode, u.AfdelingKode = int64Ptr(mandor), strPtr(afdeling)
+	u.MandorHrmbCode, u.AfdelingKode, u.FotoVersi = int64Ptr(mandor), strPtr(afdeling), int64Ptr(foto)
 	return &u, err
 }
 
 // Profil membaca data profil dasar (tanpa role dan permission).
 func (r *UserRepository) Profil(ctx context.Context, userID int64) (*model.Profil, error) {
 	p := model.Profil{UserID: userID}
-	var mandor sql.NullInt64
+	var mandor, foto sql.NullInt64
 	var afdeling sql.NullString
 	err := r.db.QueryRowContext(ctx, `
-SELECT u.unit_id, n.kode, u.username, u.nama, u.wajib_ganti_password, u.mandor_hrmb_code, u.afdeling_kode
+SELECT u.unit_id, n.kode, u.username, u.nama, u.wajib_ganti_password, u.mandor_hrmb_code, u.afdeling_kode, u.foto_profil_versi
 FROM dbo.app_user u JOIN dbo.unit n ON n.unit_id = u.unit_id WHERE u.user_id=@p1`, userID).
-		Scan(&p.UnitID, &p.UnitKode, &p.Username, &p.Nama, &p.WajibGanti, &mandor, &afdeling)
+		Scan(&p.UnitID, &p.UnitKode, &p.Username, &p.Nama, &p.WajibGanti, &mandor, &afdeling, &foto)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
-	p.MandorHrmbCode, p.AfdelingKode = int64Ptr(mandor), strPtr(afdeling)
+	p.MandorHrmbCode, p.AfdelingKode, p.FotoVersi = int64Ptr(mandor), strPtr(afdeling), int64Ptr(foto)
 	return &p, err
 }
 

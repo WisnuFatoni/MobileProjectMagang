@@ -23,6 +23,7 @@ type Controller struct {
 	AdminMaster *controller.AdminMasterController
 	Admin       *controller.AdminController
 	HakAkses    *controller.HakAksesController
+	FotoProfil  *controller.FotoProfilController
 }
 
 // BatasWaktuPermintaan adalah waktu maksimum satu permintaan (HP menunggu 30 detik, jadi server menjawab 503 lebih dulu).
@@ -48,6 +49,9 @@ func tabel(c Controller, login middleware.Middleware, izin func(string) []middle
 		{"POST /api/auth/logout", c.Auth.Logout, []middleware.Middleware{login}},
 		{"GET /api/auth/me", c.Auth.Me, []middleware.Middleware{login}},
 		{"POST /api/auth/password", c.Auth.GantiPassword, []middleware.Middleware{login}},
+		{"PUT /api/auth/foto", c.FotoProfil.Simpan, []middleware.Middleware{login}},
+		{"GET /api/auth/foto", c.FotoProfil.Baca, []middleware.Middleware{login}},
+		{"DELETE /api/auth/foto", c.FotoProfil.Hapus, []middleware.Middleware{login}},
 		{"POST /api/audit/batch", c.Audit.TerimaBatch, []middleware.Middleware{login}},
 
 		// Harus login dan memegang permission

@@ -11,7 +11,8 @@ public class PersetujuanServer {
 
     private static final long SISA_TOKEN_MS = 30_000L;
 
-    private interface Aksi<T> {
+    /** Satu panggilan ke server dengan token akses (dipakai juga oleh FotoProfilSync). */
+    interface Aksi<T> {
         T jalankan(String token) throws ApiException;
     }
 
@@ -82,7 +83,7 @@ public class PersetujuanServer {
         });
     }
 
-    private <T> T dengan(Aksi<T> aksi) throws ApiException {
+    <T> T dengan(Aksi<T> aksi) throws ApiException {
         if (!pref.serverSudahDiatur()) throw new ApiException(0, "Alamat server belum diatur");
         if (!pref.adaToken()) throw new ApiException(401, "Belum login online. Login saat ada sinyal");
         String token = tokenValid();

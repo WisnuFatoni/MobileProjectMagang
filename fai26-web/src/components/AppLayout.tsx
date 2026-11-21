@@ -1,9 +1,11 @@
-import { KeyOutlined, LogoutOutlined, MoonOutlined, SunOutlined } from '@ant-design/icons'
-import { Avatar, Button, Dropdown, Layout, Menu, Space, Tag, Tooltip, Typography, type MenuProps } from 'antd'
+import { CameraOutlined, KeyOutlined, LogoutOutlined, MoonOutlined, SunOutlined } from '@ant-design/icons'
+import { Button, Dropdown, Layout, Menu, Space, Tag, Tooltip, Typography, type MenuProps } from 'antd'
 import { useMemo, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useTema } from '@/app/tema'
 import { useAuth } from '@/features/auth/AuthProvider'
+import { AvatarAkun } from '@/features/auth/FotoProfil'
+import { FotoProfilModal } from '@/features/auth/FotoProfilModal'
 import { GantiPasswordModal } from '@/features/auth/GantiPasswordModal'
 import { halamanBoleh } from '@/lib/izin'
 import { kunciAktif } from '@/lib/menuAktif'
@@ -17,6 +19,7 @@ export function AppLayout() {
   const lokasi = useLocation()
   const [lipat, setLipat] = useState(false)
   const [bukaGanti, setBukaGanti] = useState(false)
+  const [bukaFoto, setBukaFoto] = useState(false)
   // Setelah admin mengatur ulang password, pengguna wajib menggantinya sebelum memakai aplikasi.
   const wajibGanti = profil?.wajib_ganti_password === true
   const menu = useMemo(() => bangunMenu(profil), [profil])
@@ -34,6 +37,7 @@ export function AppLayout() {
       ),
     },
     { type: 'divider' },
+    { key: 'foto', icon: <CameraOutlined />, label: 'Ubah foto profil', onClick: () => setBukaFoto(true) },
     { key: 'password', icon: <KeyOutlined />, label: 'Ganti password', onClick: () => setBukaGanti(true) },
     { key: 'keluar', icon: <LogoutOutlined />, label: 'Keluar', danger: true, onClick: () => void keluar() },
   ]
@@ -78,9 +82,7 @@ export function AppLayout() {
             </Tooltip>
             <Dropdown menu={{ items: menuAkun }} trigger={['click']} placement="bottomRight">
               <Button type="text" className="app__akun" aria-label="Menu akun">
-                <Avatar size={30} style={{ background: '#15803d' }}>
-                  {profil?.nama.slice(0, 1).toUpperCase()}
-                </Avatar>
+                <AvatarAkun nama={profil?.nama} versi={profil?.foto_versi} size={30} />
                 <span className="app__akun-nama">
                   {profil?.nama}
                   <Tag bordered={false} color="green" style={{ marginLeft: 8 }}>
@@ -95,6 +97,7 @@ export function AppLayout() {
           <Outlet />
         </Layout.Content>
       </Layout>
+      <FotoProfilModal buka={bukaFoto} onTutup={() => setBukaFoto(false)} />
       <GantiPasswordModal buka={bukaGanti || wajibGanti} wajib={wajibGanti} onTutup={() => setBukaGanti(false)} />
     </Layout>
   )
