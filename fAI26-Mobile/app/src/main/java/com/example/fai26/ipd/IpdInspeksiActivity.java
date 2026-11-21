@@ -1111,6 +1111,8 @@ public class IpdInspeksiActivity extends AppCompatActivity {
         for (IpdDraf.Pokok p : d.pokok) {
             IpdDraf.Pokok n = new IpdDraf.Pokok(p.baris, p.pokok);
             n.temuan.putAll(p.temuan);
+            // Waktu catat pokok dipertahankan: salinan ini dipakai tiap penyimpanan, dan waktu simpan bukan waktu pokok dicatat.
+            n.waktu = p.waktu;
             x.pokok.add(n);
         }
         return x;

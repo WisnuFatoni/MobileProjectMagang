@@ -226,6 +226,8 @@ public class SyncService {
         String token;
         long userId = -1;
         boolean koreksi;
+        /** Memegang panen.kirim: syarat server untuk menerima catatan panen dan fotonya. */
+        boolean kirimPanen;
     }
 
     private String tokenValid() throws ApiException {
@@ -307,6 +309,9 @@ public class SyncService {
             if (q.dibuatOleh == null || sesi.userId == q.dibuatOleh) return true;
             return sesi.koreksi;
         }
+        // Server menolak (403) pengirim tanpa panen.kirim, dan HP lalu menandai catatan itu DITOLAK. Akun seperti asisten punya
+        // panen.koreksi tetapi bukan panen.kirim: catatan orang lain di HP yang sama harus tetap menunggu pemiliknya.
+        if (!sesi.kirimPanen) return false;
         Long pemilik = dao.pemilikPanen(q.panenId);
         if (pemilik == null) return true; // catatan hilang: biarkan diproses supaya ditandai gagal dengan jelas
         if (sesi.userId == pemilik) return true;
@@ -318,11 +323,14 @@ public class SyncService {
         String username = pref.tokenUser();
         sesi.userId = -1;
         sesi.koreksi = false;
+        sesi.kirimPanen = false;
         if (username == null) return;
         com.example.fai26.db.entity.AppUser u = db.akunDao().cari(username);
         if (u == null) return;
         sesi.userId = u.userId;
-        sesi.koreksi = db.akunDao().permission(u.userId, Waktu.tanggalLokalHariIni()).contains("panen.koreksi");
+        java.util.List<String> izin = db.akunDao().permission(u.userId, Waktu.tanggalLokalHariIni());
+        sesi.koreksi = izin.contains("panen.koreksi");
+        sesi.kirimPanen = izin.contains("panen.kirim");
     }
 
     private void kirimAntrean(SyncDao dao, Sesi sesi, boolean paksa, Ringkasan hasil) throws ApiException {
