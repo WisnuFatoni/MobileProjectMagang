@@ -91,41 +91,21 @@ public class HomeFragment extends Fragment {
     }
 
     /**
-     * Tanda air fAI26: logo besar dan tulisan fAI26 yang sangat samar di area kosong layar awal, supaya tidak terlihat hampa.
-     * Tidak bisa disentuh dan tidak dibaca pembaca layar (hiasan). Muncul pelan saat layar dibuka.
+     * Tanda air fAI26: logo resmi (LOGO/LogoApp.png) yang sangat samar di tengah area kosong layar awal, supaya tidak terlihat hampa.
+     * Tidak bisa disentuh dan disembunyikan dari pembaca layar (hiasan). Muncul memudar pelan saat layar dibuka.
      */
     private View tandaAir(android.content.Context c) {
-        LinearLayout kolom = new LinearLayout(c);
-        kolom.setOrientation(LinearLayout.VERTICAL);
-        kolom.setGravity(Gravity.CENTER_HORIZONTAL);
-        kolom.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
-        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
-        kolom.setLayoutParams(lp);
-        kolom.setTranslationY(IpdUi.dp(c, 96));
-
         ImageView logo = new ImageView(c);
-        logo.setImageResource(R.drawable.ic_logo);
-        kolom.addView(logo, new LinearLayout.LayoutParams(IpdUi.dp(c, 210), IpdUi.dp(c, 210)));
-
-        TextView nama = new TextView(c);
-        nama.setText("fAI26");
-        nama.setTextSize(40);
-        nama.setTypeface(androidx.core.content.res.ResourcesCompat.getFont(c, R.font.outfit_semibold));
-        nama.setTextColor(0xFF12612F);
-        nama.setGravity(Gravity.CENTER_HORIZONTAL);
-        nama.setPadding(0, IpdUi.dp(c, 6), 0, 0);
-        kolom.addView(nama);
-
-        TextView ket = new TextView(c);
-        ket.setText("Grading TBS kelapa sawit");
-        ket.setTextSize(14);
-        ket.setTextColor(0xFF6B7280);
-        ket.setGravity(Gravity.CENTER_HORIZONTAL);
-        kolom.addView(ket);
-
-        kolom.setAlpha(0f);
-        kolom.animate().alpha(0.11f).setDuration(1100).setStartDelay(150).start();
-        return kolom;
+        logo.setImageResource(R.drawable.logo_fai26_warna);
+        logo.setAdjustViewBounds(true);
+        logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        logo.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(IpdUi.dp(c, 250), ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
+        logo.setLayoutParams(lp);
+        logo.setTranslationY(IpdUi.dp(c, 96));
+        logo.setAlpha(0f);
+        logo.animate().alpha(0.14f).setDuration(1100).setStartDelay(150).start();
+        return logo;
     }
 
     @Override

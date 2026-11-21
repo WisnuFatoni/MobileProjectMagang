@@ -1,5 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <color name="splash_latar">#FFFBF2</color>
+    <color name="splash_latar">#FFFFFF</color>
     <!-- Tema aplikasi: Material 3, hijau kebun, font Outfit. Nilai warna terang/gelap ada di colors.xml. -->
     <style name="Base.Theme.FAI26" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/brand_primary</item>
