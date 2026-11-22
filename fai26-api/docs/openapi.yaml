@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: fai26-api
-  version: 0.20.0
+  version: 0.20.1
   description: |
     API sinkronisasi aplikasi fAI26 (HP krani ke database `fai26`). Panduan yang lebih mudah dibaca ada di `API.md`.
 
@@ -2179,7 +2179,7 @@ paths:
       tags: [Admin]
       summary: Daftar catatan panen
       description: |
-        Permission `panen.lihat`. Query: `dari`, `sampai` (`YYYY-MM-DD`), `status_erp` (`BARU`, `DIBACA`, `DIIMPOR`, `DITOLAK`), `cari` (kode blok atau TPH), `halaman` (mulai 1), `per_halaman` (bawaan 25, maksimal 100). Terbaru dulu. Galat: 422 filter salah format.
+        Permission `panen.lihat`. Query: `dari`, `sampai` (`YYYY-MM-DD`), `status_erp` (`MENUNGGU`, `BARU`, `DIBACA`, `DIIMPOR`, `DITOLAK`), `cari` (kode blok atau TPH), `halaman` (mulai 1), `per_halaman` (bawaan 25, maksimal 100). Terbaru dulu. Galat: 422 filter salah format.
       security: [{ bearerAuth: [] }]
       parameters:
         - name: dari
@@ -2193,7 +2193,7 @@ paths:
         - name: status_erp
           in: query
           required: false
-          schema: { type: string }
+          schema: { type: string, enum: [MENUNGGU, BARU, DIBACA, DIIMPOR, DITOLAK] }
         - name: cari
           in: query
           required: false

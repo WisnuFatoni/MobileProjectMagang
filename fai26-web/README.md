@@ -77,3 +77,8 @@ Bangun dengan `npm run build`, lalu sajikan dari alamat yang sama dengan API (sa
 - **Ekspor dan Cetak** (Excel, PDF, cetak) lewat dialog periode di Laporan Loses dan Daftar Inspeksi; pustaka `exceljs` dan `jspdf` dimuat saat dipakai.
 - **Foto profil** dengan pemotong (geser, zoom, putar) pada menu akun.
 - **Hak Akses**: admin dapat membuat, mengubah nama, dan menghapus role buatan sendiri.
+
+## Persetujuan Tertunda (22 Nov 2026)
+
+- **Persetujuan Tertunda** (`/tertunda`, menu Laporan, hak `panen.lihat`; bagian IPD tampil bagi pemegang `ipd.lihat`): catatan panen yang menunggu krani dan inspeksi IPD yang menunggu asisten, dari yang paling lama menunggu, dengan kartu (menunggu, terlambat, mendekati batas, terlama) dan penanda **Wajar / Mendekati batas / Terlambat**. Batas wajar dapat dipilih (4, 8, 24, 48 jam; bawaan 8 jam). Data diambil dari endpoint yang sudah ada (`GET /api/admin/panen?status_erp=MENUNGGU` dan `GET /api/admin/ipd?status=MENUNGGU`), tanpa endpoint baru; diperbarui otomatis tiap 1 menit dan lama menunggu bertambah tiap 30 detik. Hitungan murni ada di `features/tertunda/tertunda.ts`.
+- Filter status pada **Catatan Panen** kini memuat **Menunggu krani** (nilai `MENUNGGU` ditambahkan ke tipe `StatusErp`; sebelumnya server menjawab 422 untuk filter itu, diperbaiki pada API 0.20.1).

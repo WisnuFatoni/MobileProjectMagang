@@ -18,7 +18,7 @@ describe('format', () => {
   })
 
   it('semua status ERP dan kelas model punya tampilan', () => {
-    expect(Object.keys(STATUS_ERP).sort()).toEqual(['BARU', 'DIBACA', 'DIIMPOR', 'DITOLAK'])
+    expect(Object.keys(STATUS_ERP).sort()).toEqual(['BARU', 'DIBACA', 'DIIMPOR', 'DITOLAK', 'MENUNGGU'])
     expect(Object.keys(NAMA_KELAS).sort()).toEqual(['abnormal', 'empty', 'overripe', 'ripe', 'underripe', 'unripe'])
   })
 })

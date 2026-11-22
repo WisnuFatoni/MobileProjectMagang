@@ -21,7 +21,7 @@ describe('menu', () => {
   it('admin melihat tiga kelompok lengkap', () => {
     const m = grup(['master.lihat', 'user.kelola', 'device.kelola', 'laporan.lihat', 'panen.lihat', 'audit.lihat'])
     expect(m).toEqual([
-      { judul: 'Laporan', anak: ['/', '/panen', '/produktivitas'] },
+      { judul: 'Laporan', anak: ['/', '/panen', '/tertunda', '/produktivitas'] },
       { judul: 'Master', anak: ['/blok', '/tph', '/divisi', '/pemanen'] },
       { judul: 'Administrasi', anak: ['/pengguna', '/perangkat', '/audit'] },
     ])

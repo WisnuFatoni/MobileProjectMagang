@@ -211,7 +211,8 @@ export interface ProduktivitasHarian {
   pemanen: PemanenProduktif[]
 }
 
-export type StatusErp = 'BARU' | 'DIBACA' | 'DIIMPOR' | 'DITOLAK'
+/** MENUNGGU: sudah diterima server tetapi belum disetujui krani; tiga nilai berikutnya adalah status setelah disetujui. */
+export type StatusErp = 'MENUNGGU' | 'BARU' | 'DIBACA' | 'DIIMPOR' | 'DITOLAK'
 export type StatusLokasi = 'DI_TPH' | 'DI_LUAR' | 'AKURASI_RENDAH' | 'TANPA_GPS' | 'TPH_TANPA_KOORDINAT'
 
 export interface PanenRingkas {

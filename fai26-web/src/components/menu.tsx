@@ -1,6 +1,7 @@
 import {
   AppstoreOutlined,
   AuditOutlined,
+  ClockCircleOutlined,
   ClusterOutlined,
   DashboardOutlined,
   EnvironmentOutlined,
@@ -20,6 +21,7 @@ import { halamanBoleh } from '@/lib/izin'
 const IKON: Record<string, React.ReactNode> = {
   '/': <DashboardOutlined />,
   '/panen': <ProfileOutlined />,
+  '/tertunda': <ClockCircleOutlined />,
   '/produktivitas': <TrophyOutlined />,
   '/ipd': <FileSearchOutlined />,
   '/ipd/laporan': <FundOutlined />,
@@ -37,7 +39,7 @@ const IKON: Record<string, React.ReactNode> = {
 export function bangunMenu(profil: { permission: string[] } | null): MenuProps['items'] {
   const boleh = halamanBoleh(profil)
   const kelompok: { judul: string; path: string[] }[] = [
-    { judul: 'Laporan', path: ['/', '/panen', '/produktivitas'] },
+    { judul: 'Laporan', path: ['/', '/panen', '/tertunda', '/produktivitas'] },
     { judul: 'IPD', path: ['/ipd', '/ipd/laporan'] },
     { judul: 'Master', path: ['/blok', '/tph', '/divisi', '/pemanen'] },
     { judul: 'Administrasi', path: ['/pengguna', '/hak-akses', '/perangkat', '/audit'] },

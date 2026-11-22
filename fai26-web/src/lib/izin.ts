@@ -31,6 +31,7 @@ export interface HalamanApp {
 export const HALAMAN: HalamanApp[] = [
   { path: '/', judul: 'Dasbor', izin: IZIN.laporanLihat },
   { path: '/panen', judul: 'Catatan Panen', izin: IZIN.panenLihat },
+  { path: '/tertunda', judul: 'Persetujuan Tertunda', izin: IZIN.panenLihat },
   { path: '/produktivitas', judul: 'Produktivitas Pemanen', izin: IZIN.laporanLihat },
   { path: '/ipd', judul: 'Inspeksi IPD', izin: IZIN.ipdLihat },
   { path: '/ipd/laporan', judul: 'Laporan Loses IPD', izin: IZIN.laporanIpd },

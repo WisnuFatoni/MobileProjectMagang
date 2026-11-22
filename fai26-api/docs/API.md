@@ -1,6 +1,6 @@
 # Dokumentasi API fai26-api
 
-Versi 0.20.0 · terakhir diperbarui 21 Nov 2026 · spesifikasi mesin: [`openapi.yaml`](openapi.yaml)
+Versi 0.20.1 · terakhir diperbarui 22 Nov 2026 · spesifikasi mesin: [`openapi.yaml`](openapi.yaml)
 (bisa dibuka di Swagger Editor, Postman, atau Insomnia).
 
 > **Aturan tim:** setiap endpoint baru atau perubahan bentuk data **wajib** memperbarui `openapi.yaml`, dokumen ini,
@@ -1053,7 +1053,7 @@ Tanpa catatan pada tanggal itu, `pemanen` berupa `[]` dan semua angka nol.
 
 ## GET /api/admin/panen
 
-**Daftar catatan panen.** Permission `panen.lihat`. Query: `dari`, `sampai` (`YYYY-MM-DD`), `status_erp` (`BARU`, `DIBACA`, `DIIMPOR`, `DITOLAK`), `cari` (kode blok atau TPH), `halaman` (mulai 1), `per_halaman` (bawaan 25, maksimal 100). Terbaru dulu.
+**Daftar catatan panen.** Permission `panen.lihat`. Query: `dari`, `sampai` (`YYYY-MM-DD`), `status_erp` (`MENUNGGU`, `BARU`, `DIBACA`, `DIIMPOR`, `DITOLAK`), `cari` (kode blok atau TPH), `halaman` (mulai 1), `per_halaman` (bawaan 25, maksimal 100). Terbaru dulu.
 
 **200**
 
@@ -1155,6 +1155,7 @@ Bila pemanggil memegang **`ipd.jejak`** (asisten, askep, KTU, admin; mandor tida
 
 | Tanggal | Versi | Perubahan |
 |---|---|---|
+| 22 Nov 2026 | 0.20.1 | `GET /api/admin/panen`: filter `status_erp` kini juga menerima `MENUNGGU` (catatan yang belum disetujui krani); sebelumnya dijawab 422 walau catatan berstatus itu tampil di daftar tanpa filter. Dipakai halaman web Persetujuan Tertunda. Perbaikan saja: nilai lain dan bentuk jawaban tidak berubah. |
 | 21 Nov 2026 | 0.20.0 | **Jalur GPS inspeksi IPD.** `POST /api/ipd` menerima `jejak` (titik GPS, maksimal 20000) dan `pokok[].dicatat_pada`; `GET /api/admin/ipd/{id}` menambah `pokok[].dicatat_pada` dan `jejak` (titik, `jarak_m`, `durasi_menit`; hanya untuk pemegang permission baru **`ipd.jejak`**: ASISTEN, ASKEP, KTU, ADMIN, null untuk yang lain). Perlu migrasi `012_jejak_ipd.sql` (tabel `fai_ipd_jejak`, kolom `fai_ipd_pokok.dicatat_pada`, permission `ipd.jejak`). Penambahan saja: HP lama tanpa jalur tetap diterima. |
 | 21 Nov 2026 | 0.19.0 | **Foto profil akun.** Endpoint baru `PUT /api/auth/foto`, `GET /api/auth/foto`, `DELETE /api/auth/foto` (tiap akun mengelola fotonya sendiri; diproses server menjadi JPEG persegi 384 px). Objek profil (`login`, `me`) menambah `foto_versi`. Perlu migrasi `011_foto_profil.sql`. Penambahan saja: tidak ada yang berubah untuk klien lama. |
 | 20 Nov 2026 | 0.18.0 | **IPD: satu kemandoran. Role buatan admin.** (1) `POST /api/ipd`: `mandor_blok_username` dan `mandor_ancak_username` diganti satu field `mandor_username` (kemandoran); respons IPD memuat `mandor_nama` (menggantikan `mandor_blok_nama` dan `mandor_ancak_nama`). **Tidak kompatibel dengan HP versi lama**; perlu migrasi `010_satu_kemandoran.sql` dan HP terbaru (Room v6). (2) Endpoint baru `POST /api/admin/hak-akses` (buat role) dan `DELETE /api/admin/hak-akses/{id}` (hapus role buatan admin yang tidak dipegang akun aktif); `PUT /api/admin/hak-akses/{id}` menerima `nama` dan `deskripsi`; `GET /api/admin/hak-akses` menambah `deskripsi` dan `pengguna` per role. |

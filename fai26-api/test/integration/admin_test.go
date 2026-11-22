@@ -331,6 +331,7 @@ func TestAdminCatatanFotoRingkasanDanAudit(t *testing.T) {
 		t.Fatalf("filter status: %v", h2["total"])
 	}
 	e.json("GET", "/api/admin/panen?dari=kemarin", tok, nil, 422)
+	e.json("GET", "/api/admin/panen?status_erp=MENUNGGU", tok, nil, 200) // dipakai dasbor Persetujuan Tertunda
 	e.json("GET", "/api/admin/panen?status_erp=SELESAI", tok, nil, 422)
 
 	// Detail beserta foto.

@@ -375,6 +375,12 @@ func TestFilterPanenDanAuditDinormalisasi(t *testing.T) {
 	if f.filterPanen.Halaman != 1 || f.filterPanen.PerHal != 100 {
 		t.Fatalf("batas: %+v", f.filterPanen)
 	}
+	// MENUNGGU (belum disetujui krani) harus bisa disaring: dasbor Persetujuan Tertunda memakainya.
+	for _, baik := range []string{"MENUNGGU", "BARU", "DIBACA", "DIIMPOR", "DITOLAK"} {
+		if _, err := s.DaftarPanen(ctx, admin, model.FilterPanen{StatusEr: baik}); err != nil {
+			t.Errorf("status_erp %s ditolak: %v", baik, err)
+		}
+	}
 	for _, buruk := range []model.FilterPanen{{Dari: "10/11/2026"}, {Sampai: "kemarin"}, {StatusEr: "SELESAI"}} {
 		if _, err := s.DaftarPanen(ctx, admin, buruk); statusHTTP(err) != 422 {
 			t.Errorf("%+v: %v", buruk, err)

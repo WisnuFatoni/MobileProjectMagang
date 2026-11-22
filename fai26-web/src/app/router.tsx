@@ -10,6 +10,7 @@ import { Halaman } from './Halaman'
 // Halaman dimuat sesuai kebutuhan supaya muatan awal kecil.
 const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })))
 const PanenPage = lazy(() => import('@/features/panen/PanenPage').then((m) => ({ default: m.PanenPage })))
+const TertundaPage = lazy(() => import('@/features/tertunda/TertundaPage').then((m) => ({ default: m.TertundaPage })))
 const ProduktivitasPage = lazy(() => import('@/features/produktivitas/ProduktivitasPage').then((m) => ({ default: m.ProduktivitasPage })))
 const IpdPage = lazy(() => import('@/features/ipd/IpdPage').then((m) => ({ default: m.IpdPage })))
 const IpdLaporanPage = lazy(() => import('@/features/ipd/IpdLaporanPage').then((m) => ({ default: m.IpdLaporanPage })))
@@ -35,6 +36,7 @@ export const rute = [
     children: [
       { index: true, element: <Halaman izin={IZIN.laporanLihat}><DashboardPage /></Halaman> },
       { path: 'panen', element: <Halaman izin={IZIN.panenLihat}><PanenPage /></Halaman> },
+      { path: 'tertunda', element: <Halaman izin={IZIN.panenLihat}><TertundaPage /></Halaman> },
       { path: 'produktivitas', element: <Halaman izin={IZIN.laporanLihat}><ProduktivitasPage /></Halaman> },
       { path: 'ipd', element: <Halaman izin={IZIN.ipdLihat}><IpdPage /></Halaman> },
       { path: 'ipd/laporan', element: <Halaman izin={IZIN.laporanIpd}><IpdLaporanPage /></Halaman> },

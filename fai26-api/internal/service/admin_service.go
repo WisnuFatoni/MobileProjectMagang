@@ -66,7 +66,7 @@ const (
 var (
 	reUsername = regexp.MustCompile(`^[a-z0-9._-]{3,50}$`)
 	reTanggal  = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
-	statusErp  = map[string]bool{"BARU": true, "DIBACA": true, "DIIMPOR": true, "DITOLAK": true}
+	statusErp  = map[string]bool{"MENUNGGU": true, "BARU": true, "DIBACA": true, "DIIMPOR": true, "DITOLAK": true}
 	wib        = time.FixedZone("WIB", 7*3600)
 )
 
@@ -478,7 +478,7 @@ func (s *AdminService) DaftarPanen(ctx context.Context, k *auth.Klaim, f model.F
 		}
 	}
 	if f.StatusEr != "" && !statusErp[f.StatusEr] {
-		return nil, tidakValid(errors.New("status_erp harus BARU, DIBACA, DIIMPOR, atau DITOLAK"))
+		return nil, tidakValid(errors.New("status_erp harus MENUNGGU, BARU, DIBACA, DIIMPOR, atau DITOLAK"))
 	}
 	f.Halaman, f.PerHal = halaman(f.Halaman, f.PerHal)
 	o, err := s.repo.DaftarPanen(ctx, k.UnitID, f)

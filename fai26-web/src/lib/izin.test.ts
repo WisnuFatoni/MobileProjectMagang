@@ -23,7 +23,7 @@ describe('izin', () => {
   })
 
   it('krani hanya melihat halaman yang haknya dimiliki', () => {
-    expect(halamanBoleh(krani).map((h) => h.path)).toEqual(['/panen', '/blok', '/tph', '/divisi', '/pemanen'])
+    expect(halamanBoleh(krani).map((h) => h.path)).toEqual(['/panen', '/tertunda', '/blok', '/tph', '/divisi', '/pemanen'])
   })
 
   it('halaman awal: dasbor untuk yang punya laporan, kalau tidak halaman pertama yang boleh', () => {

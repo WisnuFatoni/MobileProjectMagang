@@ -23,6 +23,7 @@ export function waktu(iso: string | null | undefined): string {
 }
 
 export const STATUS_ERP: Record<StatusErp, { teks: string; warna: string }> = {
+  MENUNGGU: { teks: 'Menunggu krani', warna: 'default' },
   BARU: { teks: 'Baru', warna: 'gold' },
   DIBACA: { teks: 'Dibaca ERP', warna: 'blue' },
   DIIMPOR: { teks: 'Diimpor', warna: 'green' },
