@@ -65,7 +65,8 @@ Diagram baru ditulis dengan sintaks mermaid standar tetapi belum dirender; bila 
 | `fai26-api/README.md` | Menjalankan, konfigurasi, migrasi, tes | Aktual |
 | `fai26-api/docs/API.md` | Dokumentasi tertulis semua endpoint dan riwayat perubahan | Aktual |
 | `fai26-api/docs/openapi.yaml` | Spesifikasi mesin (beberapa respons masih objek bebas) | Aktual |
-| `fai26-api/docs/DEPLOY.md` | Pemasangan di server sungguhan (layanan, reverse proxy, HTTPS) | Aktual, belum dijalankan |
+| `fai26-api/docs/DEPLOY.md` | Runbook pemasangan di server (database, migrasi 002-012, akun pertama, konfigurasi, cadangan, rollback) | Aktual; dilatih di simulasi lokal 22 Nov 2026, belum di server sungguhan |
+| `fai26-api/scripts/periksa-server.ps1`, `awal_unit_admin.sql`, `cmd/hashpw` | Skrip pemeriksaan pemasangan (hanya baca), data awal unit dan ADMIN, pembuat hash bcrypt | Aktual; dicoba di simulasi lokal |
 | `fai26-web/README.md` | Menjalankan dan membangun web admin; halaman dan fitur | Aktual |
 
 ### Tugas harian (`TUGAS/`, tidak masuk git)
