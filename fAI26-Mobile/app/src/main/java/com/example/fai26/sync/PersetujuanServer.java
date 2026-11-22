@@ -85,7 +85,7 @@ public class PersetujuanServer {
 
     <T> T dengan(Aksi<T> aksi) throws ApiException {
         if (!pref.serverSudahDiatur()) throw new ApiException(0, "Alamat server belum diatur");
-        if (!pref.adaToken()) throw new ApiException(401, "Belum login online. Login saat ada sinyal");
+        if (!pref.adaToken()) throw new ApiException(401, "Belum login online untuk akun ini. Keluar, lalu login lagi saat ada sinyal");
         String token = tokenValid();
         try {
             return aksi.jalankan(token);

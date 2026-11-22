@@ -192,6 +192,34 @@ public class LoginServiceTest {
     }
 
     @Test
+    public void loginOfflineSebagaiPenggunaLainMembuangTokenOnlineAkunSebelumnya() {
+        // Token online milik mandor1 tertinggal di HP, lalu krani1 login saat server tidak terjangkau.
+        pref.simpanToken("mandor1", new ServerApi.Token("AKSES_LAMA", AWAL + 900_000L, "REFRESH_LAMA"));
+        api.galat = new ApiException(0, "putus");
+
+        LoginService.Masuk m = layanan(api).masuk("krani1", "krani123");
+
+        assertFalse(m.online);
+        assertEquals(AuthService.Status.BERHASIL, m.hasil.status);
+        assertNull("token milik mandor1 tidak boleh dipakai atas nama krani1", pref.akses());
+        assertNull(pref.refresh());
+        assertNull(pref.tokenUser());
+        assertEquals("krani1", pref.akunAktif());
+    }
+
+    @Test
+    public void loginOfflineSebagaiPemilikTokenMempertahankanTokenNya() {
+        pref.simpanToken("krani1", new ServerApi.Token("AKSES_SAYA", AWAL + 900_000L, "REFRESH_SAYA"));
+        api.galat = new ApiException(0, "putus");
+
+        layanan(api).masuk("krani1", "krani123");
+
+        assertEquals("AKSES_SAYA", pref.akses());
+        assertEquals("krani1", pref.tokenUser());
+        assertEquals("krani1", pref.akunAktif());
+    }
+
+    @Test
     public void jaringanPutusTetapMenolakPasswordSalah() {
         api.galat = new ApiException(0, "putus");
         LoginService.Masuk m = layanan(api).masuk("krani1", "salah");

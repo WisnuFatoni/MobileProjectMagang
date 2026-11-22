@@ -26,6 +26,8 @@ public class PengaturanSync {
     private static final String K_SEJAK = "status_sejak";
     private static final String K_TERAKHIR = "terakhir_waktu";
     private static final String K_RINGKAS = "terakhir_ringkas";
+    /** Akun yang sedang login di HP; token online hanya boleh milik akun ini. */
+    private static final String K_AKUN = "akun_aktif";
 
     private final SharedPreferences p;
 
@@ -86,6 +88,32 @@ public class PengaturanSync {
 
     public String tokenUser() {
         return p.getString(K_USER, null);
+    }
+
+    /** Akun yang tercatat sedang login di HP ini, atau null bila belum diketahui (HP lama sebelum perbaikan ini). */
+    public String akunAktif() {
+        return p.getString(K_AKUN, null);
+    }
+
+    /**
+     * Mencatat akun yang sedang login. Token online milik AKUN LAIN dibuang: login offline hanya mengganti akun di layar, sedangkan
+     * token yang tertinggal milik pengguna sebelumnya akan dipakai ke server, sehingga tindakan seperti menyetujui tercatat atas nama
+     * orang lain (atau ditolak 403). Setelah dibuang, pengguna perlu login online sekali untuk mendapat token miliknya sendiri.
+     *
+     * @return true bila ada token milik akun lain yang dibuang
+     */
+    public boolean aturAkunAktif(String username) {
+        p.edit().putString(K_AKUN, username).apply();
+        if (tokenBukanMilik(tokenUser(), username)) {
+            hapusToken();
+            return true;
+        }
+        return false;
+    }
+
+    /** True bila ada token dan pemiliknya bukan {@code akun} (tanpa membedakan huruf besar kecil). */
+    public static boolean tokenBukanMilik(String tokenUser, String akun) {
+        return tokenUser != null && (akun == null || !tokenUser.equalsIgnoreCase(akun));
     }
 
     public String akses() {

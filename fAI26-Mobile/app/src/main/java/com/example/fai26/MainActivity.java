@@ -94,6 +94,8 @@ public class MainActivity extends AppCompatActivity {
             finish();
             return;
         }
+        // HP yang sudah telanjur login offline sebagai pengguna lain: buang token online milik akun sebelumnya.
+        com.example.fai26.auth.SesiToken.cocokkanDiLatar(this);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
         // Home berkepala hijau (ikon bilah status putih); disesuaikan lagi tiap ganti layar.

@@ -86,9 +86,14 @@ public class PersetujuanFragment extends Fragment {
         });
 
         btnSemua.setOnClickListener(v -> {
-            List<String> ids = new ArrayList<>();
+            final List<String> ids = new ArrayList<>();
             for (ServerApi.Menunggu m : terkini) ids.add(m.id);
-            setujui(ids);
+            new MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("Setujui semua " + ids.size() + " catatan?")
+                    .setMessage("Semua catatan di daftar ini akan disetujui, dikunci, dan siap ditarik ERP. Pastikan jumlah, lokasi, dan fotonya sudah diperiksa.")
+                    .setNegativeButton("Batal", null)
+                    .setPositiveButton("Setujui semua", (dlg, w) -> setujui(ids))
+                    .show();
         });
         txtKosong.setOnClickListener(v -> muat()); // ketuk pesan galat untuk mencoba lagi
         return raiz;
@@ -244,12 +249,18 @@ public class PersetujuanFragment extends Fragment {
         tolak.setOnClickListener(v -> dialogTolak(m));
         MaterialButton setuju = new MaterialButton(c);
         setuju.setText("Setujui");
-        setuju.setOnClickListener(v -> {
-            v.setEnabled(false);
-            List<String> satu = new ArrayList<>();
-            satu.add(m.id);
-            setujui(satu);
-        });
+        setuju.setOnClickListener(v -> new MaterialAlertDialogBuilder(c)
+                .setTitle("Setujui catatan ini?")
+                .setMessage("Blok " + nilai(m.blokKode) + " • TPH " + nilai(m.tphKode) + ", " + m.totalJanjang + " janjang dari "
+                        + m.pencatatNama + ". Setelah disetujui catatan dikunci dan siap ditarik ERP.")
+                .setNegativeButton("Batal", null)
+                .setPositiveButton("Setujui", (dlg, w) -> {
+                    v.setEnabled(false);
+                    List<String> satu = new ArrayList<>();
+                    satu.add(m.id);
+                    setujui(satu);
+                })
+                .show());
         LinearLayout.LayoutParams l1 = new LinearLayout.LayoutParams(0, (int) (52 * d), 1f);
         l1.setMarginEnd((int) (6 * d));
         LinearLayout.LayoutParams l2 = new LinearLayout.LayoutParams(0, (int) (52 * d), 1f);

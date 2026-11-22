@@ -59,7 +59,10 @@ public class LoginService {
                     }
                 }
                 AuthService.Hasil h = auth.terapkanLoginOnline(username, password);
-                if (h.status == AuthService.Status.BERHASIL) pref.simpanToken(username, lh.token);
+                if (h.status == AuthService.Status.BERHASIL) {
+                    pref.simpanToken(username, lh.token);
+                    pref.aturAkunAktif(username);
+                }
                 return new Masuk(h, true);
             } catch (ApiException e) {
                 AuthService.Hasil ditolak = dariPenolakan(e);
@@ -70,7 +73,10 @@ public class LoginService {
                 // jaringan putus atau server bermasalah: lanjut offline
             }
         }
-        return new Masuk(auth.loginOffline(username, password), false);
+        AuthService.Hasil offline = auth.loginOffline(username, password);
+        // Login offline tidak menghasilkan token: token online milik pengguna sebelumnya harus dibuang, bukan dipakai atas nama akun ini.
+        if (offline.status == AuthService.Status.BERHASIL) pref.aturAkunAktif(username);
+        return new Masuk(offline, false);
     }
 
     /** Menerjemahkan penolakan server menjadi hasil login, atau null bila bukan penolakan (jaringan/server rusak). */
