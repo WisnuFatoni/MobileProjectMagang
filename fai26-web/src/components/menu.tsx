@@ -6,6 +6,7 @@ import {
   DashboardOutlined,
   EnvironmentOutlined,
   FundOutlined,
+  GlobalOutlined,
   FileSearchOutlined,
   MobileOutlined,
   ProfileOutlined,
@@ -24,6 +25,7 @@ const IKON: Record<string, React.ReactNode> = {
   '/tertunda': <ClockCircleOutlined />,
   '/produktivitas': <TrophyOutlined />,
   '/ipd': <FileSearchOutlined />,
+  '/ipd/peta': <GlobalOutlined />,
   '/ipd/laporan': <FundOutlined />,
   '/blok': <AppstoreOutlined />,
   '/tph': <EnvironmentOutlined />,
@@ -40,7 +42,7 @@ export function bangunMenu(profil: { permission: string[] } | null): MenuProps['
   const boleh = halamanBoleh(profil)
   const kelompok: { judul: string; path: string[] }[] = [
     { judul: 'Laporan', path: ['/', '/panen', '/tertunda', '/produktivitas'] },
-    { judul: 'IPD', path: ['/ipd', '/ipd/laporan'] },
+    { judul: 'IPD', path: ['/ipd', '/ipd/peta', '/ipd/laporan'] },
     { judul: 'Master', path: ['/blok', '/tph', '/divisi', '/pemanen'] },
     { judul: 'Administrasi', path: ['/pengguna', '/hak-akses', '/perangkat', '/audit'] },
   ]

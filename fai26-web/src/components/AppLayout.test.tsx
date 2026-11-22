@@ -43,6 +43,13 @@ describe('menu', () => {
     expect(grup(['laporan.ipd'])).toEqual([{ judul: 'IPD', anak: ['/ipd/laporan'] }])
   })
 
+  it('Peta Monitoring IPD hanya tampil bagi pemegang ipd.jejak, di antara daftar dan laporan', () => {
+    expect(grup(['ipd.lihat', 'ipd.jejak', 'laporan.ipd'])).toEqual([{ judul: 'IPD', anak: ['/ipd', '/ipd/peta', '/ipd/laporan'] }])
+    expect(grup(['ipd.jejak'])).toEqual([{ judul: 'IPD', anak: ['/ipd/peta'] }])
+    expect(grup(['ipd.lihat'])).toEqual([{ judul: 'IPD', anak: ['/ipd'] }])
+    expect(kunciAktif('/ipd/peta')).toBe('/ipd/peta')
+  })
+
   it('kelompok tanpa halaman yang boleh dibuka tidak ditampilkan', () => {
     const m = grup(['master.lihat'])
     expect(m).toEqual([{ judul: 'Master', anak: ['/blok', '/tph', '/divisi', '/pemanen'] }])

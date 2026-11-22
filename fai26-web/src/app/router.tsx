@@ -13,6 +13,7 @@ const PanenPage = lazy(() => import('@/features/panen/PanenPage').then((m) => ({
 const TertundaPage = lazy(() => import('@/features/tertunda/TertundaPage').then((m) => ({ default: m.TertundaPage })))
 const ProduktivitasPage = lazy(() => import('@/features/produktivitas/ProduktivitasPage').then((m) => ({ default: m.ProduktivitasPage })))
 const IpdPage = lazy(() => import('@/features/ipd/IpdPage').then((m) => ({ default: m.IpdPage })))
+const PetaMonitoringPage = lazy(() => import('@/features/peta/PetaMonitoringPage').then((m) => ({ default: m.PetaMonitoringPage })))
 const IpdLaporanPage = lazy(() => import('@/features/ipd/IpdLaporanPage').then((m) => ({ default: m.IpdLaporanPage })))
 const BlokPage = lazy(() => import('@/features/master/BlokPage').then((m) => ({ default: m.BlokPage })))
 const TphPage = lazy(() => import('@/features/master/TphPage').then((m) => ({ default: m.TphPage })))
@@ -39,6 +40,7 @@ export const rute = [
       { path: 'tertunda', element: <Halaman izin={IZIN.panenLihat}><TertundaPage /></Halaman> },
       { path: 'produktivitas', element: <Halaman izin={IZIN.laporanLihat}><ProduktivitasPage /></Halaman> },
       { path: 'ipd', element: <Halaman izin={IZIN.ipdLihat}><IpdPage /></Halaman> },
+      { path: 'ipd/peta', element: <Halaman izin={IZIN.ipdJejak}><PetaMonitoringPage /></Halaman> },
       { path: 'ipd/laporan', element: <Halaman izin={IZIN.laporanIpd}><IpdLaporanPage /></Halaman> },
       { path: 'blok', element: <Halaman izin={IZIN.masterLihat}><BlokPage /></Halaman> },
       { path: 'tph', element: <Halaman izin={IZIN.masterLihat}><TphPage /></Halaman> },

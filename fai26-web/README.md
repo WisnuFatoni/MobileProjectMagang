@@ -82,3 +82,9 @@ Bangun dengan `npm run build`, lalu sajikan dari alamat yang sama dengan API (sa
 
 - **Persetujuan Tertunda** (`/tertunda`, menu Laporan, hak `panen.lihat`; bagian IPD tampil bagi pemegang `ipd.lihat`): catatan panen yang menunggu krani dan inspeksi IPD yang menunggu asisten, dari yang paling lama menunggu, dengan kartu (menunggu, terlambat, mendekati batas, terlama) dan penanda **Wajar / Mendekati batas / Terlambat**. Batas wajar dapat dipilih (4, 8, 24, 48 jam; bawaan 8 jam). Data diambil dari endpoint yang sudah ada (`GET /api/admin/panen?status_erp=MENUNGGU` dan `GET /api/admin/ipd?status=MENUNGGU`), tanpa endpoint baru; diperbarui otomatis tiap 1 menit dan lama menunggu bertambah tiap 30 detik. Hitungan murni ada di `features/tertunda/tertunda.ts`.
 - Filter status pada **Catatan Panen** kini memuat **Menunggu krani** (nilai `MENUNGGU` ditambahkan ke tipe `StatusErp`; sebelumnya server menjawab 422 untuk filter itu, diperbaiki pada API 0.20.1).
+
+## Peta Monitoring IPD (22 Nov 2026)
+
+- **Peta Monitoring IPD** (`/ipd/peta`, menu IPD, hak `ipd.jejak`): jalur GPS semua inspeksi pada satu hari dalam satu peta, tiap petugas berwarna sendiri, dengan kartu ringkasan, legenda per petugas, dan tabel inspeksi. Dapat disaring menurut tanggal, divisi, dan petugas. Hitungan murni ada di `features/peta/peta.ts`; peta Leaflet (`PetaGabungan.tsx`) dimuat saat dibutuhkan.
+- **Tanpa endpoint baru:** daftar harian dari `GET /api/admin/ipd` (filter `dari`=`sampai`=tanggal), lalu jalur tiap inspeksi dari `GET /api/admin/ipd/{id}`. Akibatnya **tiap jalur yang dibuka tercatat di audit** (`LIHAT_JALUR`, sekali per 10 menit per pengguna dan inspeksi), dan memilih petugas tertentu membatasi jalur yang dibuka. Satu kali muat paling banyak `MAKS_JALUR` (60) jalur.
+
