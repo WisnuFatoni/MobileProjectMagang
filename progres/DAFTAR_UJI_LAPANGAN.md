@@ -106,7 +106,7 @@ Catatan: ambang deteksi dilonggarkan (0,17) untuk tumpukan padat; A1 dan A2 mene
 | J2 | Krani menolak dengan alasan | Alasan tampil di Riwayat HP mandor; mandor dapat memperbaiki dan mengirim ulang |
 | J3 | Krani menekan Setujui semua (minimal 2 catatan) | Semua berubah menjadi Terkirim |
 | J4 | Asisten menyetujui dan menolak inspeksi IPD | Setelah disetujui terkunci; alasan penolakan tampil di HP inspektur |
-| J5 | Login offline sebagai pengguna lain, lalu buka Persetujuan (uji ulang setelah perbaikan O-01) | Aplikasi meminta login online; tidak ada aksi atas nama pengguna lama |
+| J5 | Login offline sebagai pengguna lain, lalu buka Persetujuan (perbaikan O-01 sudah terpasang 22 Nov; skenario ini belum diulang di HP) | Persetujuan menampilkan "Belum login online untuk akun ini"; tidak ada aksi atas nama pengguna lama |
 | J6 | Dua penyetuju menyetujui item yang sama hampir bersamaan | Yang kedua mendapat "sudah diproses di tempat lain" |
 
 ## K. Koneksi (ditambah 22 Nov)

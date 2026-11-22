@@ -170,11 +170,11 @@ Hasil Review Sprint 2 dan persiapan Sprint 3. Butir yang mengubah pengaturan kom
 
 | # | Butir | Keputusan yang dibutuhkan |
 |---|---|---|
-| 22-1 | Perbaiki token saat login offline sebagai pengguna lain (O-01) | Setuju diperbaiki sekarang? (mengubah alur login HP) |
+| 22-1 | Perbaiki token saat login offline sebagai pengguna lain (O-01) | **Selesai 22 Nov** (disetujui Ptoni lewat pilihan Kickoff Sprint 3; terbukti di HP) |
 | 22-2 | HP tanpa kabel: jaringan lokal dan aturan firewall untuk port 8080, atau reverse proxy HTTPS | Setuju mengubah firewall? Alamat IP laptop atau server mana yang dipakai? |
 | 22-3 | Server sungguhan: alamat, akses, dan nama domain untuk HTTPS | Siapa yang memberi akses, kapan |
 | 22-4 | Jadwal uji lapangan (scan, GPS jalan kaki, IPD) | Hari, blok atau TPH, dan HP yang dipakai |
-| 22-5 | Konfirmasi pada tombol Setujui catatan panen | Mau ada dialog konfirmasi? |
+| 22-5 | Konfirmasi pada tombol Setujui catatan panen | **Selesai 22 Nov** (dialog pada Setujui dan Setujui semua) |
 | 22-6 | Notifikasi push persetujuan (butuh akun Firebase) | Mau dibuat atau cukup penanda di aplikasi? |
 | 22-7 | Peta monitoring gabungan dan histori per pengguna | Mau dibuat? Prioritasnya |
 | 22-8 | Kebijakan data lokasi: berapa lama jalur disimpan dan siapa boleh melihat | Keputusan Ptoni dan pembimbing |
