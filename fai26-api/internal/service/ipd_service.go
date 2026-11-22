@@ -40,6 +40,8 @@ type IpdRepo interface {
 	Baris(ctx context.Context, unitID int64, id string) (*model.IpdBaris, error)
 	Pokok(ctx context.Context, id string) ([]model.IpdPokokOut, error)
 	Jejak(ctx context.Context, id string) ([]model.IpdTitikOut, error)
+	CatatLihatJalur(ctx context.Context, userID int64, deviceID, ip, id string, titik int) error
+	HapusJalurSebelum(ctx context.Context, batas string) (model.HasilBersihJejak, error)
 	Mentah(ctx context.Context, ids []string) (map[string]*model.IpdMentah, error)
 	Foto(ctx context.Context, ids []string) (map[string][]model.IpdFotoRef, error)
 	Setujui(ctx context.Context, id string, unitID, userID int64, deviceID, ip string) (string, error)
@@ -357,7 +359,8 @@ func (s *IpdService) DaftarAdmin(ctx context.Context, k *auth.Klaim, f model.Fil
 	return o, nil
 }
 
-func (s *IpdService) Detail(ctx context.Context, k *auth.Klaim, id string) (*model.IpdDetail, error) {
+// Detail memuat satu inspeksi lengkap. ip adalah alamat peminta, hanya untuk catatan audit pembukaan jalur GPS.
+func (s *IpdService) Detail(ctx context.Context, k *auth.Klaim, id, ip string) (*model.IpdDetail, error) {
 	if !model.ReUUID.MatchString(id) {
 		return nil, tidakValid(errors.New("id harus UUID"))
 	}
@@ -386,11 +389,30 @@ func (s *IpdService) Detail(ctx context.Context, k *auth.Klaim, id string) (*mod
 			return nil, apperror.Internal("Gagal membaca jalur GPS", err)
 		}
 		if len(titik) > 0 {
+			// Data lokasi orang: setiap pembukaan dicatat sebelum jalur dikirim. Bila pencatatan gagal, jalur tidak
+			// dikirim (lebih baik tidak tampil daripada tampil tanpa jejak siapa yang melihat).
+			if err := s.repo.CatatLihatJalur(ctx, k.UserID, k.DeviceID, ip, id, len(titik)); err != nil {
+				return nil, apperror.Internal("Gagal mencatat pembukaan jalur GPS", err)
+			}
 			jarak, durasi := RingkasJejak(titik)
 			out.Jejak = &model.IpdJejak{Titik: titik, JarakM: jarak, DurasiMenit: durasi}
 		}
 	}
 	return out, nil
+}
+
+// BersihkanJejak menghapus jalur GPS inspeksi yang sudah selesai diperiksa dan lebih tua dari hari hari (menurut tanggal
+// inspeksi). hari <= 0 berarti kebijakan penyimpanan tidak aktif dan tidak ada yang dihapus.
+func (s *IpdService) BersihkanJejak(ctx context.Context, hari int) (model.HasilBersihJejak, error) {
+	if hari <= 0 {
+		return model.HasilBersihJejak{}, nil
+	}
+	batas := s.sekarang().UTC().AddDate(0, 0, -hari).Format("2006-01-02")
+	h, err := s.repo.HapusJalurSebelum(ctx, batas)
+	if err != nil {
+		return h, apperror.Internal("Gagal membersihkan jalur GPS lama", err)
+	}
+	return h, nil
 }
 
 // RingkasJejak menghitung jarak tempuh (meter, jumlah jarak antartitik berurutan) dan lama berjalan (menit, titik pertama

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -489,6 +490,55 @@ func (r *IpdRepository) Jejak(ctx context.Context, id string) ([]model.IpdTitikO
 		out = append(out, t)
 	}
 	return out, rows.Err()
+}
+
+// jendelaLihatJalurMenit adalah rentang menit di mana pembukaan jalur yang sama oleh pengguna yang sama dicatat sekali saja
+// (halaman web memuat ulang detail berkali-kali; yang dicatat adalah "siapa melihat", bukan jumlah muat ulang).
+const jendelaLihatJalurMenit = 10
+
+// CatatLihatJalur menulis audit LIHAT_JALUR: siapa membuka jalur GPS inspeksi mana, dari perangkat dan alamat IP apa, dan
+// berapa titik yang tampil. Pembukaan ulang oleh pengguna yang sama dalam 10 menit tidak dicatat lagi.
+func (r *IpdRepository) CatatLihatJalur(ctx context.Context, userID int64, deviceID, ip, id string, titik int) error {
+	_, err := r.db.ExecContext(ctx, `
+INSERT INTO dbo.audit_log (audit_id, tabel, baris_id, aksi, user_id, username, device_id, waktu, waktu_server, ip, keterangan)
+SELECT NEWID(), 'fai_ipd', @p1, 'LIHAT_JALUR', @p2, (SELECT username FROM dbo.app_user WHERE user_id=@p2), @p3, SYSUTCDATETIME(), SYSUTCDATETIME(), @p4, @p5
+WHERE NOT EXISTS (SELECT 1 FROM dbo.audit_log WHERE tabel='fai_ipd' AND baris_id=@p1 AND aksi='LIHAT_JALUR' AND user_id=@p2
+                    AND waktu_server > DATEADD(MINUTE, -`+fmt.Sprint(jendelaLihatJalurMenit)+`, SYSUTCDATETIME()))`,
+		id, userID, nullStr(deviceID), nullStr(ip), fmt.Sprintf("%d titik", titik))
+	return err
+}
+
+// HapusJalurSebelum menghapus jalur GPS inspeksi yang tanggalnya sebelum batas (YYYY-MM-DD) dan sudah selesai diperiksa
+// (bukan MENUNGGU, karena yang menunggu masih bisa dikirim ulang). Data inspeksi, pokok, dan foto tidak disentuh. Bila ada
+// yang dihapus, satu baris audit HAPUS_JEJAK_LAMA ditulis dalam transaksi yang sama.
+func (r *IpdRepository) HapusJalurSebelum(ctx context.Context, batas string) (model.HasilBersihJejak, error) {
+	var h model.HasilBersihJejak
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return h, err
+	}
+	defer tx.Rollback()
+	if err = tx.QueryRowContext(ctx, `
+SELECT COUNT(DISTINCT j.ipd_id) FROM dbo.fai_ipd_jejak j JOIN dbo.fai_ipd i ON i.id=j.ipd_id
+WHERE i.tanggal_inspeksi < @p1 AND i.status <> 'MENUNGGU'`, batas).Scan(&h.Inspeksi); err != nil {
+		return h, err
+	}
+	if h.Inspeksi == 0 {
+		return h, nil
+	}
+	res, err := tx.ExecContext(ctx, `
+DELETE j FROM dbo.fai_ipd_jejak j JOIN dbo.fai_ipd i ON i.id=j.ipd_id
+WHERE i.tanggal_inspeksi < @p1 AND i.status <> 'MENUNGGU'`, batas)
+	if err != nil {
+		return h, err
+	}
+	n, _ := res.RowsAffected()
+	h.Titik = int(n)
+	if err = insertAudit(ctx, tx, model.AuditBaris{Tabel: "fai_ipd_jejak", BarisID: batas, Aksi: "HAPUS_JEJAK_LAMA",
+		Keterangan: fmt.Sprintf("%d titik dari %d inspeksi sebelum %s", h.Titik, h.Inspeksi, batas)}); err != nil {
+		return h, err
+	}
+	return h, tx.Commit()
 }
 
 // Mentah menghitung pokok dan temuan per inspeksi (id -> hitungan) untuk daftar id yang diberikan.

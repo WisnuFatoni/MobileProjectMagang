@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: fai26-api
-  version: 0.20.1
+  version: 0.21.0
   description: |
     API sinkronisasi aplikasi fAI26 (HP krani ke database `fai26`). Panduan yang lebih mudah dibaca ada di `API.md`.
 
@@ -1395,6 +1395,9 @@ paths:
         Permission `ipd.lihat`. Seperti satu baris daftar, ditambah `pokok`: semua pokok yang diperiksa berurutan dengan temuannya (kosong bila bersih),
         tiap pokok dengan `dicatat_pada` (waktu dicatat di HP, null bila HP lama). Bila pemanggil memegang `ipd.jejak` dan HP mengirim jalur,
         ada juga `jejak`: `titik` (`t`, `lat`, `lon`, `ak`), `jarak_m`, dan `durasi_menit`; selain itu `jejak` bernilai null.
+        Setiap pengiriman jalur dicatat di audit sebagai `LIHAT_JALUR` (pengguna, perangkat, IP, jumlah titik; sekali per 10 menit untuk
+        pengguna dan inspeksi yang sama); bila pencatatan gagal, jawabannya 500 dan jalur tidak dikirim. Jalur inspeksi yang sudah diperiksa
+        dihapus setelah `FAI26_JEJAK_SIMPAN_HARI` hari bila pengaturan itu diisi (audit `HAPUS_JEJAK_LAMA`); setelah itu `jejak` null.
       security: [{ bearerAuth: [] }]
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }

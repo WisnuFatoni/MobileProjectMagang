@@ -1,6 +1,6 @@
 # Dokumentasi API fai26-api
 
-Versi 0.20.1 · terakhir diperbarui 22 Nov 2026 · spesifikasi mesin: [`openapi.yaml`](openapi.yaml)
+Versi 0.21.0 · terakhir diperbarui 22 Nov 2026 · spesifikasi mesin: [`openapi.yaml`](openapi.yaml)
 (bisa dibuka di Swagger Editor, Postman, atau Insomnia).
 
 > **Aturan tim:** setiap endpoint baru atau perubahan bentuk data **wajib** memperbarui `openapi.yaml`, dokumen ini,
@@ -1126,6 +1126,10 @@ Semua persen dibulatkan 1 desimal. `per_kelompok` selalu BUAH, BRONDOLAN, PELEPA
 
 Bila pemanggil memegang **`ipd.jejak`** (asisten, askep, KTU, admin; mandor tidak) dan HP mengirim jalur GPS, ada `jejak`: `titik` (berurutan menurut waktu), `jarak_m` (jumlah jarak antartitik, haversine), dan `durasi_menit` (titik pertama sampai terakhir). Tanpa hak itu, atau tanpa jalur, `jejak` bernilai `null`.
 
+**Pembukaan jalur dicatat.** Setiap kali `jejak` dikirim (hak ada dan jalur ada), satu baris `audit_log` ditulis lebih dulu: `tabel` = `fai_ipd`, `baris_id` = id inspeksi, `aksi` = `LIHAT_JALUR`, `user_id`, `device_id`, `ip`, dan `keterangan` = jumlah titik yang dikirim (mis. `"182 titik"`). Pembukaan ulang inspeksi yang sama oleh pengguna yang sama dalam 10 menit tidak mencatat baris baru (web memuat ulang rincian berkali-kali). Bila pencatatan gagal, permintaan dijawab 500 dan jalur **tidak** dikirim. Baris ini bisa dicari di `GET /api/admin/audit?aksi=LIHAT_JALUR`. Rincian tanpa jalur (mandor, atau inspeksi tanpa jalur) tidak mencatat apa pun.
+
+**Penyimpanan jalur.** Bila server dijalankan dengan `FAI26_JEJAK_SIMPAN_HARI=N` (N > 0), tugas latar memeriksa tiap 6 jam dan menghapus titik jalur inspeksi yang tanggal inspeksinya lebih dari N hari lalu **dan** statusnya bukan `MENUNGGU` (yang menunggu asisten masih bisa dikirim ulang). Hanya titik di `fai_ipd_jejak` yang dihapus; inspeksi, pokok, temuan, dan foto tetap. Tiap pembersihan yang menghapus sesuatu menulis satu baris audit `HAPUS_JEJAK_LAMA` (`tabel` = `fai_ipd_jejak`, `baris_id` = tanggal batas, `keterangan` = `"120 titik dari 3 inspeksi sebelum 2026-08-24"`). Setelah dihapus, `jejak` bernilai `null`. Bawaan `0` berarti jalur disimpan tanpa batas.
+
 **200**
 
 ```json
@@ -1155,6 +1159,7 @@ Bila pemanggil memegang **`ipd.jejak`** (asisten, askep, KTU, admin; mandor tida
 
 | Tanggal | Versi | Perubahan |
 |---|---|---|
+| 22 Nov 2026 | 0.21.0 | **Keamanan data lokasi (jalur GPS).** Tanpa endpoint baru dan tanpa perubahan bentuk jawaban. `GET /api/admin/ipd/{id}` kini menulis audit `LIHAT_JALUR` setiap jalur dikirim (siapa, perangkat, IP, jumlah titik; sekali per 10 menit untuk pengguna dan inspeksi yang sama) dan tidak mengirim jalur bila pencatatan gagal. Pengaturan baru `FAI26_JEJAK_SIMPAN_HARI` (bawaan 0 = tanpa batas) mengaktifkan penghapusan jalur inspeksi yang sudah diperiksa dan lebih tua dari N hari, dicatat sebagai audit `HAPUS_JEJAK_LAMA`. Filter `aksi` pada audit menerima nilai baru ini tanpa perubahan. |
 | 22 Nov 2026 | 0.20.1 | `GET /api/admin/panen`: filter `status_erp` kini juga menerima `MENUNGGU` (catatan yang belum disetujui krani); sebelumnya dijawab 422 walau catatan berstatus itu tampil di daftar tanpa filter. Dipakai halaman web Persetujuan Tertunda. Perbaikan saja: nilai lain dan bentuk jawaban tidak berubah. |
 | 21 Nov 2026 | 0.20.0 | **Jalur GPS inspeksi IPD.** `POST /api/ipd` menerima `jejak` (titik GPS, maksimal 20000) dan `pokok[].dicatat_pada`; `GET /api/admin/ipd/{id}` menambah `pokok[].dicatat_pada` dan `jejak` (titik, `jarak_m`, `durasi_menit`; hanya untuk pemegang permission baru **`ipd.jejak`**: ASISTEN, ASKEP, KTU, ADMIN, null untuk yang lain). Perlu migrasi `012_jejak_ipd.sql` (tabel `fai_ipd_jejak`, kolom `fai_ipd_pokok.dicatat_pada`, permission `ipd.jejak`). Penambahan saja: HP lama tanpa jalur tetap diterima. |
 | 21 Nov 2026 | 0.19.0 | **Foto profil akun.** Endpoint baru `PUT /api/auth/foto`, `GET /api/auth/foto`, `DELETE /api/auth/foto` (tiap akun mengelola fotonya sendiri; diproses server menjadi JPEG persegi 384 px). Objek profil (`login`, `me`) menambah `foto_versi`. Perlu migrasi `011_foto_profil.sql`. Penambahan saja: tidak ada yang berubah untuk klien lama. |

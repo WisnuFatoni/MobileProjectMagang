@@ -34,6 +34,9 @@ func main() {
 		ReadTimeout:       60 * time.Second,
 		WriteTimeout:      60 * time.Second,
 	}
+	ctxPerawatan, hentiPerawatan := context.WithCancel(context.Background())
+	defer hentiPerawatan()
+	go app.JalankanPerawatan(ctxPerawatan, cfg, db)
 	go func() {
 		log.Printf("fai26-api mendengar di %s", cfg.Addr)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -44,6 +47,7 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
+	hentiPerawatan()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_ = srv.Shutdown(ctx)

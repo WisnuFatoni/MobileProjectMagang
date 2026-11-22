@@ -692,6 +692,10 @@ public class IpdInspeksiActivity extends AppCompatActivity {
             perbaruiTeksJejak();
         });
         k.addView(swJejak, IpdUi.lebarPenuh(c, 0, 0));
+        // Pemberitahuan privasi: petugas tahu apa yang direkam, kapan, dan siapa yang bisa melihatnya.
+        TextView txtPrivasi = IpdUi.redup(c, "Lokasi hanya direkam selama inspeksi ini. Hanya asisten, askep, dan KTU yang bisa melihat jalurnya, dan setiap pembukaan tercatat.", 12);
+        txtPrivasi.setPadding(IpdUi.dp(c, 2), 0, 0, IpdUi.dp(c, 2));
+        k.addView(txtPrivasi);
         txtJejak = IpdUi.redup(c, "", 12);
         txtJejak.setPadding(IpdUi.dp(c, 2), 0, 0, IpdUi.dp(c, 8));
         k.addView(txtJejak);

@@ -177,6 +177,6 @@ Hasil Review Sprint 2 dan persiapan Sprint 3. Butir yang mengubah pengaturan kom
 | 22-5 | Konfirmasi pada tombol Setujui catatan panen | **Selesai 22 Nov** (dialog pada Setujui dan Setujui semua) |
 | 22-6 | Notifikasi push persetujuan (butuh akun Firebase) | Mau dibuat atau cukup penanda di aplikasi? |
 | 22-7 | Peta monitoring gabungan dan histori per pengguna | Mau dibuat? Prioritasnya |
-| 22-8 | Kebijakan data lokasi: berapa lama jalur disimpan dan siapa boleh melihat | Keputusan Ptoni dan pembimbing |
+| 22-8 | Kebijakan data lokasi: berapa lama jalur disimpan dan siapa boleh melihat. **Sarana sudah ada (hari 106):** `FAI26_JEJAK_SIMPAN_HARI` (bawaan 0 = tanpa batas) dan audit `LIHAT_JALUR`. Usulan 90 hari belum diputuskan; perlu juga umur cadangan database | Keputusan Ptoni dan pembimbing |
 | 22-9 | TCode ERP untuk membaca data IPD | Dari pihak ERP; belum ada |
 | 22-10 | Rekam koordinat TPH: mulai dari blok mana | Blok prioritas |

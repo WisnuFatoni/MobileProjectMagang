@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -10,6 +11,7 @@ import (
 	"testing"
 
 	"fai26-api/internal/model"
+	"fai26-api/internal/repository"
 )
 
 // Perangkat uji IPD (satu HP per akun).
@@ -411,6 +413,19 @@ WHERE p.ipd_id=@p1 AND p.dihapus_pada IS NULL AND t.dihapus_pada IS NULL AND k.k
 	if da := e.json("GET", "/api/admin/ipd/"+id, ak.AccessToken, nil, 200); da["jejak"] == nil {
 		t.Fatal("ASKEP harus bisa melihat jejak")
 	}
+	// Audit: setiap pembukaan jalur tercatat siapa, dari mana, dan berapa titik. Mandor tidak menerima jalur sehingga tidak
+	// tercatat; membuka ulang dalam 10 menit oleh orang yang sama tidak menambah baris.
+	e.json("GET", "/api/admin/ipd/"+id, ad.AccessToken, nil, 200)
+	if n := hitung(t, e.db, `SELECT COUNT(*) FROM dbo.audit_log WHERE aksi='LIHAT_JALUR' AND tabel='fai_ipd' AND baris_id=@p1`, id); n != 2 {
+		t.Fatalf("LIHAT_JALUR harus 2 baris (admin dan ASKEP, tanpa duplikat dan tanpa mandor): %d", n)
+	}
+	var ketLihat, ipLihat, devLihat string
+	if err := e.db.QueryRow(`SELECT TOP 1 keterangan, ISNULL(ip,''), ISNULL(device_id,'') FROM dbo.audit_log WHERE aksi='LIHAT_JALUR' AND baris_id=@p1 AND device_id=@p2`, id, devIpdAskep).Scan(&ketLihat, &ipLihat, &devLihat); err != nil {
+		t.Fatalf("baris audit ASKEP: %v", err)
+	}
+	if ketLihat != "3 titik" || ipLihat == "" {
+		t.Fatalf("audit harus memuat jumlah titik dan alamat IP: %q %q", ketLihat, ipLihat)
+	}
 	e.json("GET", "/api/admin/ipd/bbbb0099-0000-4000-8000-000000000099", ad.AccessToken, nil, 404)
 	e.json("GET", "/api/admin/ipd/bukan-uuid", ad.AccessToken, nil, 422)
 
@@ -429,5 +444,50 @@ WHERE p.ipd_id=@p1 AND p.dihapus_pada IS NULL AND t.dihapus_pada IS NULL AND k.k
 	}
 	if kode, _ := e.kirim("GET", "/api/admin/ipd/laporan", kr.AccessToken, nil, nil); kode != 403 {
 		t.Fatalf("krani tidak boleh melihat laporan IPD: %d", kode)
+	}
+
+	// ---- Kebijakan penyimpanan jalur GPS ----
+	// Yang sudah selesai diperiksa dan lebih tua dari batas dihapus jalurnya; yang masih MENUNGGU tetap (masih bisa dikirim
+	// ulang); data inspeksi lain tidak tersentuh; penghapusan tercatat di audit dan tidak berulang bila dijalankan lagi.
+	repoIpd := repository.NewIpdRepository(e.db)
+	ctxBersih := context.Background()
+	titikSelesai := hitung(t, e.db, `SELECT COUNT(*) FROM dbo.fai_ipd_jejak j JOIN dbo.fai_ipd i ON i.id=j.ipd_id WHERE i.status<>'MENUNGGU'`)
+	inspeksiSelesai := hitung(t, e.db, `SELECT COUNT(DISTINCT j.ipd_id) FROM dbo.fai_ipd_jejak j JOIN dbo.fai_ipd i ON i.id=j.ipd_id WHERE i.status<>'MENUNGGU'`)
+	titikMenunggu := hitung(t, e.db, `SELECT COUNT(*) FROM dbo.fai_ipd_jejak j JOIN dbo.fai_ipd i ON i.id=j.ipd_id WHERE i.status='MENUNGGU'`)
+	pokokSebelum := hitung(t, e.db, `SELECT COUNT(*) FROM dbo.fai_ipd_pokok`)
+	if titikSelesai == 0 || titikMenunggu == 0 {
+		t.Fatalf("bahan uji harus punya jalur selesai (%d) dan menunggu (%d)", titikSelesai, titikMenunggu)
+	}
+	if h, err := repoIpd.HapusJalurSebelum(ctxBersih, "2020-01-01"); err != nil || h.Titik != 0 || h.Inspeksi != 0 {
+		t.Fatalf("batas lama tidak boleh menghapus: %v %+v", err, h)
+	}
+	if n := hitung(t, e.db, `SELECT COUNT(*) FROM dbo.audit_log WHERE aksi='HAPUS_JEJAK_LAMA'`); n != 0 {
+		t.Fatalf("tanpa penghapusan tidak boleh ada audit: %d", n)
+	}
+	hasil, errBersih := repoIpd.HapusJalurSebelum(ctxBersih, "2099-01-01")
+	if errBersih != nil || hasil.Titik != titikSelesai || hasil.Inspeksi != inspeksiSelesai {
+		t.Fatalf("hasil pembersihan: %v %+v (harapan %d titik, %d inspeksi)", errBersih, hasil, titikSelesai, inspeksiSelesai)
+	}
+	if hitung(t, e.db, `SELECT COUNT(*) FROM dbo.fai_ipd_jejak j JOIN dbo.fai_ipd i ON i.id=j.ipd_id WHERE i.status<>'MENUNGGU'`) != 0 ||
+		hitung(t, e.db, `SELECT COUNT(*) FROM dbo.fai_ipd_jejak j JOIN dbo.fai_ipd i ON i.id=j.ipd_id WHERE i.status='MENUNGGU'`) != titikMenunggu {
+		t.Fatal("jalur yang selesai harus hilang, yang menunggu harus tetap")
+	}
+	if hitung(t, e.db, `SELECT COUNT(*) FROM dbo.fai_ipd_pokok`) != pokokSebelum {
+		t.Fatal("data pokok inspeksi tidak boleh ikut terhapus")
+	}
+	var ketBersih string
+	if err := e.db.QueryRow(`SELECT keterangan FROM dbo.audit_log WHERE aksi='HAPUS_JEJAK_LAMA'`).Scan(&ketBersih); err != nil ||
+		ketBersih != fmt.Sprintf("%d titik dari %d inspeksi sebelum 2099-01-01", titikSelesai, inspeksiSelesai) {
+		t.Fatalf("audit pembersihan: %q %v", ketBersih, err)
+	}
+	if h, err := repoIpd.HapusJalurSebelum(ctxBersih, "2099-01-01"); err != nil || h.Titik != 0 {
+		t.Fatalf("ulang harus kosong: %v %+v", err, h)
+	}
+	if n := hitung(t, e.db, `SELECT COUNT(*) FROM dbo.audit_log WHERE aksi='HAPUS_JEJAK_LAMA'`); n != 1 {
+		t.Fatalf("audit tidak boleh bertambah: %d", n)
+	}
+	// Setelah dihapus, rincian di web tidak lagi memuat jalur (sama seperti inspeksi tanpa jalur).
+	if d := e.json("GET", "/api/admin/ipd/"+id, ad.AccessToken, nil, 200); d["jejak"] != nil {
+		t.Fatalf("jalur yang sudah dihapus harus null: %v", d["jejak"])
 	}
 }

@@ -321,6 +321,12 @@ type IpdDetail struct {
 	Jejak *IpdJejak     `json:"jejak"`
 }
 
+// HasilBersihJejak adalah ringkasan satu kali pembersihan jalur GPS lama.
+type HasilBersihJejak struct {
+	Inspeksi int // jumlah inspeksi yang jalurnya dihapus
+	Titik    int // jumlah titik GPS yang dihapus
+}
+
 // FilterIpd adalah penyaring daftar inspeksi di web.
 type FilterIpd struct {
 	Dari, Sampai string

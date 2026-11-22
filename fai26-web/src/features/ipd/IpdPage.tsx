@@ -235,6 +235,9 @@ function IpdDetailDrawer({ id, onTutup }: { id: string | null; onTutup: () => vo
             <Typography.Title level={5}>Jalur inspeksi</Typography.Title>
             {d.jejak ? (
               <Suspense fallback={<Skeleton active paragraph={{ rows: 6 }} />}>
+                <Typography.Paragraph type="secondary" style={{ fontSize: 12 }}>
+                  Ini data lokasi petugas. Setiap kali jalur dibuka, tercatat di menu Audit (aksi LIHAT_JALUR) siapa yang membukanya.
+                </Typography.Paragraph>
                 <JalurPeta
                   jejak={d.jejak}
                   pokok={d.pokok}
@@ -244,7 +247,7 @@ function IpdDetailDrawer({ id, onTutup }: { id: string | null; onTutup: () => vo
               </Suspense>
             ) : (
               <Typography.Text type="secondary">
-                Tidak ada jalur GPS: HP tidak mengirim jalur untuk inspeksi ini, atau akun ini tidak punya hak melihat jalur.
+                Tidak ada jalur GPS: HP tidak mengirim jalur untuk inspeksi ini, akun ini tidak punya hak melihat jalur, atau jalurnya sudah dihapus sesuai kebijakan penyimpanan.
               </Typography.Text>
             )}
           </div>

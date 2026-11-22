@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"math"
 	"strings"
 	"testing"
@@ -87,19 +88,84 @@ func TestDetailHanyaMemuatJejakUntukPemegangHak(t *testing.T) {
 	r.users.aktif[50] = true
 
 	tanpaHak := &auth.Klaim{UserID: 20, UnitID: 1} // mandor: ipd.lihat saja
-	d, err := r.svc.Detail(context.Background(), tanpaHak, id)
+	d, err := r.svc.Detail(context.Background(), tanpaHak, id, "10.0.0.5")
 	if err != nil || d.Jejak != nil {
 		t.Fatalf("tanpa ipd.jejak harus null: %v %+v", err, d)
 	}
 	denganHak := &auth.Klaim{UserID: 50, UnitID: 1}
-	d, err = r.svc.Detail(context.Background(), denganHak, id)
+	d, err = r.svc.Detail(context.Background(), denganHak, id, "10.0.0.5")
 	if err != nil || d.Jejak == nil || len(d.Jejak.Titik) != 2 || d.Jejak.DurasiMenit != 4 || d.Jejak.JarakM < 50 {
 		t.Fatalf("dengan ipd.jejak: %v %+v", err, d.Jejak)
 	}
 	// Tidak ada jalur terkirim: tetap null walau berhak.
 	r.repo.jejak = nil
-	d, _ = r.svc.Detail(context.Background(), denganHak, id)
+	d, _ = r.svc.Detail(context.Background(), denganHak, id, "10.0.0.5")
 	if d.Jejak != nil {
 		t.Fatalf("tanpa titik harus null: %+v", d.Jejak)
+	}
+}
+
+func TestPembukaanJalurDicatatAuditHanyaBilaJalurDikirim(t *testing.T) {
+	r := rakitIpd()
+	id := "bbbb0001-0000-4000-8000-000000000001"
+	r.repo.baris = &model.IpdBaris{ID: id, Status: "DISETUJUI"}
+	r.repo.jejak = []model.IpdTitikOut{titikUji(0, -2.7, 104.3), titikUji(4, -2.6995, 104.3)}
+	r.users.perms[50] = []string{"ipd.lihat", "ipd.jejak"}
+	r.users.aktif[50] = true
+	ctx := context.Background()
+
+	// Tanpa hak: jalur tidak dikirim, jadi tidak ada yang perlu dicatat.
+	if _, err := r.svc.Detail(ctx, &auth.Klaim{UserID: 20, UnitID: 1}, id, "10.0.0.5"); err != nil || len(r.repo.dilihat) != 0 {
+		t.Fatalf("tanpa hak tidak boleh tercatat: %v %+v", err, r.repo.dilihat)
+	}
+	// Berhak: tercatat dengan pengguna, perangkat, IP, inspeksi, dan jumlah titik.
+	if _, err := r.svc.Detail(ctx, &auth.Klaim{UserID: 50, UnitID: 1, DeviceID: "dev-web"}, id, "10.0.0.7"); err != nil {
+		t.Fatal(err)
+	}
+	want := catatanLihat{uid: 50, dev: "dev-web", ip: "10.0.0.7", id: id, titik: 2}
+	if len(r.repo.dilihat) != 1 || r.repo.dilihat[0] != want {
+		t.Fatalf("audit lihat jalur: %+v", r.repo.dilihat)
+	}
+	// Berhak tetapi tidak ada jalur: tidak ada data lokasi yang dibuka, tidak dicatat.
+	r.repo.jejak = nil
+	if _, err := r.svc.Detail(ctx, &auth.Klaim{UserID: 50, UnitID: 1}, id, "10.0.0.7"); err != nil || len(r.repo.dilihat) != 1 {
+		t.Fatalf("tanpa jalur tidak boleh tercatat: %v %+v", err, r.repo.dilihat)
+	}
+}
+
+func TestJalurTidakDikirimBilaPencatatanAuditGagal(t *testing.T) {
+	r := rakitIpd()
+	id := "bbbb0001-0000-4000-8000-000000000001"
+	r.repo.baris = &model.IpdBaris{ID: id, Status: "DISETUJUI"}
+	r.repo.jejak = []model.IpdTitikOut{titikUji(0, -2.7, 104.3), titikUji(4, -2.6995, 104.3)}
+	r.users.perms[50] = []string{"ipd.lihat", "ipd.jejak"}
+	r.users.aktif[50] = true
+	r.repo.lihatErr = errors.New("db mati")
+	d, err := r.svc.Detail(context.Background(), &auth.Klaim{UserID: 50, UnitID: 1}, id, "10.0.0.7")
+	if err == nil || d != nil {
+		t.Fatalf("gagal mencatat harus menggagalkan permintaan, bukan membocorkan jalur: %v %+v", err, d)
+	}
+}
+
+func TestBersihkanJejakMemakaiBatasHariDanMatiBilaNol(t *testing.T) {
+	r := rakitIpd()
+	r.svc.sekarang = func() time.Time { return time.Date(2026, 11, 22, 10, 0, 0, 0, time.UTC) }
+	ctx := context.Background()
+
+	// 0 hari = kebijakan tidak aktif: repo tidak disentuh.
+	if h, err := r.svc.BersihkanJejak(ctx, 0); err != nil || h.Titik != 0 || r.repo.batasBersih != "" {
+		t.Fatalf("0 hari harus tidak menghapus: %v %+v batas=%q", err, h, r.repo.batasBersih)
+	}
+	r.repo.hasilBersih = model.HasilBersihJejak{Inspeksi: 3, Titik: 120}
+	h, err := r.svc.BersihkanJejak(ctx, 90)
+	if err != nil || h.Inspeksi != 3 || h.Titik != 120 {
+		t.Fatalf("hasil: %v %+v", err, h)
+	}
+	if r.repo.batasBersih != "2026-08-24" { // 90 hari sebelum 22 Nov 2026
+		t.Fatalf("batas tanggal salah: %q", r.repo.batasBersih)
+	}
+	r.repo.bersihErr = errors.New("db mati")
+	if _, err := r.svc.BersihkanJejak(ctx, 90); err == nil {
+		t.Fatal("galat repo harus dikembalikan")
 	}
 }

@@ -21,6 +21,7 @@ type Config struct {
 
 	BatasLoginPerMenit int  // permintaan login dan refresh per menit per alamat IP; 0 berarti tanpa batas
 	BatasUmumPerMenit  int  // semua permintaan API per menit per alamat IP; 0 berarti tanpa batas
+	JejakSimpanHari    int  // jalur GPS inspeksi yang sudah diperiksa dihapus setelah sekian hari; 0 berarti disimpan tanpa batas
 	PercayaiProxy      bool // percayai header X-Forwarded-For (hanya bila berada di belakang reverse proxy sendiri)
 }
 
@@ -42,6 +43,7 @@ func Muat() (Config, error) {
 		// Bawaan longgar: satu kebun bisa memakai satu alamat IP bersama (NAT operator) untuk banyak HP.
 		BatasLoginPerMenit: bilangan("FAI26_BATAS_LOGIN", 30),
 		BatasUmumPerMenit:  bilangan("FAI26_BATAS_UMUM", 600),
+		JejakSimpanHari:    bilangan("FAI26_JEJAK_SIMPAN_HARI", 0),
 		PercayaiProxy:      os.Getenv("FAI26_PERCAYAI_PROXY") == "true",
 	}
 	if c.DSN == "" {

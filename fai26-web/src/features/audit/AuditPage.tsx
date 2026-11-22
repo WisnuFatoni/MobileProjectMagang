@@ -12,7 +12,7 @@ import { rapikanJson } from './rapikan'
 
 const HALAMAN = 25
 const TABEL = ['app_user', 'blok', 'divisi', 'device', 'fai_panen', 'panen_header', 'panen_grading', 'pemanen', 'tph']
-const WARNA_AKSI: Record<string, string> = { BUAT: 'green', UBAH: 'blue', HAPUS: 'red', LOGIN: 'cyan', LOGIN_GAGAL: 'orange', SETUJU: 'purple', TERIMA: 'green', RESET_PASSWORD: 'gold', AKTIFKAN: 'green', NONAKTIFKAN: 'red' }
+const WARNA_AKSI: Record<string, string> = { BUAT: 'green', UBAH: 'blue', HAPUS: 'red', LOGIN: 'cyan', LOGIN_GAGAL: 'orange', SETUJU: 'purple', TERIMA: 'green', RESET_PASSWORD: 'gold', AKTIFKAN: 'green', NONAKTIFKAN: 'red', LIHAT_JALUR: 'magenta', HAPUS_JEJAK_LAMA: 'volcano' }
 
 export function AuditPage() {
   const [params, setParams] = useSearchParams()

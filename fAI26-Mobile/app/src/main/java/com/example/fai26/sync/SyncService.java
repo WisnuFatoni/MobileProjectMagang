@@ -461,6 +461,7 @@ public class SyncService {
                     ipd.setStatusKirim(id, com.example.fai26.db.IpdRepository.DISETUJUI, waktuKunci,
                             "Perubahan tidak diterima: " + e.getMessage() + ". Isi di server adalah versi yang disetujui asisten.");
                     ipd.resetKirimUlang(id);
+                    ipd.hapusJejakTerkunci();
                     dao.updateQueue(q.queueId, "SELESAI", q.percobaan, e.getMessage(), waktuKunci);
                 });
                 hasil.terkunci++;
@@ -475,6 +476,7 @@ public class SyncService {
         db.runInTransaction(() -> {
             ipd.setStatusKirim(id, langsungSah ? com.example.fai26.db.IpdRepository.DISETUJUI : com.example.fai26.db.IpdRepository.MENUNGGU_SETUJU, waktu, null);
             if (h.kirimUlang != 0) ipd.resetKirimUlang(id);
+            ipd.hapusJejakTerkunci();
             dao.updateQueue(q.queueId, "SELESAI", q.percobaan, null, waktu);
             for (com.example.fai26.db.dao.IpdHasil.FotoKirim f : foto) {
                 SyncQueue fq = new SyncQueue();
@@ -675,6 +677,7 @@ public class SyncService {
         final int[] berubah = {0};
         db.runInTransaction(() -> {
             for (ServerApi.StatusItem s : salinan) berubah[0] += db.ipdDao().setStatusServer(s.id, s.status, s.pesan, waktu);
+            db.ipdDao().hapusJejakTerkunci();
         });
         for (ServerApi.StatusItem s : daftar) terbaru = Math.max(terbaru, s.diubahMillis);
         pref.aturStatusIpdSejak(terbaru);

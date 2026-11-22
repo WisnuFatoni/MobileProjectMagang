@@ -85,6 +85,14 @@ public interface IpdDao {
     @Query("DELETE FROM ipd_jejak WHERE ipd_id = :id")
     void hapusJejak(String id);
 
+    /**
+     * Menghapus jalur GPS di HP untuk inspeksi yang sudah DISETUJUI. Setelah itu inspeksi terkunci dan tidak pernah dikirim
+     * ulang, jadi jalurnya tidak dibutuhkan lagi di HP (salinan yang sah ada di server). Yang masih draf, menunggu, atau
+     * ditolak tetap, karena bisa dikirim ulang.
+     */
+    @Query("DELETE FROM ipd_jejak WHERE ipd_id IN (SELECT ipd_id FROM ipd_header WHERE status = 'DISETUJUI')")
+    int hapusJejakTerkunci();
+
     // ---- Memuat ulang -----------------------------------------------------------------------------
 
     @Query("SELECT p.no_baris AS noBaris, p.no_pokok AS noPokok, k.kode AS kode, t.jumlah AS jumlah, p.dibuat_pada AS dicatat FROM ipd_pokok p "

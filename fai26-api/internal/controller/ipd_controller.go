@@ -158,7 +158,7 @@ func (c *IpdController) DaftarAdmin(w http.ResponseWriter, r *http.Request) {
 
 // Detail: GET /api/admin/ipd/{id}
 func (c *IpdController) Detail(w http.ResponseWriter, r *http.Request) {
-	out, err := c.svc.Detail(r.Context(), auth.KlaimDari(r.Context()), r.PathValue("id"))
+	out, err := c.svc.Detail(r.Context(), auth.KlaimDari(r.Context()), r.PathValue("id"), ipDari(r))
 	if err != nil {
 		response.Error(w, r, err)
 		return

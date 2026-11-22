@@ -32,6 +32,19 @@ type fakeIpd struct {
 	fotoSimpan []model.IpdFoto
 	baris      *model.IpdBaris
 	jejak      []model.IpdTitikOut
+
+	dilihat     []catatanLihat // pembukaan jalur yang dicatat audit
+	lihatErr    error
+	batasBersih string
+	hasilBersih model.HasilBersihJejak
+	bersihErr   error
+}
+
+type catatanLihat struct {
+	uid     int64
+	dev, ip string
+	id      string
+	titik   int
 }
 
 func newFakeIpd() *fakeIpd {
@@ -93,6 +106,17 @@ func (f *fakeIpd) Baris(context.Context, int64, string) (*model.IpdBaris, error)
 	return nil, repository.ErrNotFound
 }
 func (f *fakeIpd) Jejak(context.Context, string) ([]model.IpdTitikOut, error) { return f.jejak, nil }
+func (f *fakeIpd) CatatLihatJalur(_ context.Context, uid int64, dev, ip, id string, titik int) error {
+	if f.lihatErr != nil {
+		return f.lihatErr
+	}
+	f.dilihat = append(f.dilihat, catatanLihat{uid, dev, ip, id, titik})
+	return nil
+}
+func (f *fakeIpd) HapusJalurSebelum(_ context.Context, batas string) (model.HasilBersihJejak, error) {
+	f.batasBersih = batas
+	return f.hasilBersih, f.bersihErr
+}
 func (f *fakeIpd) Pokok(context.Context, string) ([]model.IpdPokokOut, error) { return nil, nil }
 func (f *fakeIpd) Mentah(context.Context, []string) (map[string]*model.IpdMentah, error) {
 	return map[string]*model.IpdMentah{}, nil
