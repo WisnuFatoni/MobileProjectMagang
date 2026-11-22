@@ -1,0 +1,33 @@
+flowchart LR
+    subgraph LEG["Keterangan warna"]
+        direction TB
+        L1["Hijau: milik fAI26<br/>(Android, API, database fai26)"]
+        L2["Oranye: modul ERP yang DITULIS<br/>lewat kode impor"]
+        L3["Biru: modul ERP yang hanya DIBACA"]
+        L4["Abu putus-putus: tidak disentuh"]
+    end
+
+    F1["Android:<br/>login dan hak akses"] --> E1["/api/auth/*"] --> D1["app_user, role,<br/>permission, user_role"]
+    F2["Android:<br/>pilih blok dan TPH, scan QR"] --> E2["/api/master/*"]
+    F4["Android:<br/>kirim dan lihat status"] --> E4["/api/panen?sejak"] --> D3["fai_impor_log<br/>dan status_erp"]
+    F3["Android:<br/>pindai TPH dengan video,<br/>AI deteksi dan hitung"] --> E3["/api/panen<br/>/api/panen/id/media"] --> D2["fai_panen, fai_panen_grading,<br/>fai_panen_pemanen, fai_media"]
+    F4 --> E3
+
+    D2 -->|"dibaca TCode"| W["TULIS: TCode HVDM<br/>(Copy dari HVD1)<br/>header dan detail grading<br/>struktur salinan hvd1m dan hvd1da"]
+    W -->|"hasil impor"| D3
+
+    E2 -.->|"salin master"| R1["BACA: master blok<br/>tabel asm3"]
+    E2 -.->|"salin master"| R2["BACA: master pemanen<br/>kode HRMBCODE<br/>nama tabel perlu dicek"]
+    E2 -.->|"salin master"| R3["BACA: periode rotasi<br/>kolom ROTASI<br/>sumber perlu dicek"]
+    E2 -.->|"salin master"| R4["BACA opsional: jenis premi<br/>tabel pcm3"]
+
+    W ~~~ N["TIDAK DISENTUH<br/>TCMA, TCDA, TCRA (tiket),<br/>SU0W, modul lain"]
+
+    classDef write fill:#ffe6cc,stroke:#d36a00,color:#111,stroke-width:2px
+    classDef read fill:#e3f0fb,stroke:#1565c0,color:#111
+    classDef none fill:#eeeeee,stroke:#9e9e9e,color:#555,stroke-dasharray: 4 3
+    classDef mine fill:#e8f4ea,stroke:#2e7d32,color:#111
+    class W,L2 write
+    class R1,R2,R3,R4,L3 read
+    class N,L4 none
+    class F1,F2,F3,F4,E1,E2,E3,E4,D1,D2,D3,L1 mine

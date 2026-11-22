@@ -1,0 +1,18 @@
+flowchart TB
+    L(["Login"]) --> H["HOME<br/>menu bawah: Home, Akun"]
+    H --> KP["Kotak PANEN<br/>muncul bila punya akses.panen"]
+    H --> KI["Kotak IPD<br/>muncul bila punya akses.ipd"]
+    H --> AK["Akun"]
+
+    KP --> P["Mode PANEN<br/>menu bawah: Home, Beranda panen, Riwayat,<br/>Persetujuan (bila panen.setujui), Akun"]
+    P --> P1["Beranda panen: ringkasan hari ini, mulai di TPH,<br/>scan QR, scan TBS, Hasil (tidak berubah)"]
+    P --> P2["Riwayat catatan panen"]
+    P --> P3["Persetujuan krani"]
+
+    KI --> I["Mode IPD<br/>menu bawah: Home, Mulai inspeksi, Riwayat IPD,<br/>Persetujuan IPD (bila ipd.setujui), Akun"]
+    I --> I1["Mulai inspeksi: kepala catatan, pokok per pokok, foto, kirim"]
+    I --> I2["Riwayat IPD: draf, menunggu asisten, disetujui, ditolak"]
+    I --> I3["Persetujuan IPD (asisten)"]
+
+    P -. "tombol Home" .-> H
+    I -. "tombol Home" .-> H

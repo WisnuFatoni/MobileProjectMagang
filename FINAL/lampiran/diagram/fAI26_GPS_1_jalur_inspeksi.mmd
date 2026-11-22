@@ -1,0 +1,31 @@
+sequenceDiagram
+    autonumber
+    actor I as Inspektur (HP)
+    participant A as IpdInspeksiActivity
+    participant S as JejakService<br/>(layanan latar depan)
+    participant R as Room: ipd_jejak
+    participant API as API fai26
+    participant DB as SQL Server<br/>fai_ipd_jejak
+    actor W as Asisten, Askep, KTU, Admin (web)
+
+    I->>A: Buka langkah "Pokok" (sakelar Rekam jalur GPS aktif)
+    A->>A: Periksa izin lokasi (minta bila belum ada)
+    A->>S: mulai(ipd_id)
+    S->>I: Notifikasi tetap "Merekam jalur inspeksi" (tombol Hentikan)
+    loop Tiap pembaruan GPS (minimal 1 detik, bergeser 3 meter)
+        S->>S: FilterJejak: akurasi 25 m atau lebih baik, jarak 3 m atau lebih dari titik tercatat
+        S->>R: Simpan titik (waktu UTC, lat, lon, akurasi)
+    end
+    I->>A: Catat pokok (waktu tiap pokok disimpan)
+    I->>A: Tutup layar inspeksi atau matikan sakelar
+    A->>S: berhenti()
+    Note over S: Pengaman: berhenti sendiri setelah 8 jam
+    A->>API: POST /api/ipd (inspeksi, jejak[] maks 20000 titik, pokok[].dicatat_pada)
+    API->>DB: Simpan jalur (kirim ulang mengganti seluruh jalur)
+    W->>API: GET /api/admin/ipd/{id}
+    alt Pemegang hak ipd.jejak
+        API-->>W: jejak: titik, jarak_m, durasi_menit (dihitung server)
+        W->>W: Peta Leaflet: garis, Mulai dan Selesai, penanda pokok (waktu terdekat, maks 10 menit)
+    else Tanpa hak ipd.jejak (misalnya mandor)
+        API-->>W: jejak: null
+    end

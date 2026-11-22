@@ -1,0 +1,82 @@
+sequenceDiagram
+    autonumber
+    actor K as Krani
+    participant APP as Aplikasi fAI26 (HP)
+    participant LDB as SQLite di HP
+    participant API as API Backend (Golang)
+    participant FDB as DB fai26 (SQL Server)
+    participant HV as mySAP365 TCode HVDM (Copy dari HVD1)
+    participant EDB as DB ERP (kp_stl2025)
+
+    rect rgb(232, 244, 234)
+    Note over K,EDB: A. Login pertama (wajib online)
+    K->>APP: isi username dan password
+    APP->>API: POST /api/auth/login (username, password, device_id)
+    API->>FDB: cek app_user, role, permission
+    FDB-->>API: data user dan hak akses
+    API->>FDB: simpan auth_sesi dan audit_log LOGIN
+    API-->>APP: access token, refresh token, role, permission
+    APP->>LDB: simpan user, role, permission, offline_hash
+    end
+
+    rect rgb(227, 240, 251)
+    Note over K,EDB: B. Sinkron master (saat ada sinyal)
+    APP->>API: GET /api/master/blok, tph, pemanen, periode (header JWT)
+    API->>EDB: SELECT master, hanya baca
+    EDB-->>API: blok, TPH, pemanen, rotasi
+    API-->>APP: daftar master dan versi_server
+    APP->>LDB: simpan master dan master_sync
+    end
+
+    rect rgb(255, 244, 220)
+    Note over K,EDB: C. Pindai TPH dengan video (boleh tanpa sinyal)
+    K->>APP: scan QR TPH
+    APP->>LDB: cari blok dan TPH dari kode QR
+    K->>APP: tekan MULAI, gerakkan kamera pelan menyisir tumpukan TBS
+    loop setiap frame kamera (sekitar 15 per detik)
+        APP->>APP: YOLOv8 mendeteksi kotak, kelas, confidence
+        APP->>APP: tracker beri ID unik, hitung janjang yang lolos gerbang kualitas
+        APP-->>K: tampilkan kotak deteksi dan hitungan langsung
+    end
+    K->>APP: tekan SELESAI
+    APP-->>K: ringkasan hitungan per kelas dan galeri keyframe
+    K->>APP: periksa dan koreksi jumlah
+    APP->>LDB: simpan panen_header, panen_grading, media (keyframe), audit_log
+    APP->>LDB: tambah antrean sync_queue status MENUNGGU
+    end
+
+    rect rgb(243, 232, 251)
+    Note over K,EDB: D. Kirim ke server (saat sinyal tersedia)
+    APP->>LDB: ambil antrean MENUNGGU
+    APP->>API: POST /api/panen (panen_id UUID, grading, pemanen)
+    API->>API: cek token dan permission panen.kirim
+    API->>FDB: cari id, bila belum ada INSERT fai_panen dan anak-anaknya
+    API->>FDB: INSERT audit_log TERIMA
+    API-->>APP: 201 dibuat, atau 200 bila id sudah ada
+    APP->>API: POST /api/panen/id/media (keyframe JPEG kecil)
+    API-->>APP: 201 media diterima
+    Note over APP,API: Klip video penuh (bila disimpan) hanya diunggah saat tersambung Wi-Fi.
+    APP->>LDB: status TERKIRIM, antrean SELESAI
+    Note over APP,API: Gagal atau timeout: antrean tetap, coba lagi bertahap. UUID mencegah data dobel.
+    end
+
+    rect rgb(255, 230, 204)
+    Note over K,EDB: E. Impor ke ERP lewat HVDM (dijalankan pengguna ERP)
+    HV->>FDB: SELECT fai_panen status BARU (tanggal, unit)
+    FDB-->>HV: daftar catatan panen
+    HV->>HV: validasi blok, pemanen, rotasi
+    HV->>EDB: simpan dokumen panen ke tabel HVDM lewat kode aplikasi
+    EDB-->>HV: OID dokumen dan nomor bukti
+    HV->>FDB: INSERT fai_impor_log, UPDATE status_erp DIIMPOR atau DITOLAK
+    HV->>FDB: INSERT audit_log IMPOR
+    end
+
+    rect rgb(232, 244, 234)
+    Note over K,EDB: F. Status kembali ke HP
+    APP->>API: GET /api/panen?sejak=waktu_terakhir
+    API->>FDB: baca status_erp dan pesan dari fai_impor_log
+    FDB-->>API: status per catatan
+    API-->>APP: DITERIMA atau DITOLAK dengan alasan
+    APP->>LDB: ubah status panen_header dan pesan_server
+    APP-->>K: tampilkan status di daftar catatan
+    end
