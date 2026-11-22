@@ -764,6 +764,12 @@ Tanggal panen menentukan rekap harian, rotasi, penguncian gaji, dan cluster tahu
 
 Aplikasi HP kini dibuka di **Home** dengan dua kotak: **Panen** (alur yang dijelaskan di dokumen ini) dan **IPD** (Inspeksi Panen Detail, mencatat loses di ancak pokok per pokok dengan kode temuan A, G, S, M1 sampai M4, B1, B2, C, R). Kotak yang tampil diatur lewat hak akses. Alur dan rumus IPD ada di `serah_terima_erp/fAI26_PANDUAN_LENGKAP.md` bab 21 dan `erd/fAI26_ERD_Database_Mobile.md` bab 13.
 
+## 18. Tambahan: jalur GPS inspeksi dan persetujuan (22 Nov 2026)
+
+**Jalur GPS inspeksi (IPD).** Selama inspektur mencatat pokok, HP merekam titik GPS tiap 3 meter lewat layanan latar depan (ada notifikasi tetap dan sakelar untuk mematikan). Titik berakurasi lebih buruk dari 25 meter dibuang. Jalur ikut terkirim bersama inspeksi dan tampil di web sebagai peta dengan penanda tiap pokok, **hanya bagi pemegang hak `ipd.jejak`** (asisten, askep, KTU, admin; mandor tidak). Tidak memakai izin lokasi latar belakang. Alur gambar: `flow/fAI26_GPS_1_jalur_inspeksi.mmd`. Rincian: `serah_terima_erp/fAI26_PANDUAN_LENGKAP.md` bab 21.
+
+**Persetujuan.** Catatan panen dari mandor berstatus MENUNGGU sampai krani menyetujui atau menolak (dengan alasan) di HP-nya lewat server; inspeksi IPD menunggu asisten yang tercatat pada divisinya. Setelah disetujui, data terkunci. Semua tindakan tercatat di audit log. Alur gambar: `flow/fAI26_PERSETUJUAN_1_alur.mmd`.
+
 ## Lampiran: yang sudah ada dan yang belum
 
 | Sudah | Belum |

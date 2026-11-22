@@ -1,6 +1,6 @@
 # fAI26: Pertanyaan dan Keputusan
 
-Pasangan dari [PROGRES.md](PROGRES.md). Terakhir diperbarui: 10 November 2026.
+Pasangan dari [PROGRES.md](PROGRES.md). Terakhir diperbarui: 22 November 2026 (ditambah bagian "Tambahan 22 Nov" di akhir).
 
 Tanda: **[Jawab]** dijawab Ptoni, **[ERP]** hasil pembacaan database ERP (dibawa Ptoni), **[Usulan]** rancangan dari saya, **[Buka]** belum selesai.
 
@@ -161,3 +161,22 @@ Dikorbankan lebih dulu bila waktu mepet: login online, layar admin, klip video, 
 | Pustaka SQLite | Ptoni pilih `drift`. Berlaku selama Flutter. Bila pindah native, ganti ke Room (lihat B0) | 10 Nov |
 | Klip video atau keyframe | Keyframe saja (usulan saya, menunggu persetujuan Ptoni) | 10 Nov |
 | Fitur GPS | Masuk aplikasi untuk memantau apakah pencatat benar-benar di lokasi TPH. Parameter (B12 sampai B17) menyusul | 10 Nov |
+
+---
+
+## Tambahan 22 Nov: butir menunggu keputusan Ptoni
+
+Hasil Review Sprint 2 dan persiapan Sprint 3. Butir yang mengubah pengaturan komputer atau server hanya dikerjakan setelah disetujui.
+
+| # | Butir | Keputusan yang dibutuhkan |
+|---|---|---|
+| 22-1 | Perbaiki token saat login offline sebagai pengguna lain (O-01) | Setuju diperbaiki sekarang? (mengubah alur login HP) |
+| 22-2 | HP tanpa kabel: jaringan lokal dan aturan firewall untuk port 8080, atau reverse proxy HTTPS | Setuju mengubah firewall? Alamat IP laptop atau server mana yang dipakai? |
+| 22-3 | Server sungguhan: alamat, akses, dan nama domain untuk HTTPS | Siapa yang memberi akses, kapan |
+| 22-4 | Jadwal uji lapangan (scan, GPS jalan kaki, IPD) | Hari, blok atau TPH, dan HP yang dipakai |
+| 22-5 | Konfirmasi pada tombol Setujui catatan panen | Mau ada dialog konfirmasi? |
+| 22-6 | Notifikasi push persetujuan (butuh akun Firebase) | Mau dibuat atau cukup penanda di aplikasi? |
+| 22-7 | Peta monitoring gabungan dan histori per pengguna | Mau dibuat? Prioritasnya |
+| 22-8 | Kebijakan data lokasi: berapa lama jalur disimpan dan siapa boleh melihat | Keputusan Ptoni dan pembimbing |
+| 22-9 | TCode ERP untuk membaca data IPD | Dari pihak ERP; belum ada |
+| 22-10 | Rekam koordinat TPH: mulai dari blok mana | Blok prioritas |

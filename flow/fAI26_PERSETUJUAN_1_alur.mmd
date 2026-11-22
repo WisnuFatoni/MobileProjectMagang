@@ -1,0 +1,33 @@
+flowchart TB
+    subgraph P["A. CATATAN PANEN: mandor ke krani ke ERP"]
+        direction TB
+        P1(["Mandor kirim catatan<br/>POST /api/panen"]) --> P2{"Pengirim memegang<br/>panen.setujui?"}
+        P2 -->|"tidak (mandor)"| P3["Status MENUNGGU<br/>(di HP: Menunggu krani)"]
+        P2 -->|"ya"| P6["Status BARU<br/>(disetujui sendiri)"]
+        P3 --> P4["Krani buka tab Persetujuan<br/>GET /api/panen/menunggu<br/>periksa kartu, foto, tanda lokasi"]
+        P4 --> P5{"Keputusan krani"}
+        P5 -->|"Setujui / Setujui semua<br/>POST /api/panen/{id}/setujui"| P6
+        P5 -->|"Tolak + alasan wajib (maks 300)<br/>POST /api/panen/{id}/tolak"| P7["Status DITOLAK<br/>alasan tampil di HP mandor"]
+        P7 -->|"mandor perbaiki, kirim ulang<br/>kirim_ulang = true"| P3
+        P6 --> P8["Terkunci: perubahan dijawab 423"]
+        P8 --> P9["ERP membaca lewat jembatan:<br/>BARU, DIBACA, DIIMPOR"]
+    end
+
+    subgraph I["B. INSPEKSI IPD: inspektur ke asisten"]
+        direction TB
+        I1(["Inspektur kirim inspeksi<br/>POST /api/ipd"]) --> I2{"Pengirim memegang<br/>ipd.setujui?"}
+        I2 -->|"tidak"| I3["Status MENUNGGU<br/>ditujukan ke asisten divisi"]
+        I2 -->|"ya (asisten menginspeksi sendiri)"| I6["Status DISETUJUI<br/>audit: inspektur memegang ipd.setujui"]
+        I3 --> I4["Asisten buka Persetujuan<br/>GET /api/ipd/menunggu<br/>ringkasan loses dan foto"]
+        I4 --> I5{"Keputusan asisten"}
+        I5 -->|"Setujui (dialog konfirmasi)<br/>POST /api/ipd/{id}/setujui"| I6
+        I5 -->|"Tolak + alasan wajib<br/>POST /api/ipd/{id}/tolak"| I7["Status DITOLAK<br/>alasan tampil di HP inspektur"]
+        I7 -->|"perbaiki, kirim ulang"| I3
+        I6 --> I8["Terkunci (423) dan masuk Laporan Loses"]
+    end
+
+    A["Semua tindakan tercatat di audit_log:<br/>TERIMA, SETUJU, TOLAK, TERIMA_ULANG"]
+    P6 -.-> A
+    P7 -.-> A
+    I6 -.-> A
+    I7 -.-> A

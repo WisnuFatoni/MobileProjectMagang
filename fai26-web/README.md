@@ -70,3 +70,10 @@ Bangun dengan `npm run build`, lalu sajikan dari alamat yang sama dengan API (sa
 - **Laporan Loses IPD** (`/ipd/laporan`, hak `laporan.ipd`): loses per kode temuan, kelompok, pemanen, blok, divisi, dan tanggal dari inspeksi yang disetujui.
 - **Divisi** (`/divisi`): kolom dan pilihan **Asisten** (akun berperan ASISTEN) yang menjadi penyetuju IPD; bisa diganti kapan saja.
 - Role **ASKEP** dan **KTU** hanya melihat (menu Master dan Administrasi tidak muncul tanpa haknya).
+
+## Fitur lain pada Sprint 2 (21 Nov 2026)
+
+- **Peta jalur inspeksi** pada rincian inspeksi IPD (`JalurPeta.tsx`, Leaflet dan OpenStreetMap, dimuat saat dibutuhkan). Hanya tampil bagi pemegang `ipd.jejak`. Ubin peta diambil dari `tile.openstreetmap.org`, jadi komputer yang membuka web perlu internet, dan server API mengizinkan host itu pada `img-src` di `internal/webui/spa.go`; bila web diletakkan di belakang proxy dengan kebijakan keamanan sendiri, host itu harus diizinkan juga. Klik peta atau tombol Perbesar peta membuka tampilan besar.
+- **Ekspor dan Cetak** (Excel, PDF, cetak) lewat dialog periode di Laporan Loses dan Daftar Inspeksi; pustaka `exceljs` dan `jspdf` dimuat saat dipakai.
+- **Foto profil** dengan pemotong (geser, zoom, putar) pada menu akun.
+- **Hak Akses**: admin dapat membuat, mengubah nama, dan menghapus role buatan sendiri.

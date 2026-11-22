@@ -1,6 +1,6 @@
 # Rencana fitur IPD (Inspeksi Panen Detail) dan perombakan navigasi
 
-Status (21 Nov 2026): **Tahap 0 (git lokal) dan Tahap 1 (desain data) selesai. Menunggu Ptoni memeriksa desain** sebelum Tahap 2 (API). Foto form lapangan diabaikan atas permintaan Ptoni; desain mengikuti penjelasannya.
+Status (22 Nov 2026): **Selesai dibangun** (tahap 1 sampai 5 dan putaran 3 sampai 7: API 0.16.0 sampai 0.20.0, HP Room v5 sampai v7, web, jalur GPS, persetujuan asisten). Berkas ini dipertahankan sebagai **catatan rancangan awal**; keadaan terbaru ada di `PROGRES.md` (Fase 6b dan 6c). Belum diuji dengan inspeksi sungguhan di kebun.
 
 ## 1. Tujuan
 

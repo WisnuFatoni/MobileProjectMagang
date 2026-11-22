@@ -1,6 +1,6 @@
 # Daftar uji lapangan fAI26
 
-Dibuat 18 Nov 2026. Semua fitur di bawah sudah lolos tes otomatis; yang belum pernah dicoba adalah **kondisi nyata**
+Dibuat 18 Nov 2026, diperbarui 22 Nov 2026 (ditambah bagian H sampai K untuk IPD, jalur GPS, persetujuan, dan koneksi). Semua fitur di bawah sudah lolos tes otomatis; yang belum pernah dicoba adalah **kondisi nyata**
 (TPH sungguhan, tajuk pohon, sinyal buruk, HP panas). Catat hasilnya di kolom kanan supaya bisa dibandingkan dan masuk laporan.
 
 Persiapan: server jalan dan HP bisa login online sekali (master turun), QR TPH sudah dicetak dari web admin
@@ -46,7 +46,7 @@ Catatan: ambang deteksi dilonggarkan (0,17) untuk tumpukan padat; A1 dan A2 mene
 | D1 | Mode pesawat: login offline, scan, simpan, setujui mandor | Semua jalan tanpa sinyal |
 | D2 | Nyalakan sinyal: catatan, foto, audit terkirim otomatis tanpa menekan tombol | Waktu sampai terkirim |
 | D3 | Sinyal putus di tengah kirim | Lanjut sendiri setelah sinyal kembali; tidak ada data ganda |
-| D4 | Mandor menyetujui catatan krani (login mandor di HP krani) | Alur sesuai harapan di lapangan |
+| D4 | (usang sejak 19 Nov: persetujuan kini oleh krani lewat server; uji di J1 sampai J3) | - |
 | D5 | Status Ditolak dari ERP muncul di Riwayat HP dengan alasannya | (butuh sisi ERP) |
 | D6 | Login offline sampai 7 hari, lalu hari ke-8 | Ditolak dengan pesan jelas |
 
@@ -73,6 +73,49 @@ Catatan: ambang deteksi dilonggarkan (0,17) untuk tumpukan padat; A1 dan A2 mene
 |---|---|---|
 | G1 | Buka web admin di layar HP (lebar sempit) | Tabel dan menu terbaca; belum pernah dilihat di lebar HP |
 | G2 | Cetak QR 3 ukuran di kertas sungguhan, margin pencetak 100% | Ukuran sesuai SPEK_QR_TPH.md |
+
+## H. Inspeksi IPD (ditambah 22 Nov)
+
+| # | Uji | Catat |
+|---|---|---|
+| H1 | Catat satu ancak sungguhan (sekitar 20 pokok, mode dua baris) | Waktu total dan per pokok; tombol terbaca di bawah matahari; kesalahan ketuk |
+| H2 | Foto dari layar pokok (tombol Ambil foto pokok ini) | Foto jelas; keterangan otomatis benar; jumlah foto |
+| H3 | Peringatan inspeksi ulang 7 hari (pemanen dan blok yang sama) | Peringatan muncul dan inspektur masih boleh lanjut |
+| H4 | Kerja tanpa sinyal, lalu menyalakan sinyal | Draf tersimpan; inspeksi dan foto terkirim sendiri |
+| H5 | Ubah inspeksi sebelum disetujui; coba ubah setelah disetujui | Boleh sebelum; ditolak server (423) dengan pesan jelas sesudah |
+| H6 | Hitungan loses di layar sama dengan hitungan manual dan dengan Laporan Loses di web | Selisih (harus nol) |
+
+## I. Jalur GPS inspeksi (ditambah 22 Nov)
+
+| # | Uji | Catat |
+|---|---|---|
+| I1 | Rekam jalur sambil berjalan minimal 10 menit di satu blok | Jumlah titik, jarak (m), akurasi rata-rata, bentuk garis di peta web |
+| I2 | Tempat terbuka dibanding di bawah tajuk sawit | Perkiraan jumlah titik yang terbuang karena akurasi lebih buruk dari 25 m |
+| I3 | Layar dikunci atau mati selama berjalan | Apakah layanan tetap merekam; notifikasi "Merekam jalur inspeksi" tetap tampil |
+| I4 | Baterai selama 30 menit merekam | Persen baterai sebelum dan sesudah |
+| I5 | Matikan sakelar Rekam jalur GPS | Tidak ada jalur; inspeksi tetap terkirim |
+| I6 | Hak lihat jalur: akun mandor dan akun asisten membuka inspeksi yang sama di web | Mandor tidak melihat jalur; asisten melihat |
+| I7 | Penanda pokok di peta dibandingkan posisi sebenarnya | Selisih (m) |
+| I8 | Notifikasi layanan dan dialog izin lokasi | Tangkap layar untuk dokumentasi |
+
+## J. Persetujuan (ditambah 22 Nov)
+
+| # | Uji | Catat |
+|---|---|---|
+| J1 | Mandor mengirim catatan panen; krani (HP lain, **login online**) membuka tab Persetujuan | Waktu sampai muncul; foto bukti tampil di kartu |
+| J2 | Krani menolak dengan alasan | Alasan tampil di Riwayat HP mandor; mandor dapat memperbaiki dan mengirim ulang |
+| J3 | Krani menekan Setujui semua (minimal 2 catatan) | Semua berubah menjadi Terkirim |
+| J4 | Asisten menyetujui dan menolak inspeksi IPD | Setelah disetujui terkunci; alasan penolakan tampil di HP inspektur |
+| J5 | Login offline sebagai pengguna lain, lalu buka Persetujuan (uji ulang setelah perbaikan O-01) | Aplikasi meminta login online; tidak ada aksi atas nama pengguna lama |
+| J6 | Dua penyetuju menyetujui item yang sama hampir bersamaan | Yang kedua mendapat "sudah diproses di tempat lain" |
+
+## K. Koneksi (ditambah 22 Nov)
+
+| # | Uji | Catat |
+|---|---|---|
+| K1 | HP tanpa kabel mengirim lewat Wi-Fi atau HTTPS | Berhasil; waktu kirim |
+| K2 | Cabut dan pasang kabel USB saat uji | Tidak ada pengaruh setelah K1 (sekarang pengiriman gagal bila `adb reverse` hilang) |
+| K3 | Sinyal lemah dan putus-nyambung | Antrean tidak menggandakan data |
 
 ## Setelah uji
 
