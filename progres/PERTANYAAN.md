@@ -180,3 +180,12 @@ Hasil Review Sprint 2 dan persiapan Sprint 3. Butir yang mengubah pengaturan kom
 | 22-8 | Kebijakan data lokasi: berapa lama jalur disimpan dan siapa boleh melihat. **Sarana sudah ada (hari 106):** `FAI26_JEJAK_SIMPAN_HARI` (bawaan 0 = tanpa batas) dan audit `LIHAT_JALUR`. Usulan 90 hari belum diputuskan; perlu juga umur cadangan database | Keputusan Ptoni dan pembimbing |
 | 22-9 | TCode ERP untuk membaca data IPD | Dari pihak ERP; belum ada |
 | 22-10 | Rekam koordinat TPH: mulai dari blok mana | Blok prioritas |
+
+Laporan akhir KKP (tenggat 15 Des 2026), dari review Sprint 3 hari 109:
+
+| # | Butir | Keputusan yang dibutuhkan |
+|---|---|---|
+| 23-1 | Pedoman dan format laporan KKP dari kampus (susunan bab, halaman, margin, lampiran) | Ptoni mengirim atau menyebutkan; kerangka di laporan hari 109 disesuaikan |
+| 23-2 | Data PT Andalan Alam Sumatera dan kebun tempat KKP (profil, struktur organisasi, alur kerja) untuk Bab II | Dari Ptoni dan pembimbing lapangan |
+| 23-3 | Jadwal uji lapangan (GPS dan pindai TPH) sebelum penulisan selesai | Ptoni: kapan dan berapa lama bisa ke kebun |
+| 23-4 | Arah sisa waktu: menulis laporan, menambah fitur, atau mengejar uji lapangan | Ptoni |
